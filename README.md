@@ -1,7 +1,7 @@
 SUREAL - Subjective Recovery Analysis
 ===================
 
-SUREAL is a toolbox developed by Netflix for subjective quality score recovery from noisy measurements obtained in lab tests.
+SUREAL is a toolbox developed by Netflix for quality score recovery from noisy subjective measurements obtained by lab tests. Read [this](resource/doc/dcc17v3.pdf) paper for some background.
 
 ## Prerequisites & Installation
 
