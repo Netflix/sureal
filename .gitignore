@@ -1,0 +1,9 @@
+# Caches
+.DS_Store
+.cache/
+.gradle/
+.idea/
+__pycache__/
+
+*.egg-info
+*.pyc
