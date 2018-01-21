@@ -110,4 +110,4 @@ Since partial sampling is allowed, it is not required that every subject ID is p
 
 ## Usage in a Python Script
 
-More examples of using the subjective models in a Python script can be found in [/python/script/run_subjective_models.py](/python/script/run_subjective_models.py).
+More examples of using the subjective models in a Python script can be found in [/python/script/run_subjective_models.py](/python/script/run_subjective_models.py). Run the script first to get a sense of what it does.

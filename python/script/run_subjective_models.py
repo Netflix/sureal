@@ -665,7 +665,7 @@ def main():
         # DmosModel,
     ]
 
-    # plot_sample_results(dataset_filepaths, subjective_model_classes)
+    plot_sample_results(dataset_filepaths, subjective_model_classes)
 
     # ============ plot trends =================
 
@@ -673,7 +673,7 @@ def main():
     # run_datasize_growth(dataset_filepaths)
 
     # ===== corrpution growth =====
-    run_subject_corruption_growth(dataset_filepaths)
+    # run_subject_corruption_growth(dataset_filepaths)
     # run_random_corruption_growth(dataset_filepaths)
 
     # run_subject_partial_corruption_growth(dataset_filepaths)
