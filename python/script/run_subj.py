@@ -2,10 +2,11 @@
 
 import os
 import sys
+import pprint
 
 from sureal.subjective_model import SubjectiveModel
 from sureal.routine import run_subjective_models
-from sureal.tools.misc import get_file_name_with_extension, get_cmd_option
+from sureal.tools.misc import get_file_name_with_extension, get_cmd_option, cmd_option_exists
 from sureal.config import DisplayConfig
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -30,6 +31,7 @@ def main():
         return 2
 
     output_dir = get_cmd_option(sys.argv, 3, len(sys.argv), '--output-dir')
+    print_ = cmd_option_exists(sys.argv, 3, len(sys.argv), '--print')
 
     do_plot = ['raw_scores', 'quality_scores']
     if subjective_model in ['MLE', 'MLE_CO', 'DMOS_MLE', 'DMOS_MLE_CO']:
@@ -47,7 +49,7 @@ def main():
         subjective_model_class.__name__, get_file_name_with_extension(dataset_filepath)
     )
 
-    run_subjective_models(
+    dataset, subjective_models, results = run_subjective_models(
         dataset_filepath=dataset_filepath,
         subjective_model_classes = [subjective_model_class,],
         normalize_final=False, # True or False
@@ -55,6 +57,12 @@ def main():
         plot_type='errorbar',
         gradient_method='simplified',
     )
+
+    if print_:
+        print("Dataset: {}".format(dataset.__file__))
+        print("Subjective Model: {} {}".format(subjective_models[0].TYPE, subjective_models[0].VERSION))
+        print("Result:")
+        pprint.pprint(results[0])
 
     if output_dir is None:
         DisplayConfig.show()
