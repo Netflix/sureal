@@ -1,5 +1,6 @@
 SUREAL - Subjective Recovery Analysis
 ===================
+[![Build Status](https://travis-ci.org/Netflix/sureal.svg?branch=master)](https://travis-ci.org/Netflix/sureal)
 
 SUREAL is a toolbox developed by Netflix for recovering quality scores from noisy measurements obtained by subjective tests. Read [this](resource/doc/dcc17v3.pdf) paper for some background.
 
