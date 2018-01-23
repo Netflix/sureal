@@ -122,9 +122,6 @@ class RawDatasetReader(DatasetReader):
                     "expect number of observers {expected} but got {actual} for {dis_video}".format(
                         expected=num_observers, actual=len(dis_video['os']), dis_video=str(dis_video))
 
-        # make sure dataset has ref_score
-        assert self.dataset.ref_score is not None, "dataset must have attribute ref_score"
-
     @property
     def num_observers(self):
         if (

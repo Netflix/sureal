@@ -116,6 +116,11 @@ class SubjectiveModel(TypeVersionEnabled):
         subject_rejection = kwargs['subject_rejection'] if 'subject_rejection' in kwargs else False
 
         if dscore_mode is True:
+
+            # make sure dataset has ref_score
+            assert dataset_reader.dataset.ref_score is not None, \
+                "For differential score, dataset must have attribute ref_score."
+
             E, S = s_es.shape
             s_e = pd.DataFrame(s_es).mean(axis=1) # mean along s
             s_e_ref = DmosModel._get_ref_mos(dataset_reader, s_e)
