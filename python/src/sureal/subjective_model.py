@@ -65,12 +65,17 @@ class SubjectiveModel(TypeVersionEnabled):
     def to_aggregated_dataset(self, **kwargs):
         self._assert_modeled()
         return self.dataset_reader.to_aggregated_dataset(
-            self.model_result['quality_scores'], **kwargs)
+            self.model_result['quality_scores'],
+            scores_std = self.model_result['quality_scores_std'] if 'quality_scores_std' in self.model_result else None,
+            **kwargs)
 
     def to_aggregated_dataset_file(self, dataset_filepath, **kwargs):
         self._assert_modeled()
         self.dataset_reader.to_aggregated_dataset_file(
-            dataset_filepath, self.model_result['quality_scores'], **kwargs)
+            dataset_filepath,
+            self.model_result['quality_scores'],
+            scores_std = self.model_result['quality_scores_std'] if 'quality_scores_std' in self.model_result else None,
+            **kwargs)
 
     def _assert_modeled(self):
         assert hasattr(self, 'model_result'), \

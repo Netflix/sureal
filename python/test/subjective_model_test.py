@@ -52,8 +52,10 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset2 = import_python_file(self.output_dataset_filepath)
         dis_video = dataset2.dis_videos[0]
         self.assertTrue('groundtruth' in dis_video)
+        self.assertTrue('groundtruth_std' in dis_video)
         self.assertTrue('os' not in dis_video)
         self.assertAlmostEquals(dis_video['groundtruth'], 4.884615384615385, places=4)
+        self.assertAlmostEquals(dis_video['groundtruth_std'], 0.08461538461538462, places=4)
 
     def test_mos_subjective_model_output_custom_resampling(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -68,8 +70,10 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertEquals(dataset2.resampling_type, 'lanczos')
         dis_video = dataset2.dis_videos[0]
         self.assertTrue('groundtruth' in dis_video)
+        self.assertTrue('groundtruth_std' in dis_video)
         self.assertTrue('os' not in dis_video)
         self.assertAlmostEquals(dis_video['groundtruth'], 4.884615384615385, places=4)
+        self.assertAlmostEquals(dis_video['groundtruth_std'], 0.08461538461538462, places=4)
 
     def test_mos_subjective_model_output2(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -79,8 +83,10 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset2 = subjective_model.to_aggregated_dataset()
         dis_video = dataset2.dis_videos[0]
         self.assertTrue('groundtruth' in dis_video)
+        self.assertTrue('groundtruth_std' in dis_video)
         self.assertTrue('os' not in dis_video)
         self.assertAlmostEquals(dis_video['groundtruth'], 4.884615384615385, places=4)
+        self.assertAlmostEquals(dis_video['groundtruth_std'], 0.08461538461538462, places=4)
 
     def test_mos_subjective_model_normalize_final(self):
         dataset = import_python_file(self.dataset_filepath)

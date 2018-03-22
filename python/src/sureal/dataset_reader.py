@@ -205,6 +205,12 @@ class RawDatasetReader(DatasetReader):
             dis_video2['groundtruth'] = score
             dis_videos.append(dis_video2)
 
+        # add scores std if available
+        if 'scores_std' in kwargs and kwargs['scores_std'] is not None:
+            assert len(dis_videos) == len(kwargs['scores_std'])
+            for dis_video, score_std in zip(dis_videos, kwargs['scores_std']):
+                dis_video['groundtruth_std'] = score_std
+
         if 'aggregate_content_ids' in kwargs and kwargs['aggregate_content_ids'] is not None:
             dis_videos = filter(lambda dis_video: dis_video['content_id'] in kwargs['aggregate_content_ids'], dis_videos)
 
