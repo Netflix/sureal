@@ -215,8 +215,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_ambgty.set_title(r'Content Ambiguity ($a_c$)')
                 ax_ambgty.grid()
         if xs:
-            my_xticks = map(lambda ref_video: ref_video['content_name'],
-                            dataset_reader.dataset.ref_videos)
+            my_xticks = ['' for _ in range(len(xs))]
+            for ref_video in dataset_reader.dataset.ref_videos:
+                my_xticks[ref_video['content_id']] = ref_video['content_name']
             # rotation = 75
             rotation = 90
             plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=rotation)

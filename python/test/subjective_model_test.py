@@ -621,5 +621,147 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertTrue('os' not in dis_video)
         self.assertAlmostEquals(dis_video['groundtruth'], 100.0, places=4)
 
+class SubjectiveModelPartialTest(unittest.TestCase):
+
+    def setUp(self):
+        self.dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw_PARTIAL.py')
+        self.output_dataset_filepath = SurealConfig.workdir_path('NFLX_dataset_public_test_PARTIAL.py')
+        self.output_dataset_pyc_filepath = SurealConfig.workdir_path('NFLX_dataset_public_test_PARTIAL.pyc')
+
+    def tearDown(self):
+        if os.path.exists(self.output_dataset_filepath):
+            os.remove(self.output_dataset_filepath)
+        if os.path.exists(self.output_dataset_pyc_filepath):
+            os.remove(self.output_dataset_pyc_filepath)
+
+    def test_mos_subjective_model(self):
+        dataset = import_python_file(self.dataset_filepath)
+        dataset_reader = RawDatasetReader(dataset)
+        subjective_model = MosModel(dataset_reader)
+        result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+        self.assertAlmostEquals(scores[0], 4.884615384615385, places=4)
+        self.assertAlmostEquals(scores[10], 2.8076923076923075, places=4)
+        self.assertAlmostEquals(np.mean(scores), 3.4871794871794877, places=4)
+        scores_std = result['quality_scores_std']
+        self.assertAlmostEquals(np.mean(scores_std), 0.13125250408357622, places=4)
+
+    def test_mos_subjective_model_output(self):
+        dataset = import_python_file(self.dataset_filepath)
+        dataset_reader = RawDatasetReader(dataset)
+        subjective_model = MosModel(dataset_reader)
+        subjective_model.run_modeling()
+        subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath)
+        self.assertTrue(os.path.exists(self.output_dataset_filepath))
+        dataset2 = import_python_file(self.output_dataset_filepath)
+        dis_video = dataset2.dis_videos[0]
+        self.assertTrue('groundtruth' in dis_video)
+        self.assertTrue('groundtruth_std' in dis_video)
+        self.assertTrue('os' not in dis_video)
+        self.assertAlmostEquals(dis_video['groundtruth'], 4.884615384615385, places=4)
+        self.assertAlmostEquals(dis_video['groundtruth_std'], 0.06389710663783135, places=4)
+
+    def test_mos_subjective_model_normalize_final(self):
+        dataset = import_python_file(self.dataset_filepath)
+        dataset_reader = RawDatasetReader(dataset)
+        subjective_model = MosModel(dataset_reader)
+        result = subjective_model.run_modeling(normalize_final=True)
+        scores = result['quality_scores']
+        self.assertAlmostEquals(scores[0], 1.1666952279897338, places=4)
+        self.assertAlmostEquals(scores[10], -0.56729217507757768, places=4)
+        self.assertAlmostEquals(np.mean(scores), 0.0, places=4)
+
+    def test_mos_subjective_model_transform_final(self):
+        dataset = import_python_file(self.dataset_filepath)
+        dataset_reader = RawDatasetReader(dataset)
+        subjective_model = MosModel(dataset_reader)
+        result = subjective_model.run_modeling(transform_final={'p1': 10, 'p0': 1})
+        scores = result['quality_scores']
+        self.assertAlmostEquals(scores[0], 49.84615384615385, places=4)
+        self.assertAlmostEquals(scores[10], 29.076923076923073, places=4)
+        self.assertAlmostEquals(np.mean(scores), 35.871794871794876, places=4)
+
+    def test_from_dataset_file(self):
+        subjective_model = MosModel.from_dataset_file(self.dataset_filepath)
+        result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+        self.assertAlmostEquals(scores[0], 4.884615384615385, places=4)
+        self.assertAlmostEquals(scores[10], 2.8076923076923075, places=4)
+        self.assertAlmostEquals(np.mean(scores), 3.4871794871794877, places=4)
+
+    def test_dmos_subjective_model(self):
+        subjective_model = DmosModel.from_dataset_file(self.dataset_filepath)
+        result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+        self.assertAlmostEquals(scores[0], 5.0, places=4)
+        self.assertAlmostEquals(scores[10], 2.9230769230769225, places=4)
+        self.assertAlmostEquals(np.mean(scores), 3.7473604826546003, places=4)
+        scores_std = result['quality_scores_std']
+        self.assertAlmostEquals(np.mean(scores_std), 0.13125250408357622, places=4)
+
+    def test_observer_aware_subjective_model_with_dscoring(self):
+        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+            self.dataset_filepath)
+        result = subjective_model.run_modeling(dscore_mode=True)
+
+        self.assertAlmostEquals(np.sum(result['observer_bias']), -0.038360699965619777, places=4)
+        self.assertAlmostEquals(np.var(result['observer_bias']), 0.095605013092265739, places=4)
+
+        self.assertAlmostEquals(np.sum(result['observer_inconsistency']), 15.81030572681315, places=4)
+        self.assertAlmostEquals(np.var(result['observer_inconsistency']), 0.014607671806207905, places=4)
+
+        self.assertAlmostEquals(np.sum(result['quality_scores']), 191.1906306037788, places=4)
+        self.assertAlmostEquals(np.var(result['quality_scores']), 1.4711930351190119, places=4)
+
+    def test_observer_aware_subjective_model_use_log(self):
+        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+            self.dataset_filepath)
+        result = subjective_model.run_modeling(use_log=True)
+
+        self.assertAlmostEquals(np.sum(result['observer_bias']), -0.02907696993595069, places=4)
+        self.assertAlmostEquals(np.var(result['observer_bias']), 0.095605013092265725, places=4)
+
+        self.assertAlmostEquals(np.sum(result['observer_inconsistency']), 15.810305727732661, places=4)
+        self.assertAlmostEquals(np.var(result['observer_inconsistency']), 0.014607671851733216, places=4)
+
+        self.assertAlmostEquals(np.sum(result['quality_scores']), 177.90318944102833, places=4)
+        self.assertAlmostEquals(np.var(result['quality_scores']), 1.4830610455789057, places=4)
+
+    def test_observer_content_aware_subjective_model(self):
+        subjective_model = MaximumLikelihoodEstimationModel.from_dataset_file(
+            self.dataset_filepath)
+        result = subjective_model.run_modeling()
+
+        self.assertAlmostEquals(np.nansum(result['content_ambiguity']), 2.653508643860357, places=4)
+        self.assertAlmostEquals(np.nanvar(result['content_ambiguity']), 0.0092892978862108271, places=4)
+
+        self.assertAlmostEquals(np.sum(result['observer_bias']), -0.020313188445860726, places=4)
+        self.assertAlmostEquals(np.var(result['observer_bias']), 0.091830942654165318, places=4)
+
+        self.assertAlmostEquals(np.sum(result['observer_inconsistency']), 11.232923468639161, places=4)
+        self.assertAlmostEquals(np.var(result['observer_inconsistency']), 0.027721095664357907, places=4)
+
+        self.assertAlmostEquals(np.sum(result['quality_scores']), 177.88599894484821, places=4)
+        self.assertAlmostEquals(np.var(result['quality_scores']), 1.4896077857605587, places=4)
+
+        # self.assertAlmostEquals(np.nansum(result['content_ambiguity_std']), 0.30465244947706538, places=4)
+        self.assertAlmostEquals(np.sum(result['observer_bias_std']), 2.165903882505483, places=4)
+        self.assertAlmostEquals(np.sum(result['observer_inconsistency_std']), 27.520643824238352, places=4)
+        self.assertAlmostEquals(np.sum(result['quality_scores_std']), 5.7355563435912256, places=4)
+
+    def test_observer_content_aware_subjective_model_nocontent(self):
+        subjective_model = MaximumLikelihoodEstimationModelContentOblivious.from_dataset_file(
+            self.dataset_filepath)
+        result = subjective_model.run_modeling()
+
+        self.assertAlmostEquals(np.sum(result['observer_bias']), -0.038360699965624648, places=4)
+        self.assertAlmostEquals(np.var(result['observer_bias']), 0.095605013092265753, places=4)
+
+        self.assertAlmostEquals(np.sum(result['observer_inconsistency']), 15.81030572681315, places=4)
+        self.assertAlmostEquals(np.var(result['observer_inconsistency']), 0.014607671806207895, places=4)
+
+        self.assertAlmostEquals(np.sum(result['quality_scores']), 177.92139983454805, places=4)
+        self.assertAlmostEquals(np.var(result['quality_scores']), 1.4830610442685492, places=4)
+
 if __name__ == '__main__':
     unittest.main()

@@ -18,15 +18,17 @@ class DatasetReader(object):
         cids = []
         for ref_video in self.dataset.ref_videos:
             cids.append(ref_video['content_id'])
-        expected_cids = range(self.num_ref_videos)
-        assert len(cids) == len(expected_cids) and sorted(cids) == sorted(expected_cids), \
-            "reference video content_ids must range from 0 to total contents -1"
+        expected_cids = range(np.max(cids) + 1)
+        for cid in cids:
+            assert cid in expected_cids, \
+                'reference video content_ids must be in [0, {}), but is {}'.\
+                    format(self.num_ref_videos, cid)
 
         # assert dis_video content_id is content_ids
         for dis_video in self.dataset.dis_videos:
             assert dis_video['content_id'] in cids, \
-                "dis_video {dis_video} must have content_id in {cids}".format(
-                    dis_video=dis_video, cids=cids)
+                "dis_video of content_id {content_id}, asset_id {asset_id} must have content_id in {cids}".format(
+                    content_id=dis_video['content_id'], asset_id=dis_video['asset_id'], cids=cids)
 
     @property
     def num_dis_videos(self):
@@ -35,6 +37,10 @@ class DatasetReader(object):
     @property
     def num_ref_videos(self):
         return len(self.dataset.ref_videos)
+
+    @property
+    def max_content_id_of_ref_videos(self):
+        return max(map(lambda ref_video: ref_video['content_id'], self.dataset.ref_videos))
 
     @property
     def content_ids(self):

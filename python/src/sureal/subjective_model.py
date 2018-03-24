@@ -500,7 +500,9 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         def sum_over_content_id(xs, cids):
             assert len(xs) == len(cids)
             num_c = np.max(cids) + 1
-            assert sorted(list(set(cids))) == range(num_c)
+            for cid in set(cids):
+                assert cid in range(num_c), \
+                    'content id must be in [0, {num_c}), but is {cid}'.format(num_c=num_c, cid=cid)
             sums = np.zeros(num_c)
             for x, cid in zip(xs, cids):
                 sums[cid] += x
@@ -509,7 +511,9 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         def std_over_subject_and_content_id(x_es, cids):
             assert x_es.shape[0] == len(cids)
             num_c = np.max(cids) + 1
-            assert sorted(list(set(cids))) == range(num_c)
+            for cid in set(cids):
+                assert cid in range(num_c), \
+                    'content id must be in [0, {num_c}), but is {cid}'.format(num_c=num_c, cid=cid)
             ls = [[] for _ in range(num_c)]
             for idx_cid, cid in enumerate(cids):
                 ls[cid] = ls[cid] + list(x_es[idx_cid, :])
@@ -525,7 +529,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         x_es = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         E, S = x_es.shape
-        C = dataset_reader.num_ref_videos
+        C = dataset_reader.max_content_id_of_ref_videos + 1
 
         # === initialization ===
 
@@ -775,7 +779,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             likelihood = np.sum(cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=1))
 
             msg = 'Iteration {itr:4d}: change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
-                format(itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.mean(x_e), b_s=np.mean(b_s), v_s=np.mean(v_s), a_c=np.mean(a_c))
+                format(itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
             sys.stdout.write(msg + '\r')
             sys.stdout.flush()
             # time.sleep(0.001)

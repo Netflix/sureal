@@ -20,6 +20,7 @@ class RawDatasetReaderTest(unittest.TestCase):
 
     def test_read_dataset_stats(self):
         self.assertEquals(self.dataset_reader.num_ref_videos, 9)
+        self.assertEquals(self.dataset_reader.max_content_id_of_ref_videos, 8)
         self.assertEquals(self.dataset_reader.num_dis_videos, 79)
         self.assertEquals(self.dataset_reader.num_observers, 26)
 
@@ -47,6 +48,44 @@ class RawDatasetReaderTest(unittest.TestCase):
     def test_to_persubject_dataset(self):
         dataset = self.dataset_reader.to_persubject_dataset(np.zeros([79, 26]))
         self.assertEqual(len(dataset.dis_videos), 2054)
+
+class RawDatasetReaderPartialTest(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw_PARTIAL.py')
+        self.dataset = import_python_file(dataset_filepath)
+        self.dataset_reader = RawDatasetReader(self.dataset)
+
+    def test_read_dataset_stats(self):
+        self.assertEquals(self.dataset_reader.num_ref_videos, 7)
+        self.assertEquals(self.dataset_reader.max_content_id_of_ref_videos, 8)
+        self.assertEquals(self.dataset_reader.num_dis_videos, 51)
+        self.assertEquals(self.dataset_reader.num_observers, 26)
+
+    def test_opinion_score_2darray(self):
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertAlmostEquals(np.mean(os_2darray), 3.4871794871794872, places=4)
+        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.65626252041788125, places=4)
+
+    def test_dis_videos_content_ids(self):
+        content_ids = self.dataset_reader.content_id_of_dis_videos
+        self.assertAlmostEquals(np.mean(content_ids), 3.9215686274509802, places=4)
+
+    def test_disvideo_is_refvideo(self):
+        l = self.dataset_reader.disvideo_is_refvideo
+        self.assertItemsEqual(indices(l, lambda e: e is True), range(7))
+
+    def test_ref_score(self):
+        self.assertEqual(self.dataset_reader.ref_score, 5.0)
+
+    def test_to_persubject_dataset_wrong_dim(self):
+        with self.assertRaises(AssertionError):
+            dataset = self.dataset_reader.to_persubject_dataset(np.zeros(3000))
+            self.assertEqual(len(dataset.dis_videos), 2054)
+
+    def test_to_persubject_dataset(self):
+        dataset = self.dataset_reader.to_persubject_dataset(np.zeros([79, 26]))
+        self.assertEqual(len(dataset.dis_videos), 1326)
 
 class SyntheticDatasetReaderTest(unittest.TestCase):
 
