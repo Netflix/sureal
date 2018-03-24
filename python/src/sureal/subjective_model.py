@@ -357,6 +357,11 @@ class MaximumLikelihoodEstimationModelReduced(SubjectiveModel):
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
 
+        def one_or_nan(x):
+            y = np.ones(x.shape)
+            y[np.isnan(x)] = float('nan')
+            return y
+
         if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
             assert False, 'SubjectAwareGenerativeModel must not and need not ' \
                           'apply subject rejection.'
@@ -393,7 +398,7 @@ class MaximumLikelihoodEstimationModelReduced(SubjectiveModel):
 
             # (8) b_s
             num = pd.DataFrame(x_es - np.tile(x_e, (S, 1)).T).sum(axis=0) # sum over e
-            den = pd.DataFrame(x_es/x_es).sum(axis=0) # sum over e
+            den = pd.DataFrame(one_or_nan(x_es)).sum(axis=0) # sum over e
             b_s_new = num / den
             b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
 
@@ -415,7 +420,7 @@ class MaximumLikelihoodEstimationModelReduced(SubjectiveModel):
 
             # (7) x_e
             num = pd.DataFrame((x_es - np.tile(b_s, (E, 1))) / np.tile(v_s**2, (E, 1))).sum(axis=1) # sum along s
-            den = pd.DataFrame(x_es/x_es / np.tile(v_s**2, (E, 1))).sum(axis=1) # sum along s
+            den = pd.DataFrame(one_or_nan(x_es) / np.tile(v_s**2, (E, 1))).sum(axis=1) # sum along s
             x_e_new = num / den
             x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
 
