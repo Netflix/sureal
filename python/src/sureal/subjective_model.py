@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 import sys
 
 import numpy as np
+import time
 from scipy import linalg
 from scipy import stats
 import pandas as pd
@@ -464,28 +465,36 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     and inconsistency, as well as content's bias and ambiguity.
     The observed score is modeled by:
     X_e,s = x_e + B_e,s + A_e,s
-    where x_e is the true quality of distorted video e, and B_e,s ~ N(b_s, v_s)
-    is the term representing observer s's bias (b_s) and inconsistency (v_s).
-    A_e,s ~ N(0, a_c), where c is a function of e, or c = c(e), represents
-    content c's ambiguity (a_c). The model is then solved via maximum
+    where x_e is the true quality of distorted video e, and B_e,s ~ N(b_s, gm_s)
+    is the term representing observer s's bias (b_s) and inconsistency (variance gm_s).
+    A_e,s ~ N(0, al_c), where c is a function of e, or c = c(e), represents
+    content c's ambiguity (variance al_c). The model is then solved via maximum
     likelihood estimation using belief propagation.
     """
 
     TYPE = 'MLE' # maximum likelihood estimation
     # VERSION = '0.1'
-    VERSION = '0.2' # added confidence interval for parameters
+    # VERSION = '0.2' # added confidence interval for parameters
+    VERSION = '0.3' # replace std with var
 
     mode = 'DEFAULT'
 
-    DEFAULT_GRADIENT_METHOD = 'simplified'
+    # DEFAULT_GRADIENT_METHOD = 'simplified'
+    DEFAULT_GRADIENT_METHOD = 'numerical'
 
     @staticmethod
-    def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis):
+    def one_or_nan(x):
+        y = np.ones(x.shape)
+        y[np.isnan(x)] = float('nan')
+        return y
+
+    @classmethod
+    def loglikelihood_fcn(cls, x_es, x_e, b_s, gm_s, al_c, content_id_of_dis_videos, axis):
         E, S = x_es.shape
-        a_c_e = np.array(map(lambda i: a_c[i], content_id_of_dis_videos))
-        a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-        vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-        ret = - 1.0 / 2 * np.log(vs2_add_ace2) - 1.0 / 2 * a_es**2 / vs2_add_ace2
+        al_c_e = np.array(map(lambda i: al_c[i], content_id_of_dis_videos))
+        r_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
+        w_es = cls.one_or_nan(x_es) / (np.tile(gm_s, (E, 1)) + np.tile(al_c_e, (S, 1)).T)
+        ret = 1.0 / 2 * np.log(w_es) - 1.0 / 2 * r_es**2 * w_es
         ret = pd.DataFrame(ret).sum(axis=axis)
         return ret
 
@@ -500,7 +509,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             assert False, '{} must not and need not apply subject rejection.'.format(cls.__name__)
 
         gradient_method = kwargs['gradient_method'] if 'gradient_method' in kwargs else cls.DEFAULT_GRADIENT_METHOD
-        assert gradient_method == 'simplified' or gradient_method == 'original' or gradient_method == 'numerical'
+        assert gradient_method == 'simplified' or gradient_method == 'numerical'
 
         def sum_over_content_id(xs, cids):
             assert len(xs) == len(cids)
@@ -513,7 +522,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 sums[cid] += x
             return sums
 
-        def std_over_subject_and_content_id(x_es, cids):
+        def var_over_subject_and_content_id(x_es, cids):
             assert x_es.shape[0] == len(cids)
             num_c = np.max(cids) + 1
             for cid in set(cids):
@@ -524,13 +533,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 ls[cid] = ls[cid] + list(x_es[idx_cid, :])
             stds = []
             for l in ls:
-                stds.append(pd.Series(l).std(ddof=0))
+                stds.append(pd.Series(l).var(ddof=0))
             return np.array(stds)
-
-        def one_or_nan(x):
-            y = np.ones(x.shape)
-            y[np.isnan(x)] = float('nan')
-            return y
 
         x_es = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         E, S = x_es.shape
@@ -540,18 +544,18 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         mos = np.array(MosModel(dataset_reader).run_modeling()['quality_scores'])
         r_es = x_es - np.tile(mos, (S, 1)).T # r_es: residual at e, s
-        sigma_r_s = pd.DataFrame(r_es).std(axis=0, ddof=0) # along e
-        sigma_r_c = std_over_subject_and_content_id(r_es, dataset_reader.content_id_of_dis_videos)
+        var_r_s = pd.DataFrame(r_es).var(axis=0, ddof=0) # along e
+        var_r_c = var_over_subject_and_content_id(r_es, dataset_reader.content_id_of_dis_videos)
 
         x_e = mos # use MOS as initial value for x_e
         b_s = np.zeros(S)
-        v_s = np.zeros(S) if cls.mode == 'SUBJECT_OBLIVIOUS' else sigma_r_s
-        a_c = np.zeros(C) if cls.mode == 'CONTENT_OBLIVIOUS' else sigma_r_c
+        gm_s = np.zeros(S) if cls.mode == 'SUBJECT_OBLIVIOUS' else var_r_s
+        al_c = np.zeros(C) if cls.mode == 'CONTENT_OBLIVIOUS' else var_r_c
 
-        x_e_std = None
-        b_s_std = None
-        v_s_std = None
-        a_c_std = None
+        # x_e_var = None
+        # b_s_var = None
+        # gm_s_var = None
+        # al_c_var = None
 
         # === iterations ===
 
@@ -567,212 +571,148 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             x_e_prev = x_e
 
-            # ==== (12) b_s ====
+            # ==== b_s ====
 
             if gradient_method == 'simplified':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
-                num_num = x_es - np.tile(x_e, (S, 1)).T
-                num_den = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                num = pd.DataFrame(num_num / num_den).sum(axis=0) # sum over e
-                den_num = one_or_nan(x_es) # 1 and nan
-                den_den = num_den
-                den = pd.DataFrame(den_num / den_den).sum(axis=0) # sum over e
+                al_c_e = np.array(map(lambda i: al_c[i], dataset_reader.content_id_of_dis_videos))
+                w_es = cls.one_or_nan(x_es) / (np.tile(gm_s, (E, 1)) + np.tile(al_c_e, (S, 1)).T)
+                num = w_es * (x_es - np.tile(x_e, (S, 1)).T)
+                num = pd.DataFrame(num).sum(axis=0) # sum over e
+                den = pd.DataFrame(w_es).sum(axis=0) # sum over e
                 b_s_new = num / den
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(den) # calculate std of x_e
-
-            elif gradient_method == 'original':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                order1 = (x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))) / vs2_add_ace2
-                order1 = pd.DataFrame(order1).sum(axis=0) # sum over e
-                order2 = - one_or_nan(x_es) / vs2_add_ace2
-                order2 = pd.DataFrame(order2).sum(axis=0) # sum over e
-                b_s_new = b_s - order1 / order2
-                b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                # lpp = pd.DataFrame(-w_es).sum(axis=0) # sum over e
+                # b_s_var = 1.0 / (-lpp) # calculate var of b_s
 
             elif gradient_method == 'numerical':
                 axis = 0 # sum over e
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON / 2.0, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON / 2.0, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON / 2.0, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
+                         cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON / 2.0, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
+                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
+                                  + cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
                 b_s_new = b_s - order1 / order2
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                b_s_var = 1.0 / (-order2) # calculate var of b_s
+
+                pass
 
             else:
                 assert False
 
             if cls.mode == 'SUBJECT_OBLIVIOUS':
                 b_s = np.zeros(S) # forcing zero, hence disabling
-                b_s_std = np.zeros(S)
+                b_s_var = np.zeros(S)
 
-            # ==== (14) v_s ====
+            # ==== gm_s ====
 
             if gradient_method == 'simplified':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
-                num = - np.tile(v_s, (E, 1)) / vs2_add_ace2 + np.tile(v_s, (E, 1)) * a_es**2 / vs2_add_ace2**2
-                num = pd.DataFrame(num).sum(axis=0) # sum over e
-                poly_term = np.tile(a_c_e**4, (S, 1)).T \
-                      - 3 * np.tile(v_s**4, (E, 1)) \
-                      - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
-                den = vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                den = pd.DataFrame(den).sum(axis=0) # sum over e
-                v_s_new = v_s - num / den
-                v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
-                # calculate std of v_s
-                lpp = pd.DataFrame(
-                    vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                ).sum(axis=0) # sum over e
-                v_s_std = 1.0 / np.sqrt(-lpp)
 
-            elif gradient_method == 'original':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
-                poly_term = np.tile(a_c_e**4, (S, 1)).T \
-                      - 3 * np.tile(v_s**4, (E, 1)) \
-                      - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
-                order1 = - np.tile(v_s, (E, 1)) / vs2_add_ace2 + np.tile(v_s, (E, 1)) * a_es**2 / vs2_add_ace2**2
-                order1 = pd.DataFrame(order1).sum(axis=0) # sum over e
-                order2 = vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                order2 = pd.DataFrame(order2).sum(axis=0) # sum over e
-                v_s_new = v_s - order1 / order2
-                v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
-                v_s_std = 1.0 / np.sqrt(-order2) # calculate std of v_s
+                al_c_e = np.array(map(lambda i: al_c[i], dataset_reader.content_id_of_dis_videos))
+                w_es = cls.one_or_nan(x_es) / (np.tile(gm_s, (E, 1)) + np.tile(al_c_e, (S, 1)).T)
+                r_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
+                num = cls.one_or_nan(x_es) - r_es**2 * w_es
+                num = pd.DataFrame(num).sum(axis=0) # sum over e
+                den = w_es - 2 * r_es**2 * w_es**2
+                den = pd.DataFrame(den).sum(axis=0) # sum over e
+                gm_s_new = gm_s + num / den
+                gm_s = gm_s * (1.0 - REFRESH_RATE) + gm_s_new * REFRESH_RATE
+                # lpp = 1.0/2 * w_es**2 - r_es**2 * w_es**3
+                # lpp = pd.DataFrame(lpp).sum(axis=0) # sum over e
+                # gm_s_var = 1.0 / (-lpp) # calculate var of gm_s
 
             elif gradient_method == 'numerical':
                 axis = 0 # sum over e
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s + EPSILON / 2.0, a_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON / 2.0, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s + EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
-                v_s_new = v_s - order1 / order2
-                v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
-                v_s_std = 1.0 / np.sqrt(-order2) # calculate std of v_s
+                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s + EPSILON / 2.0, al_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
+                         cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s - EPSILON / 2.0, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s + EPSILON, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
+                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
+                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s - EPSILON, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                gm_s_new = gm_s - order1 / order2
+                gm_s = gm_s * (1.0 - REFRESH_RATE) + gm_s_new * REFRESH_RATE
+                gm_s_var = 1.0 / (-order2) # calculate var of gm_s
+
+                pass
 
             else:
                 assert False
 
             # force non-negative
-            v_s = np.maximum(v_s, 0.0 * np.ones(v_s.shape))
+            gm_s = np.maximum(gm_s, 0.0 * np.ones(gm_s.shape))
 
             if cls.mode == 'SUBJECT_OBLIVIOUS':
-                v_s = np.zeros(S) # forcing zero, hence disabling
-                v_s_std = np.zeros(S)
+                gm_s = np.zeros(S) # forcing zero, hence disabling
+                gm_s_std = np.zeros(S)
 
-            # ==== (15) a_c ====
+            # ==== al_c ====
 
             if gradient_method == 'simplified':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
-                num = - np.tile(a_c_e, (S, 1)).T / vs2_add_ace2 + np.tile(a_c_e, (S, 1)).T * a_es**2 / vs2_add_ace2**2
+
+                al_c_e = np.array(map(lambda i: al_c[i], dataset_reader.content_id_of_dis_videos))
+                w_es = cls.one_or_nan(x_es) / (np.tile(gm_s, (E, 1)) + np.tile(al_c_e, (S, 1)).T)
+                r_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
+                num = cls.one_or_nan(x_es) - r_es**2 * w_es
                 num = pd.DataFrame(num).sum(axis=1) # sum over s
                 num = sum_over_content_id(num, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
-                poly_term = np.tile(v_s**4, (E, 1)) \
-                      - 3 * np.tile(a_c_e**4, (S, 1)).T \
-                      - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
-                den = - vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
+                den = w_es - 2 * r_es**2 * w_es**2
                 den = pd.DataFrame(den).sum(axis=1) # sum over s
                 den = sum_over_content_id(den, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
-                a_c_new = a_c - num / den
-                a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
-                # calculate std of a_c
-                lpp = sum_over_content_id(
-                    pd.DataFrame(
-                        -vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                    ).sum(axis=1),
-                    dataset_reader.content_id_of_dis_videos
-                ) # sum over e:c(e)=c
-                a_c_std = 1.0 /np.sqrt(-lpp)
-
-            elif gradient_method == 'original':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
-                poly_term = np.tile(v_s**4, (E, 1)) \
-                      - 3 * np.tile(a_c_e**4, (S, 1)).T \
-                      - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
-                order1 = - np.tile(a_c_e, (S, 1)).T / vs2_add_ace2 + np.tile(a_c_e, (S, 1)).T * a_es**2 / vs2_add_ace2**2
-                order1 = pd.DataFrame(order1).sum(axis=1) # sum over s
-                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
-                order2 = - vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                order2 = pd.DataFrame(order2).sum(axis=1) # sum over s
-                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
-                a_c_new = a_c - order1 / order2
-                a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
-                a_c_std = 1.0 / np.sqrt(-order2) # calculate std of a_c
+                al_c_new = al_c + num / den
+                al_c = al_c * (1.0 - REFRESH_RATE) + al_c_new * REFRESH_RATE
+                # lpp = 1.0/2 * w_es**2 - r_es**2 * w_es**3
+                # lpp = pd.DataFrame(lpp).sum(axis=1) # sum over s
+                # lpp = sum_over_content_id(lpp, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
+                # al_c_var = 1.0 / (-lpp) # calculate var of al_c
 
             elif gradient_method == 'numerical':
                 axis = 1 # sum over s
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c + EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis=axis) -
+                         cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c - EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c + EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)
+                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
+                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c - EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
                 order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
                 order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
-                a_c_new = a_c - order1 / order2
-                a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
-                a_c_std = 1.0 / np.sqrt(-order2) # calculate std of a_c
+                al_c_new = al_c - order1 / order2
+                al_c = al_c * (1.0 - REFRESH_RATE) + al_c_new * REFRESH_RATE
+                al_c_var = 1.0 / (-order2) # calculate var of al_c
 
+                pass
             else:
                 assert False
 
             # force non-negative
-            a_c = np.maximum(a_c, 0.0 * np.ones(a_c.shape))
+            al_c = np.maximum(al_c, 0.0 * np.ones(al_c.shape))
 
             if cls.mode == 'CONTENT_OBLIVIOUS':
-                a_c = np.zeros(C) # forcing zero, hence disabling
-                a_c_std = np.zeros(C)
+                al_c = np.zeros(C) # forcing zero, hence disabling
+                al_c_std = np.zeros(C)
 
-            # (11) ==== x_e ====
+            # ==== x_e ====
 
             if gradient_method == 'simplified':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
-                num_num = x_es - np.tile(b_s, (E, 1))
-                num_den = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                num = pd.DataFrame(num_num / num_den).sum(axis=1) # sum over s
-                den_num = one_or_nan(x_es) # 1 and nan
-                den_den = num_den
-                den = pd.DataFrame(den_num / den_den).sum(axis=1) # sum over s
+                al_c_e = np.array(map(lambda i: al_c[i], dataset_reader.content_id_of_dis_videos))
+                w_es = cls.one_or_nan(x_es) / (np.tile(gm_s, (E, 1)) + np.tile(al_c_e, (S, 1)).T)
+                num = w_es * (x_es - np.tile(b_s, (E, 1)))
+                num = pd.DataFrame(num).sum(axis=1) # sum over s
+                den = pd.DataFrame(w_es).sum(axis=1) # sum over s
                 x_e_new = num / den
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(den) # calculate std of x_e
-
-            elif gradient_method == 'original':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                order1 = a_es / vs2_add_ace2
-                order1 = pd.DataFrame(order1).sum(axis=1) # sum over s
-                order2 = - one_or_nan(x_es) / vs2_add_ace2
-                order2 = pd.DataFrame(order2).sum(axis=1) # sum over s
-                x_e_new = x_e - order1 / order2
-                x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                # lpp = pd.DataFrame(-w_es).sum(axis=1) # sum over s
+                # x_e_var = 1.0 / (-lpp) # calculate var of x_e
 
             elif gradient_method == 'numerical':
                 axis = 1 # sum over s
-                order1 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON / 2.0, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e - EPSILON / 2.0, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e - EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                order1 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON / 2.0, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
+                         cls.loglikelihood_fcn(x_es, x_e - EPSILON / 2.0, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
+                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
+                                  + cls.loglikelihood_fcn(x_es, x_e - EPSILON, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
                 x_e_new = x_e - order1 / order2
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                x_e_var = 1.0 / (-order2) # calculate std of x_e
+
+                pass
 
             else:
                 assert False
@@ -781,10 +721,10 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             delta_x_e = linalg.norm(x_e_prev - x_e)
 
-            likelihood = np.sum(cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=1))
+            likelihood = np.sum(cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=1))
 
-            msg = 'Iteration {itr:4d}: change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
-                format(itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
+            msg = 'Iteration {itr:4d}: change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, gm_s {gm_s}, al_c {al_c}'.\
+                format(itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), gm_s=np.nanmean(gm_s), al_c=np.nanmean(al_c))
             sys.stdout.write(msg + '\r')
             sys.stdout.flush()
             # time.sleep(0.001)
@@ -797,24 +737,24 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         sys.stdout.write("\n")
 
-        assert x_e_std is not None
-        assert b_s_std is not None
+        # assert x_e_var is not None
+        # assert b_s_var is not None
 
         result = {
             'quality_scores': list(x_e),
-            'quality_scores_std': list(x_e_std),
+            # 'quality_scores_std': list(np.sqrt(x_e_var)),
         }
 
         if cls.mode != 'SUBJECT_OBLIVIOUS':
             result['observer_bias'] = list(b_s)
-            result['observer_bias_std'] = list(b_s_std)
+            # result['observer_bias_std'] = list(np.sqrt(b_s_var))
 
-            result['observer_inconsistency'] = list(v_s)
-            result['observer_inconsistency_std'] = list(v_s_std)
+            result['observer_inconsistency'] = list(gm_s)
+            # result['observer_inconsistency_std'] = list(np.sqrt(gm_s_var))
 
         if cls.mode != 'CONTENT_OBLIVIOUS':
-            result['content_ambiguity'] = list(a_c)
-            result['content_ambiguity_std'] = list(a_c_std)
+            result['content_ambiguity'] = list(al_c)
+            # result['content_ambiguity_std'] = list(np.sqrt(al_c_var))
 
         try:
             observers = dataset_reader._get_list_observers() # may not exist
