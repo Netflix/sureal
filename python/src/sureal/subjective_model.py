@@ -560,7 +560,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         # === iterations ===
 
         MAX_ITR = 10000
-        REFRESH_RATE = 0.01
+        REFRESH_RATE = 0.1
         DELTA_THR = 1e-8
         EPSILON = 1e-3
 
