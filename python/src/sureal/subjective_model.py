@@ -471,7 +471,6 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     likelihood estimation using belief propagation.
     """
 
-    # TYPE = 'Subject/Content-Aware'
     TYPE = 'MLE' # maximum likelihood estimation
     # VERSION = '0.1'
     VERSION = '0.2' # added confidence interval for parameters
@@ -493,9 +492,9 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
 
-        # mode: DEFAULT - subject and content-aware
-        #       NO_SUBJECT - subject-unaware
-        #       NO_CONTENT - content-unaware
+        # mode: DEFAULT - full model
+        #       SUBJECT_OBLIVIOUS - model not considering subject bias and inconsistency
+        #       CONTENT_OBLIVIOUS - model not considering content ambiguity
 
         if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
             assert False, '{} must not and need not apply subject rejection.'.format(cls.__name__)
@@ -546,8 +545,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         x_e = mos # use MOS as initial value for x_e
         b_s = np.zeros(S)
-        v_s = np.zeros(S) if cls.mode == 'NO_SUBJECT' else sigma_r_s
-        a_c = np.zeros(C) if cls.mode == 'NO_CONTENT' else sigma_r_c
+        v_s = np.zeros(S) if cls.mode == 'SUBJECT_OBLIVIOUS' else sigma_r_s
+        a_c = np.zeros(C) if cls.mode == 'CONTENT_OBLIVIOUS' else sigma_r_c
 
         x_e_std = None
         b_s_std = None
@@ -607,7 +606,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             else:
                 assert False
 
-            if cls.mode == 'NO_SUBJECT':
+            if cls.mode == 'SUBJECT_OBLIVIOUS':
                 b_s = np.zeros(S) # forcing zero, hence disabling
                 b_s_std = np.zeros(S)
 
@@ -666,7 +665,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             # force non-negative
             v_s = np.maximum(v_s, 0.0 * np.ones(v_s.shape))
 
-            if cls.mode == 'NO_SUBJECT':
+            if cls.mode == 'SUBJECT_OBLIVIOUS':
                 v_s = np.zeros(S) # forcing zero, hence disabling
                 v_s_std = np.zeros(S)
 
@@ -734,7 +733,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             # force non-negative
             a_c = np.maximum(a_c, 0.0 * np.ones(a_c.shape))
 
-            if cls.mode == 'NO_CONTENT':
+            if cls.mode == 'CONTENT_OBLIVIOUS':
                 a_c = np.zeros(C) # forcing zero, hence disabling
                 a_c_std = np.zeros(C)
 
@@ -806,14 +805,14 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             'quality_scores_std': list(x_e_std),
         }
 
-        if cls.mode != 'NO_SUBJECT':
+        if cls.mode != 'SUBJECT_OBLIVIOUS':
             result['observer_bias'] = list(b_s)
             result['observer_bias_std'] = list(b_s_std)
 
             result['observer_inconsistency'] = list(v_s)
             result['observer_inconsistency_std'] = list(v_s_std)
 
-        if cls.mode != 'NO_CONTENT':
+        if cls.mode != 'CONTENT_OBLIVIOUS':
             result['content_ambiguity'] = list(a_c)
             result['content_ambiguity_std'] = list(a_c_std)
 
@@ -829,13 +828,13 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 class MaximumLikelihoodEstimationModelContentOblivious(MaximumLikelihoodEstimationModel):
     TYPE = 'MLE_CO' # maximum likelihood estimation (no content modeling)
     VERSION = MaximumLikelihoodEstimationModel.VERSION + "_0.1"
-    mode = 'NO_CONTENT'
+    mode = 'CONTENT_OBLIVIOUS'
 
 
 class MaximumLikelihoodEstimationModelSubjectOblivious(MaximumLikelihoodEstimationModel):
     TYPE = 'MLE_SO' # maximum likelihood estimation (no subject modeling)
     VERSION = MaximumLikelihoodEstimationModel.VERSION + "_0.1"
-    mode = 'NO_SUBJECT'
+    mode = 'SUBJECT_OBLIVIOUS'
 
 
 class SubjrejMosModel(MosModel):
