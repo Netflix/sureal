@@ -531,10 +531,10 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             ls = [[] for _ in range(num_c)]
             for idx_cid, cid in enumerate(cids):
                 ls[cid] = ls[cid] + list(x_es[idx_cid, :])
-            stds = []
+            vars = []
             for l in ls:
-                stds.append(pd.Series(l).var(ddof=0))
-            return np.array(stds)
+                vars.append(pd.Series(l).var(ddof=0))
+            return np.array(vars)
 
         x_es = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         E, S = x_es.shape
@@ -560,7 +560,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         # === iterations ===
 
         MAX_ITR = 10000
-        REFRESH_RATE = 0.1
+        REFRESH_RATE = 0.01
         DELTA_THR = 1e-8
         EPSILON = 1e-3
 
@@ -593,7 +593,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                                   + cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
                 b_s_new = b_s - order1 / order2
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_var = 1.0 / (-order2) # calculate var of b_s
+                # b_s_var = 1.0 / (-order2) # calculate var of b_s
 
                 pass
 
@@ -630,7 +630,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                                   + cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s - EPSILON, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
                 gm_s_new = gm_s - order1 / order2
                 gm_s = gm_s * (1.0 - REFRESH_RATE) + gm_s_new * REFRESH_RATE
-                gm_s_var = 1.0 / (-order2) # calculate var of gm_s
+                # gm_s_var = 1.0 / (-order2) # calculate var of gm_s
 
                 pass
 
@@ -675,7 +675,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
                 al_c_new = al_c - order1 / order2
                 al_c = al_c * (1.0 - REFRESH_RATE) + al_c_new * REFRESH_RATE
-                al_c_var = 1.0 / (-order2) # calculate var of al_c
+                # al_c_var = 1.0 / (-order2) # calculate var of al_c
 
                 pass
             else:
@@ -710,7 +710,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                                   + cls.loglikelihood_fcn(x_es, x_e - EPSILON, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
                 x_e_new = x_e - order1 / order2
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_var = 1.0 / (-order2) # calculate std of x_e
+                # x_e_var = 1.0 / (-order2) # calculate std of x_e
 
                 pass
 
