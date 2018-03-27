@@ -7,6 +7,7 @@ from scipy import stats
 import pandas as pd
 
 from sureal.core.mixin import TypeVersionEnabled
+from sureal.tools.decorator import deprecated
 from sureal.tools.misc import import_python_file, indices
 from sureal.dataset_reader import RawDatasetReader
 
@@ -336,7 +337,7 @@ class LeastSquaresModel(SubjectiveModel):
         return result
 
 
-class MaximumLikelihoodEstimationModelReduced(SubjectiveModel):
+class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
     """
     Generative model that considers individual subject (or observer)'s bias and
     inconsistency. The observed score is modeled by:
@@ -350,11 +351,11 @@ class MaximumLikelihoodEstimationModelReduced(SubjectiveModel):
     that it does not deal with missing data etc. (Early implmentation)
     """
 
-    # TYPE = 'Subject-Aware'
-    TYPE = "MLER"
+    TYPE = "MLE_legacy"
     VERSION = '0.1'
 
     @classmethod
+    @deprecated
     def _run_modeling(cls, dataset_reader, **kwargs):
 
         def one_or_nan(x):

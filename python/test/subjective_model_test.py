@@ -5,7 +5,7 @@ from sureal.config import SurealConfig
 from sureal.dataset_reader import RawDatasetReader, MissingDataRawDatasetReader, \
     SyntheticRawDatasetReader, CorruptSubjectRawDatasetReader
 from sureal.subjective_model import MosModel, DmosModel, \
-    MaximumLikelihoodEstimationModelReduced, MaximumLikelihoodEstimationModel, \
+    LegacyMaximumLikelihoodEstimationModel, MaximumLikelihoodEstimationModel, \
     LiveDmosModel, MaximumLikelihoodEstimationDmosModel, LeastSquaresModel, \
     SubjrejMosModel, ZscoringSubjrejMosModel, SubjrejDmosModel, \
     ZscoringSubjrejDmosModel, PerSubjectModel, \
@@ -143,7 +143,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEquals(np.mean(scores), 0.0, places=4)
 
     def test_observer_aware_subjective_model_with_dscoring(self):
-        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+        subjective_model = LegacyMaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
         result = subjective_model.run_modeling(dscore_mode=True)
 
@@ -157,7 +157,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEquals(np.var(result['quality_scores']), 1.4163670233392607, places=4)
 
     def test_observer_aware_subjective_model_with_zscoring(self):
-        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+        subjective_model = LegacyMaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
         result = subjective_model.run_modeling(zscore_mode=True)
 
@@ -171,7 +171,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEquals(np.var(result['quality_scores']), 0.80942484781493518, places=4)
 
     def test_observer_aware_subjective_model_with_dscoring_and_zscoring(self):
-        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+        subjective_model = LegacyMaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
         result = subjective_model.run_modeling(dscore_mode=True, zscore_mode=True)
 
@@ -185,7 +185,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEquals(np.var(result['quality_scores']), 0.80806512456121071, places=4)
 
     def test_observer_aware_subjective_model_use_log(self):
-        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+        subjective_model = LegacyMaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
         result = subjective_model.run_modeling(use_log=True)
 
@@ -348,7 +348,7 @@ class SubjectiveModelTest(unittest.TestCase):
             'content_ambiguity': np.zeros(9),
         }
         dataset_reader = SyntheticRawDatasetReader(dataset, input_dict=info_dict)
-        subjective_model = MaximumLikelihoodEstimationModelReduced(dataset_reader)
+        subjective_model = LegacyMaximumLikelihoodEstimationModel(dataset_reader)
         result = subjective_model.run_modeling()
 
         self.assertAlmostEquals(np.sum(result['observer_bias']), -0.90138622499935517, places=4)
@@ -361,7 +361,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEquals(np.var(result['quality_scores']), 1.3059726132293354, places=4)
 
     def test_observer_aware_subjective_model(self):
-        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+        subjective_model = LegacyMaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
         result = subjective_model.run_modeling()
 
@@ -383,7 +383,7 @@ class SubjectiveModelTest(unittest.TestCase):
             'missing_probability': 0.1,
         }
         dataset_reader = MissingDataRawDatasetReader(dataset, input_dict=info_dict)
-        subjective_model = MaximumLikelihoodEstimationModelReduced(dataset_reader)
+        subjective_model = LegacyMaximumLikelihoodEstimationModel(dataset_reader)
         result = subjective_model.run_modeling()
 
         self.assertAlmostEquals(np.sum(result['observer_bias']), -0.18504017984241944, places=4)
@@ -400,7 +400,7 @@ class SubjectiveModelTest(unittest.TestCase):
             'missing_probability': 0.5,
         }
         dataset_reader = MissingDataRawDatasetReader(dataset, input_dict=info_dict)
-        subjective_model = MaximumLikelihoodEstimationModelReduced(dataset_reader)
+        subjective_model = LegacyMaximumLikelihoodEstimationModel(dataset_reader)
         result = subjective_model.run_modeling()
 
         self.assertAlmostEquals(np.sum(result['observer_bias']), 0.057731868199093525, places=4)
@@ -440,7 +440,7 @@ class SubjectiveModelTest(unittest.TestCase):
             'selected_subjects': range(5),
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
-        subjective_model = MaximumLikelihoodEstimationModelReduced(dataset_reader)
+        subjective_model = LegacyMaximumLikelihoodEstimationModel(dataset_reader)
         result = subjective_model.run_modeling()
 
         self.assertAlmostEquals(np.mean(result['quality_scores']), 3.5573073781669944, places=4) # 3.5482845335713469
@@ -495,7 +495,7 @@ class SubjectiveModelTest(unittest.TestCase):
             'selected_subjects': range(5),
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
-        subjective_model = MaximumLikelihoodEstimationModelReduced(dataset_reader)
+        subjective_model = LegacyMaximumLikelihoodEstimationModel(dataset_reader)
         with self.assertRaises(AssertionError):
             subjective_model.run_modeling(subject_rejection=True)
 
@@ -700,7 +700,7 @@ class SubjectiveModelPartialTest(unittest.TestCase):
         self.assertAlmostEquals(np.mean(scores_std), 0.13125250408357622, places=4)
 
     def test_observer_aware_subjective_model_with_dscoring(self):
-        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+        subjective_model = LegacyMaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
         result = subjective_model.run_modeling(dscore_mode=True)
 
@@ -714,7 +714,7 @@ class SubjectiveModelPartialTest(unittest.TestCase):
         self.assertAlmostEquals(np.var(result['quality_scores']), 1.4711930351190119, places=4)
 
     def test_observer_aware_subjective_model_use_log(self):
-        subjective_model = MaximumLikelihoodEstimationModelReduced.from_dataset_file(
+        subjective_model = LegacyMaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
         result = subjective_model.run_modeling(use_log=True)
 
