@@ -623,11 +623,11 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             elif gradient_method == 'numerical':
                 axis = 0 # sum over e
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s + EPSILON / 2.0, al_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s - EPSILON / 2.0, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s + EPSILON, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
+                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, (np.sqrt(gm_s) + EPSILON / 2.0)**2, al_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
+                         cls.loglikelihood_fcn(x_es, x_e, b_s, (np.sqrt(gm_s) - EPSILON / 2.0)**2, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, (np.sqrt(gm_s) + EPSILON)**2, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
                                   - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s - EPSILON, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, (np.sqrt(gm_s) - EPSILON)**2, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
                 gm_s_new = gm_s - order1 / order2
                 gm_s = gm_s * (1.0 - REFRESH_RATE) + gm_s_new * REFRESH_RATE
                 # gm_s_var = 1.0 / (-order2) # calculate var of gm_s
@@ -666,11 +666,11 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             elif gradient_method == 'numerical':
                 axis = 1 # sum over s
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c + EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c - EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c + EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)
+                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, (np.sqrt(al_c) + EPSILON / 2.0)**2, dataset_reader.content_id_of_dis_videos, axis=axis) -
+                         cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, (np.sqrt(al_c) - EPSILON / 2.0)**2, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, (np.sqrt(al_c) + EPSILON)**2, dataset_reader.content_id_of_dis_videos, axis=axis)
                                   - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, al_c - EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, gm_s, (np.sqrt(al_c) - EPSILON)**2, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
                 order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
                 order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
                 al_c_new = al_c - order1 / order2

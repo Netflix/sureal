@@ -55,7 +55,7 @@ def main():
         normalize_final=False, # True or False
         do_plot=do_plot,
         plot_type='errorbar',
-        gradient_method='simplified',
+        gradient_method='numerical',
     )
 
     if print_:
