@@ -390,7 +390,7 @@ class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
         REFRESH_RATE = 0.1
         DELTA_THR = 1e-8
 
-        print '=== Belief Propagation ==='
+        print( '=== Belief Propagation ===')
 
         itr = 0
         while True:
@@ -560,7 +560,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         DELTA_THR = 1e-8
         EPSILON = 1e-3
 
-        print '=== Belief Propagation ==='
+        print( '=== Belief Propagation ===')
 
         itr = 0
         while True:
