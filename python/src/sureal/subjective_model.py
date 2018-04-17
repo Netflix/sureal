@@ -93,8 +93,7 @@ class SubjectiveModel(TypeVersionEnabled):
             ref_indices = indices(
                 zip(dataset_reader.content_id_of_dis_videos,
                     dataset_reader.disvideo_is_refvideo),
-                lambda (content_id, is_refvideo):
-                is_refvideo and content_id == curr_content_id
+                lambda content_ref_pair: content_ref_pair[1] and content_ref_pair[0] == curr_content_id
             )
             assert len(ref_indices) == 1, \
                 'Should have only and one ref video for a dis video, ' \
