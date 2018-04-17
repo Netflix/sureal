@@ -482,7 +482,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     @staticmethod
     def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis):
         E, S = x_es.shape
-        a_c_e = np.array(map(lambda i: a_c[i], content_id_of_dis_videos))
+        a_c_e = np.array(list(map(lambda i: a_c[i], content_id_of_dis_videos)))
         a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
         vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
         ret = - 1.0 / 2 * np.log(vs2_add_ace2) - 1.0 / 2 * a_es**2 / vs2_add_ace2
@@ -570,7 +570,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             # ==== (12) b_s ====
 
             if gradient_method == 'simplified':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
+                a_c_e = np.array(list(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos)))
                 num_num = x_es - np.tile(x_e, (S, 1)).T
                 num_den = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
                 num = pd.DataFrame(num_num / num_den).sum(axis=0) # sum over e
@@ -582,7 +582,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 b_s_std = 1.0 / np.sqrt(den) # calculate std of x_e
 
             elif gradient_method == 'original':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
+                a_c_e = np.array(list(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos)))
                 vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
                 order1 = (x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))) / vs2_add_ace2
                 order1 = pd.DataFrame(order1).sum(axis=0) # sum over e
@@ -613,7 +613,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             # ==== (14) v_s ====
 
             if gradient_method == 'simplified':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
+                a_c_e = np.array(list(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos)))
                 a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
                 vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
                 vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
@@ -633,7 +633,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 v_s_std = 1.0 / np.sqrt(-lpp)
 
             elif gradient_method == 'original':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
+                a_c_e = np.array(list(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos)))
                 a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
                 vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
                 vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
@@ -672,7 +672,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             # ==== (15) a_c ====
 
             if gradient_method == 'simplified':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
+                a_c_e = np.array(list(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos)))
                 a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
                 vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
                 vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
@@ -697,7 +697,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 a_c_std = 1.0 /np.sqrt(-lpp)
 
             elif gradient_method == 'original':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
+                a_c_e = np.array(list(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos)))
                 a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
                 vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
                 vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
@@ -740,7 +740,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             # (11) ==== x_e ====
 
             if gradient_method == 'simplified':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
+                a_c_e = np.array(list(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos)))
                 num_num = x_es - np.tile(b_s, (E, 1))
                 num_den = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
                 num = pd.DataFrame(num_num / num_den).sum(axis=1) # sum over s
@@ -752,7 +752,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 x_e_std = 1.0 / np.sqrt(den) # calculate std of x_e
 
             elif gradient_method == 'original':
-                a_c_e = np.array(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos))
+                a_c_e = np.array(list(map(lambda i: a_c[i], dataset_reader.content_id_of_dis_videos)))
                 a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
                 vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
                 order1 = a_es / vs2_add_ace2
