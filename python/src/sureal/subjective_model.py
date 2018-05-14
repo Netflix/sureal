@@ -502,9 +502,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         gradient_method = kwargs['gradient_method'] if 'gradient_method' in kwargs else cls.DEFAULT_GRADIENT_METHOD
         assert gradient_method == 'simplified' or gradient_method == 'original' or gradient_method == 'numerical'
 
-        def sum_over_content_id(xs, cids):
+        def sum_over_content_id(xs, cids, num_c):
             assert len(xs) == len(cids)
-            num_c = np.max(cids) + 1
             for cid in set(cids):
                 assert cid in range(num_c), \
                     'content id must be in [0, {num_c}), but is {cid}'.format(num_c=num_c, cid=cid)
@@ -513,9 +512,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 sums[cid] += x
             return sums
 
-        def std_over_subject_and_content_id(x_es, cids):
+        def std_over_subject_and_content_id(x_es, cids, num_c):
             assert x_es.shape[0] == len(cids)
-            num_c = np.max(cids) + 1
             for cid in set(cids):
                 assert cid in range(num_c), \
                     'content id must be in [0, {num_c}), but is {cid}'.format(num_c=num_c, cid=cid)
@@ -541,7 +539,9 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         mos = np.array(MosModel(dataset_reader).run_modeling()['quality_scores'])
         r_es = x_es - np.tile(mos, (S, 1)).T # r_es: residual at e, s
         sigma_r_s = pd.DataFrame(r_es).std(axis=0, ddof=0) # along e
-        sigma_r_c = std_over_subject_and_content_id(r_es, dataset_reader.content_id_of_dis_videos)
+        assert len(sigma_r_s) == S
+        sigma_r_c = std_over_subject_and_content_id(r_es, dataset_reader.content_id_of_dis_videos, C)
+        assert len(sigma_r_c) == C
 
         x_e = mos # use MOS as initial value for x_e
         b_s = np.zeros(S)
@@ -678,13 +678,13 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
                 num = - np.tile(a_c_e, (S, 1)).T / vs2_add_ace2 + np.tile(a_c_e, (S, 1)).T * a_es**2 / vs2_add_ace2**2
                 num = pd.DataFrame(num).sum(axis=1) # sum over s
-                num = sum_over_content_id(num, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
+                num = sum_over_content_id(num, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 poly_term = np.tile(v_s**4, (E, 1)) \
                       - 3 * np.tile(a_c_e**4, (S, 1)).T \
                       - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
                 den = - vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
                 den = pd.DataFrame(den).sum(axis=1) # sum over s
-                den = sum_over_content_id(den, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
+                den = sum_over_content_id(den, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 a_c_new = a_c - num / den
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
                 # calculate std of a_c
@@ -692,7 +692,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                     pd.DataFrame(
                         -vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
                     ).sum(axis=1),
-                    dataset_reader.content_id_of_dis_videos
+                    dataset_reader.content_id_of_dis_videos,
+                    C
                 ) # sum over e:c(e)=c
                 a_c_std = 1.0 /np.sqrt(-lpp)
 
@@ -706,10 +707,10 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                       - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
                 order1 = - np.tile(a_c_e, (S, 1)).T / vs2_add_ace2 + np.tile(a_c_e, (S, 1)).T * a_es**2 / vs2_add_ace2**2
                 order1 = pd.DataFrame(order1).sum(axis=1) # sum over s
-                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
+                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 order2 = - vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
                 order2 = pd.DataFrame(order2).sum(axis=1) # sum over s
-                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
+                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 a_c_new = a_c - order1 / order2
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
                 a_c_std = 1.0 / np.sqrt(-order2) # calculate std of a_c
@@ -721,8 +722,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)
                                   - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
                                   + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
-                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
-                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos) # sum over e:c(e)=c
+                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
+                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 a_c_new = a_c - order1 / order2
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
                 a_c_std = 1.0 / np.sqrt(-order2) # calculate std of a_c
