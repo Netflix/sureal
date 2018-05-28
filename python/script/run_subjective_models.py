@@ -665,7 +665,7 @@ def main():
         # DmosModel,
     ]
 
-    plot_sample_results(dataset_filepaths, subjective_model_classes)
+    # plot_sample_results(dataset_filepaths, subjective_model_classes)
 
     # ============ plot trends =================
 
@@ -682,7 +682,7 @@ def main():
     # run_missing_growth(dataset_filepaths)
 
     # ===== synthetic data =====
-    # validate_with_synthetic_dataset()
+    validate_with_synthetic_dataset()
 
     DisplayConfig.show()
 

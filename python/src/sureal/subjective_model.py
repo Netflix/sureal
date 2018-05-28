@@ -477,7 +477,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
     mode = 'DEFAULT'
 
-    DEFAULT_GRADIENT_METHOD = 'simplified'
+    DEFAULT_GRADIENT_METHOD = 'numerical'
 
     @staticmethod
     def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis):
@@ -487,6 +487,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
         ret = - 1.0 / 2 * np.log(vs2_add_ace2) - 1.0 / 2 * a_es**2 / vs2_add_ace2
         ret = pd.DataFrame(ret).sum(axis=axis)
+
+        # ret -= np.abs(x_e[0] - 3.19525402) * 1e-5
         return ret
 
     @classmethod
