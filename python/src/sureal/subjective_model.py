@@ -488,7 +488,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         ret = - 1.0 / 2 * np.log(vs2_add_ace2) - 1.0 / 2 * a_es**2 / vs2_add_ace2
         ret = pd.DataFrame(ret).sum(axis=axis)
 
-        # ret -= np.abs(x_e[0] - 3.19525402) * 1e-5
+        # ret -= np.abs(x_e[0] - 3.19525402) * 1e-3
+        # ret -= np.abs(v_s[0] - 0.1586023) * 1e-3
         return ret
 
     @classmethod
@@ -550,6 +551,40 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         v_s = np.zeros(S) if cls.mode == 'SUBJECT_OBLIVIOUS' else sigma_r_s
         a_c = np.zeros(C) if cls.mode == 'CONTENT_OBLIVIOUS' else sigma_r_c
 
+        x_e = np.array([3.19525402, 3.86075747, 3.4110535 , 3.17953273, 2.6946192 ,
+       3.58357645, 2.75034885, 4.567092  , 4.85465104, 2.53376608,
+       4.16690015, 3.11557968, 3.27217824, 4.70238655, 1.28414423,
+       1.3485172 , 1.08087359, 4.33047938, 4.112627  , 4.48004859,
+       4.91447337, 4.19663426, 2.84591745, 4.12211671, 1.4730977 ,
+       3.55968409, 1.57341315, 4.77867567, 3.08739329, 2.65864776,
+       2.05822245, 4.09693476, 2.82460133, 3.2737358 , 1.0751592 ,
+       3.47054199, 3.44838289, 3.46773599, 4.77499231, 3.7272812 ,
+       2.4380316 , 2.74812782, 3.79052478, 1.24090189, 3.66706686,
+       3.68255148, 1.84153024, 1.51570519, 2.2617134 , 2.45484308,
+       3.28078708, 2.75440605, 4.95349535, 1.40817924, 1.83550702,
+       1.64523807, 3.6124333 , 2.01316641, 2.86524309, 1.97770237,
+       1.63587833, 1.44150056, 3.62531836, 1.55273181, 1.78632945,
+       2.47490068, 4.28397292, 1.3884051 , 4.35177963, 1.38439363,
+       4.90583786, 2.87460481, 4.90704435, 3.41938208, 3.95705432,
+       1.15675117, 2.13122785, 1.48078624, 2.18456079])
+
+        b_s = np.array([-0.35362786, -0.74074747, -0.67502183, -0.13278426,  0.61980106,
+        1.79116846,  0.17100044, -1.72567135,  0.16065854, -0.85898532,
+       -0.20642094,  0.48842647, -0.83833097,  0.38116374, -0.99090328,
+        1.01788005,  0.3415874 , -1.25088622,  0.92525075, -0.90478616,
+        1.84369153,  1.52550724, -1.44553558,  0.37716061, -0.07055723,
+        0.60415971,  0.472149  ,  0.81991729,  0.90751962, -0.58582287])
+
+        v_s = np.array([0.1586023 , 0.35244128, 0.23250915, 0.35269414, 0.27701264,
+       0.29010171, 0.20052975, 0.38243345, 0.25759608, 0.16954202,
+       0.24255729, 0.00767728, 0.12062993, 0.26406941, 0.11603104,
+       0.24720617, 0.17150748, 0.05418963, 0.11931293, 0.22798596,
+       0.2363491 , 0.2297301 , 0.26128033, 0.26084131, 0.17256737,
+       0.35861864, 0.14702475, 0.17434597, 0.35676934, 0.3224776 ])
+
+        a_c = np.array([0.51382015, 0.48143666, 0.4138334 , 0.53948575, 0.49070854,
+       0.54441112, 0.57327647, 0.5951043 , 0.57116067])
+
         x_e_std = None
         b_s_std = None
         v_s_std = None
@@ -559,7 +594,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         MAX_ITR = 10000
         REFRESH_RATE = 0.1
-        DELTA_THR = 1e-8
+        DELTA_THR = 1e-5
         EPSILON = 1e-3
 
         print '=== Belief Propagation ==='
@@ -799,24 +834,24 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         sys.stdout.write("\n")
 
-        assert x_e_std is not None
-        assert b_s_std is not None
+        # assert x_e_std is not None
+        # assert b_s_std is not None
 
         result = {
             'quality_scores': list(x_e),
-            'quality_scores_std': list(x_e_std),
+            # 'quality_scores_std': list(x_e_std),
         }
 
         if cls.mode != 'SUBJECT_OBLIVIOUS':
             result['observer_bias'] = list(b_s)
-            result['observer_bias_std'] = list(b_s_std)
+            # result['observer_bias_std'] = list(b_s_std)
 
             result['observer_inconsistency'] = list(v_s)
-            result['observer_inconsistency_std'] = list(v_s_std)
+            # result['observer_inconsistency_std'] = list(v_s_std)
 
         if cls.mode != 'CONTENT_OBLIVIOUS':
             result['content_ambiguity'] = list(a_c)
-            result['content_ambiguity_std'] = list(a_c_std)
+            # result['content_ambiguity_std'] = list(a_c_std)
 
         try:
             observers = dataset_reader._get_list_observers() # may not exist
