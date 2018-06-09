@@ -12,7 +12,6 @@ SUREAL requires a number of Python packages pre-installed:
   - [`scipy`](http://www.scipy.org/) (>=0.17.1)
   - [`matplotlib`](http://matplotlib.org/1.3.1/index.html) (>=2.0.0)
   - [`pandas`](http://pandas.pydata.org/) (>=0.19.2)
-  - [`scikit-learn`](http://scikit-learn.org/stable/) (>=0.18.1)
 
 First, upgrade `pip` to the newest version:
 
@@ -23,7 +22,7 @@ sudo -H pip install --upgrade pip
 Then install the required Python packages:
 
 ```
-pip install --user numpy scipy matplotlib pandas scikit-learn
+pip install --user numpy scipy matplotlib pandas
 ```
 
 Add the `python/src` subdirectories to the environment variable `PYTHONPATH`:
