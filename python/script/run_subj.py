@@ -59,7 +59,7 @@ def main():
     )
 
     if print_:
-        print("Dataset: {}".format(dataset.__file__))
+        print("Dataset: {}".format(dataset_filepath))
         print("Subjective Model: {} {}".format(subjective_models[0].TYPE, subjective_models[0].VERSION))
         print("Result:")
         pprint.pprint(results[0])

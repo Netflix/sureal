@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from sureal.dataset_reader import RawDatasetReader
-from sureal.tools.misc import import_python_file
+from sureal.tools.misc import import_python_file, import_json_file
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -30,7 +30,12 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     colors = ['black', 'gray', 'blue', 'red'] * 2
 
-    dataset = import_python_file(dataset_filepath)
+    if dataset_filepath.endswith('.py'):
+        dataset = import_python_file(dataset_filepath)
+    elif dataset_filepath.endswith('.json'):
+        dataset = import_json_file(dataset_filepath)
+    else:
+        raise AssertionError("Unknown input type, must be .py or .json")
     dataset_reader = dataset_reader_class(dataset, input_dict=dataset_reader_info_dict)
 
     subjective_models = map(

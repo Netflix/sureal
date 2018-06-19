@@ -70,6 +70,19 @@ def indices(a, func):
     """
     return [i for (i, val) in enumerate(a) if func(val)]
 
+def import_json_file(filepath):
+    """
+    Import a JSON-formatted input file as a dict.
+    :param filepath:
+    :return:
+    """
+    import json
+    from argparse import Namespace
+    with open(filepath, 'r') as in_f:
+        ret = json.load(in_f)
+    ns = Namespace(**ret)  # convert dict to namespace
+    return ns
+
 def import_python_file(filepath):
     """
     Import a python file as a module.
