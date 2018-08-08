@@ -53,8 +53,10 @@ The package has thus far been tested on Ubuntu 16.04 LTS and macOS 10.13. After 
 Under root directory, run `./run_subj` to print usage information:
 
 ```
-usage: run_subj subjective_model dataset_filepath 
+usage: run_subj subjective_model dataset_filepath [--output-dir output_dir] [--print]
 ```
+
+If `--output-dir` is given, plots will be written to the output directory. If `--print` is enabled, output statistics will be printed on the command-line and / or the output directory.
 
 Below are two example usages:
 
