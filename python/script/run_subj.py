@@ -3,6 +3,7 @@
 import os
 import sys
 import pprint
+import json
 
 from sureal.subjective_model import SubjectiveModel
 from sureal.routine import run_subjective_models
@@ -59,17 +60,18 @@ def main():
     )
 
     if print_:
-        print("Dataset: {}".format(dataset.__file__))
+        print("Dataset: {}".format(dataset_filepath))
         print("Subjective Model: {} {}".format(subjective_models[0].TYPE, subjective_models[0].VERSION))
         print("Result:")
-        pprint.pprint(results[0])
+        json.dumps(results[0], indent=4, sort_keys=True)
 
     if output_dir is None:
         DisplayConfig.show()
     else:
         print("Output wrote to {}.".format(output_dir))
         DisplayConfig.show(write_to_dir=output_dir)
-
+        with open(os.path.join(output_dir, 'sureal.json'), 'w') as out_f:
+            json.dump(results[0], out_f, indent=4, sort_keys=True)
     return 0
 
 if __name__ == '__main__':

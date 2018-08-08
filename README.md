@@ -75,25 +75,44 @@ Here `subjective_model` are the available subjective models offered in the packa
   - SR_DMOS - Apply SR, before calculating DMOS
   - ZS_SR_DMOS - Apply z-score transformation, followed by SR, before calculating DMOS
 
-`dataset_filepath` is the path to a dataset file. There are two ways to construct a dataset file. The first way is only useful when the subjective test is full sampling, i.e. every subject views every distorted video. For example:
+### Dataset Files
+
+`dataset_filepath` is the path to a dataset file. Dataset files may be `.py` or `.json` files. The following examples use `.py` files, but JSON-formatted files can be constructed in a similar fashion.
+
+There are two ways to construct a dataset file. The first way is only useful when the subjective test is full sampling, i.e. every subject views every distorted video. For example:
 
 ```
-from vmaf.config import VmafConfig
 ref_videos = [
-    {'content_id': 0, 'content_name': 'checkerboard', 'path': 
-        VmafConfig.test_resource_path('yuv', 'checkerboard_1920_1080_10_3_0_0.yuv')},
-    {'content_id': 1, 'content_name': 'flat', 'path': 
-        VmafConfig.test_resource_path('yuv', 'flat_1920_1080_0.yuv')},
+    {
+      'content_id': 0, 'content_name': 'checkerboard',
+      'path': 'checkerboard_1920_1080_10_3_0_0.yuv'
+    },
+    {
+      'content_id': 1, 'content_name': 'flat',
+      'path': 'flat_1920_1080_0.yuv'
+    },
 ]
 dis_videos = [
-    {'content_id': 0, 'asset_id': 0, 'os': [100, 100, 100, 100, 100], 'path': 
-        VmafConfig.test_resource_path('yuv', 'checkerboard_1920_1080_10_3_0_0.yuv')},
-    {'content_id': 0, 'asset_id': 1, 'os': [40, 45, 50, 55, 60],  'path': 
-        VmafConfig.test_resource_path('yuv', 'checkerboard_1920_1080_10_3_1_0.yuv')},
-    {'content_id': 1, 'asset_id': 2, 'os': [90, 90, 90, 90, 90],  'path': 
-        VmafConfig.test_resource_path('yuv', 'flat_1920_1080_0.yuv')},
-    {'content_id': 1, 'asset_id': 3, 'os': [70, 75, 80, 85, 90],  'path': 
-        VmafConfig.test_resource_path('yuv', 'flat_1920_1080_10.yuv')},
+    {
+      'content_id': 0, 'asset_id': 0,
+      'os': [100, 100, 100, 100, 100],
+      'path': 'checkerboard_1920_1080_10_3_0_0.yuv'
+    },
+    {
+      'content_id': 0, 'asset_id': 1,
+      'os': [40, 45, 50, 55, 60],
+      'path': 'checkerboard_1920_1080_10_3_1_0.yuv'
+    },
+    {
+      'content_id': 1, 'asset_id': 2,
+      'os': [90, 90, 90, 90, 90],
+      'path': 'flat_1920_1080_0.yuv'
+    },
+    {
+      'content_id': 1, 'asset_id': 3,
+      'os': [70, 75, 80, 85, 90],
+      'path': 'flat_1920_1080_10.yuv'
+    },
 ]
 ref_score = 100
 ```
