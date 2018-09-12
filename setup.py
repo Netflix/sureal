@@ -23,7 +23,7 @@ with open(parent_dir + "README.md", "r") as fh:
 
 setup(
     name=PACKAGE_NAME,
-    version="0.1.2",
+    version="0.1.1",
     author="Zhi Li",
     author_email="zli@netflix.com",
     description="Subjective quality scores recovery from noisy measurements.",
@@ -34,7 +34,9 @@ setup(
     url="https://github.com/Netflix/sureal",
     classifiers=(
         "Programming Language :: Python :: 2",
+        'Programming Language :: Python :: 2.7',
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: MacOS",
+        'Operating System :: Unix',
     ),
 )
