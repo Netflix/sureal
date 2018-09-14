@@ -4,9 +4,16 @@ SUREAL - Subjective Recovery Analysis
 
 SUREAL is a toolbox developed by Netflix for recovering quality scores from noisy measurements obtained by subjective tests. Read [this](resource/doc/dcc17v3.pdf) paper for some background. SUREAL has been incorporated in the [VMAF](https://github.com/Netflix/vmaf) package as a submodule.
 
+## Install through `pip`
+
+SUREAL is now available on [PyPI](https://pypi.org/project/sureal/), and can be install through:
+```
+pip install sureal
+```
+
 ## Prerequisites & Installation
 
-SUREAL requires a number of Python packages pre-installed:
+To use SUREAL from source, a number of packages are required:
 
   - [`numpy`](http://www.numpy.org/) (>=1.12.0)
   - [`scipy`](http://www.scipy.org/) (>=0.17.1)
