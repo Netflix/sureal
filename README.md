@@ -11,6 +11,10 @@ SUREAL is now available on [PyPI](https://pypi.org/project/sureal/), and can be 
 pip install sureal
 ```
 
+## Example Script
+
+See [here](https://colab.research.google.com/drive/1hG6ARc8-rihyJPxIXZysi-sAe0e7xxB8#scrollTo=onasQ091O3sn) for example script to use SUREAL in Google Colab notebook.
+
 ## Prerequisites & Installation
 
 To use SUREAL from source, a number of packages are required:
@@ -135,7 +139,3 @@ The second way is more general, and can be used when the test is full sampling o
 ```
 
 Since partial sampling is allowed, it is not required that every subject ID is present in every `os` dictionary.
-
-## Usage in a Python Script
-
-More examples of using the subjective models in a Python script can be found in [/python/script/run_subjective_models.py](/python/script/run_subjective_models.py). Run the script first to get a sense of what it does.
