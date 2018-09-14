@@ -6,7 +6,7 @@ SUREAL is a toolbox developed by Netflix for recovering quality scores from nois
 
 ## Install through `pip`
 
-SUREAL is now available on [PyPI](https://pypi.org/project/sureal/), and can be install through:
+SUREAL is now available on [PyPI](https://pypi.org/project/sureal/), and can be installed through:
 ```
 pip install sureal
 ```
