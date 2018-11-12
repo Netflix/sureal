@@ -52,7 +52,7 @@ class DatasetReader(object):
 
     @property
     def content_id_of_dis_videos(self):
-        return map(lambda dis_video: dis_video['content_id'], self.dataset.dis_videos)
+        return list(map(lambda dis_video: dis_video['content_id'], self.dataset.dis_videos))
 
     @property
     def _contentid_to_refvideo_map(self):
@@ -64,10 +64,10 @@ class DatasetReader(object):
     @property
     def disvideo_is_refvideo(self):
         d = self._contentid_to_refvideo_map
-        return map(
+        return list(map(
             lambda dis_video: d[dis_video['content_id']]['path'] == dis_video['path'],
             self.dataset.dis_videos
-        )
+        ))
 
     @property
     def ref_score(self):
@@ -367,8 +367,8 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
 
         mu_c = np.array(self.input_dict['content_bias'])
         delta_c = np.array(self.input_dict['content_ambiguity'])
-        mu_c_e = np.array(map(lambda i: mu_c[i], self.content_id_of_dis_videos))
-        delta_c_e = np.array(map(lambda i: delta_c[i], self.content_id_of_dis_videos))
+        mu_c_e = np.array(list(map(lambda i: mu_c[i], self.content_id_of_dis_videos)))
+        delta_c_e = np.array(list(map(lambda i: delta_c[i], self.content_id_of_dis_videos)))
         y_es = np.tile(mu_c_e, (S, 1)).T + np.random.normal(0, 1, [E, S]) * np.tile(delta_c_e, (S, 1)).T
 
         z_es = q_es + x_es + y_es
