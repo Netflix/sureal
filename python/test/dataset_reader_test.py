@@ -36,7 +36,7 @@ class RawDatasetReaderTest(unittest.TestCase):
 
     def test_disvideo_is_refvideo(self):
         l = self.dataset_reader.disvideo_is_refvideo
-        six.assertCountEqual(indices(l, lambda e: e is True), range(9))
+        self.assertTrue(all(l[0:9]))
 
     def test_ref_score(self):
         self.assertEqual(self.dataset_reader.ref_score, 5.0)
@@ -74,7 +74,7 @@ class RawDatasetReaderPartialTest(unittest.TestCase):
 
     def test_disvideo_is_refvideo(self):
         l = self.dataset_reader.disvideo_is_refvideo
-        six.assertCountEqual(indices(l, lambda e: e is True), range(7))
+        self.assertTrue(all(l[0:7]))
 
     def test_ref_score(self):
         self.assertEqual(self.dataset_reader.ref_score, 5.0)
@@ -120,7 +120,7 @@ class SyntheticDatasetReaderTest(unittest.TestCase):
 
     def test_disvideo_is_refvideo(self):
         l = self.dataset_reader.disvideo_is_refvideo
-        six.assertCountEqual(indices(l, lambda e: e is True), range(9))
+        self.assertTrue(all(l[0:9]))
 
     def test_ref_score(self):
         self.assertEqual(self.dataset_reader.ref_score, 5.0)

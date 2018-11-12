@@ -64,10 +64,10 @@ class DatasetReader(object):
     @property
     def disvideo_is_refvideo(self):
         d = self._contentid_to_refvideo_map
-        return map(
+        return list(map(
             lambda dis_video: d[dis_video['content_id']]['path'] == dis_video['path'],
             self.dataset.dis_videos
-        )
+        ))
 
     @property
     def ref_score(self):
