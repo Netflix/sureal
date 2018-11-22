@@ -3,14 +3,14 @@ import os
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
 
-PYTHON_ROOT = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(PYTHON_ROOT, '../../..',))
+PYTHON_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+
 
 class SurealConfig(object):
 
     @classmethod
     def root_path(cls, *components):
-        return os.path.join(ROOT, *components)
+        return os.path.join(PYTHON_ROOT, *components)
 
     @classmethod
     def workspace_path(cls, *components):
@@ -26,7 +26,7 @@ class SurealConfig(object):
 
     @classmethod
     def test_resource_path(cls, *components):
-        return cls.root_path('python', 'test', 'resource', *components)
+        return cls.root_path('test', 'resource', *components)
 
 class DisplayConfig(object):
 
