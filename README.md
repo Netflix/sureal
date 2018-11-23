@@ -24,6 +24,8 @@ To use SUREAL from source, a number of packages are required:
   - [`matplotlib`](http://matplotlib.org/1.3.1/index.html) (>=2.0.0)
   - [`pandas`](http://pandas.pydata.org/) (>=0.19.2)
 
+Under Ubuntu, you may also need to install the `python-tk` or `python3-tk` packages via `apt`.
+
 First, upgrade `pip` to the newest version:
 
 ```
