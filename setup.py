@@ -5,25 +5,33 @@ import os
 import setuptools
 from numpy.distutils.core import setup
 
-parent_dir = os.getcwd() + '/'
-curr_dir = parent_dir + 'python/src/'
-build_dest_dir = '/tmp/sureal_packaging_temp'
-
-# hacky way to exclude config.py: create a folder udner /tmp with same structure, but without config.py
-os.system('cp -r {curr_dir} {build_dest_dir}'.format(curr_dir=curr_dir, build_dest_dir=build_dest_dir))
-os.system('rm {build_dest_dir}/sureal/config.py'.format(build_dest_dir=build_dest_dir))
-
-# change dir so that setup.py builds distribution files on the files we want
-os.chdir(build_dest_dir)
-
 PACKAGE_NAME = 'sureal'
 
-with open(parent_dir + "README.md", "r") as fh:
+parent_dir = os.path.dirname(__file__)
+
+
+def _version():
+    """ Get the local package version.
+    """
+    path = os.path.join(PACKAGE_NAME, "version.py")
+    namespace = {}
+    with open(path) as stream:
+        exec(stream.read(), namespace)
+    return namespace["__version__"]
+
+
+with open(os.path.join(parent_dir, "README.md"), "r") as fh:
     long_description = fh.read()
+
+try:
+    import pypandoc
+    long_description = pypandoc.convert_text(long_description, 'rst', format='md')
+except ImportError:
+    print("pypandoc module not found, could not convert Markdown to RST")
 
 setup(
     name=PACKAGE_NAME,
-    version="0.1.1",
+    version=_version(),
     author="Zhi Li",
     author_email="zli@netflix.com",
     description="Subjective quality scores recovery from noisy measurements.",
@@ -35,8 +43,14 @@ setup(
     classifiers=(
         "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: MacOS",
         'Operating System :: Unix',
     ),
+    entry_points={
+        'console_scripts': [
+            'sureal = sureal.__main__:main'
+        ]
+    },
 )

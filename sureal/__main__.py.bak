@@ -5,10 +5,10 @@ import sys
 import pprint
 import json
 
-from sureal.subjective_model import SubjectiveModel
-from sureal.routine import run_subjective_models
-from sureal.tools.misc import get_file_name_with_extension, get_cmd_option, cmd_option_exists
-from sureal.config import DisplayConfig
+from .subjective_model import SubjectiveModel
+from .routine import run_subjective_models
+from .tools.misc import get_file_name_with_extension, get_cmd_option, cmd_option_exists
+from .config import DisplayConfig
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
