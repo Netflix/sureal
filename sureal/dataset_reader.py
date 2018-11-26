@@ -7,6 +7,7 @@ from sureal.tools.misc import empty_object, get_unique_sorted_list
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
 
+
 class DatasetReader(object):
 
     def __init__(self, dataset, **kwargs):
@@ -97,6 +98,7 @@ class DatasetReader(object):
                 output_file.write('\n')
                 output_file.write('subjects = ' + pprint.pformat(
                     dataset.subjects) + '\n')
+
 
 class RawDatasetReader(DatasetReader):
     """
@@ -289,6 +291,7 @@ class RawDatasetReader(DatasetReader):
         persubject_dataset = self.to_persubject_dataset(quality_scores, **kwargs)
         self.write_out_dataset(persubject_dataset, dataset_filepath)
 
+
 class MockedRawDatasetReader(RawDatasetReader):
 
     def __init__(self, dataset, **kwargs):
@@ -319,6 +322,7 @@ class MockedRawDatasetReader(RawDatasetReader):
             dis_video['os'] = list(scores)
 
         return newone
+
 
 class SyntheticRawDatasetReader(MockedRawDatasetReader):
     """
@@ -374,6 +378,7 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
         z_es = q_es + x_es + y_es
         return z_es
 
+
 class MissingDataRawDatasetReader(MockedRawDatasetReader):
     """
     Dataset reader that simulates random missing data. It reads a dataset as
@@ -391,6 +396,7 @@ class MissingDataRawDatasetReader(MockedRawDatasetReader):
         mask[mask <= self.input_dict['missing_probability']] = float('NaN')
 
         return score_mtx * mask
+
 
 class SelectSubjectRawDatasetReader(MockedRawDatasetReader):
     """
@@ -426,6 +432,7 @@ class SelectSubjectRawDatasetReader(MockedRawDatasetReader):
         for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
             score_mtx[i_dis_video, :] = np.array(dis_video['os'])[selected_subjects]
         return score_mtx
+
 
 class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
     """
@@ -469,6 +476,7 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
                 np.random.shuffle(score_mtx[:, subject])
 
         return score_mtx
+
 
 class CorruptDataRawDatasetReader(MockedRawDatasetReader):
 

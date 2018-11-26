@@ -621,6 +621,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertTrue('os' not in dis_video)
         self.assertAlmostEquals(dis_video['groundtruth'], 100.0, places=4)
 
+
 class SubjectiveModelPartialTest(unittest.TestCase):
 
     def setUp(self):
@@ -762,6 +763,7 @@ class SubjectiveModelPartialTest(unittest.TestCase):
 
         self.assertAlmostEquals(np.sum(result['quality_scores']), 177.92139983454805, places=4)
         self.assertAlmostEquals(np.var(result['quality_scores']), 1.4830610442685492, places=4)
+
 
 if __name__ == '__main__':
     unittest.main()

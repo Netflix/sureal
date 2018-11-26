@@ -9,5 +9,6 @@ import doctest
 
 from sureal.tools import misc
 
+
 def test_doctest():
     doctest.testmod(misc)

@@ -28,6 +28,7 @@ class SurealConfig(object):
     def test_resource_path(cls, *components):
         return cls.root_path('test', 'resource', *components)
 
+
 class DisplayConfig(object):
 
     @staticmethod

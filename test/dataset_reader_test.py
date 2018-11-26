@@ -12,6 +12,7 @@ from sureal.dataset_reader import RawDatasetReader, SyntheticRawDatasetReader, \
     MissingDataRawDatasetReader, SelectSubjectRawDatasetReader, \
     CorruptSubjectRawDatasetReader, CorruptDataRawDatasetReader
 
+
 class RawDatasetReaderTest(unittest.TestCase):
 
     def setUp(self):
@@ -50,6 +51,7 @@ class RawDatasetReaderTest(unittest.TestCase):
         dataset = self.dataset_reader.to_persubject_dataset(np.zeros([79, 26]))
         self.assertEqual(len(dataset.dis_videos), 2054)
 
+
 class RawDatasetReaderPartialTest(unittest.TestCase):
 
     def setUp(self):
@@ -87,6 +89,7 @@ class RawDatasetReaderPartialTest(unittest.TestCase):
     def test_to_persubject_dataset(self):
         dataset = self.dataset_reader.to_persubject_dataset(np.zeros([79, 26]))
         self.assertEqual(len(dataset.dis_videos), 1326)
+
 
 class SyntheticDatasetReaderTest(unittest.TestCase):
 
@@ -133,6 +136,7 @@ class SyntheticDatasetReaderTest(unittest.TestCase):
 
         self.assertNotEquals(old_scores, new_scores)
 
+
 class MissingDatasetReaderTest(unittest.TestCase):
 
     def setUp(self):
@@ -158,6 +162,7 @@ class MissingDatasetReaderTest(unittest.TestCase):
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
         self.assertNotEquals(old_scores, new_scores)
+
 
 class SelectedSubjectDatasetReaderTest(unittest.TestCase):
 
@@ -188,6 +193,7 @@ class SelectedSubjectDatasetReaderTest(unittest.TestCase):
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
         self.assertNotEquals(old_scores, new_scores)
+
 
 class CorruptSubjectDatasetReaderTestWithCorruptionProb(unittest.TestCase):
 
@@ -269,6 +275,7 @@ class CorruptSubjectDatasetReaderTest(unittest.TestCase):
 
         self.assertNotEquals(old_scores, new_scores)
 
+
 class CorruptDataDatasetReaderTest(unittest.TestCase):
 
     def setUp(self):
@@ -293,6 +300,7 @@ class CorruptDataDatasetReaderTest(unittest.TestCase):
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
         self.assertNotEquals(old_scores, new_scores)
+
 
 if __name__ == '__main__':
     unittest.main()
