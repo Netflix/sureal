@@ -38,15 +38,13 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         raise AssertionError("Unknown input type, must be .py or .json")
     dataset_reader = dataset_reader_class(dataset, input_dict=dataset_reader_info_dict)
 
-    subjective_models = map(
-        lambda subjective_model_class: subjective_model_class(dataset_reader),
-        subjective_model_classes
-    )
+    subjective_models = [
+        s(dataset_reader) for s in subjective_model_classes
+    ]
 
-    results = map(
-        lambda subjective_model: subjective_model.run_modeling(**kwargs),
-        subjective_models
-    )
+    results = [
+        s.run_modeling(**kwargs) for s in subjective_models
+    ]
 
     if do_plot == 'all' or 'raw_scores' in do_plot:
         # ===== plot raw scores
