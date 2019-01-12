@@ -62,7 +62,8 @@ def main():
         print(("Dataset: {}".format(dataset_filepath)))
         print(("Subjective Model: {} {}".format(subjective_models[0].TYPE, subjective_models[0].VERSION)))
         print("Result:")
-        json.dumps(results[0], indent=4, sort_keys=True)
+        printable_results = {k: v.tolist() for k, v in results[0].items()}
+        print(json.dumps(printable_results, indent=4, sort_keys=True))
 
     if output_dir is None:
         DisplayConfig.show()
