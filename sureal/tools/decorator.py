@@ -7,6 +7,7 @@ import warnings
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
 
+
 def persist_to_file(file_name):
     """
     Cache (or persist) returned value of function in a json file .
@@ -32,6 +33,7 @@ def persist_to_file(file_name):
         return new_func
 
     return decorator
+
 
 def deprecated(func):
     """

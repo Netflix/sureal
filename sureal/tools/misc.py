@@ -3,8 +3,10 @@ import os
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
 
+
 def empty_object():
     return type('', (), {})()
+
 
 def get_unique_sorted_list(l):
     """
@@ -14,6 +16,7 @@ def get_unique_sorted_list(l):
     []
     """
     return sorted(list(set(l)))
+
 
 def get_file_name_without_extension(path):
     """
@@ -32,6 +35,7 @@ def get_file_name_without_extension(path):
     """
     return os.path.splitext(path.split("/")[-1])[0]
 
+
 def get_file_name_with_extension(path):
     """
 
@@ -45,6 +49,7 @@ def get_file_name_with_extension(path):
     """
     return path.split("/")[-1]
 
+
 def get_file_name_extension(path):
     '''
     >>> get_file_name_extension("file:///mnt/zli/test.txt")
@@ -55,6 +60,7 @@ def get_file_name_extension(path):
     'abc'
     '''
     return path.split('.')[-1]
+
 
 def indices(a, func):
     """
@@ -70,6 +76,7 @@ def indices(a, func):
     """
     return [i for (i, val) in enumerate(a) if func(val)]
 
+
 def import_json_file(filepath):
     """
     Import a JSON-formatted input file as a dict.
@@ -83,6 +90,7 @@ def import_json_file(filepath):
     ns = Namespace(**ret)  # convert dict to namespace
     return ns
 
+
 def import_python_file(filepath):
     """
     Import a python file as a module.
@@ -94,6 +102,7 @@ def import_python_file(filepath):
     ret = imp.load_source(filename, filepath)
 
     return ret
+
 
 def get_cmd_option(argv, begin, end, option):
     '''
@@ -119,6 +128,7 @@ def get_cmd_option(argv, begin, end, option):
         return argv[itr + 1]
     return None
 
+
 def cmd_option_exists(argv, begin, end, option):
     '''
 
@@ -140,6 +150,7 @@ def cmd_option_exists(argv, begin, end, option):
             found = True
             break
     return found
+
 
 if __name__ == '__main__':
     import doctest

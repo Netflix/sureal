@@ -14,9 +14,11 @@ __license__ = "Apache, Version 2.0"
 
 SUBJECTIVE_MODELS = ['MOS', 'MLE', 'MLE_CO', 'DMOS', 'DMOS_MLE', 'DMOS_MLE_CO', 'SR_MOS', 'ZS_SR_MOS', 'SR_DMOS', 'ZS_SR_DMOS']
 
+
 def print_usage():
     print("usage: " + os.path.basename(sys.argv[0]) + " subjective_model dataset_filepath [--output-dir output_dir]\n")
     print("subjective_model:\n\t" + "\n\t".join(SUBJECTIVE_MODELS) + "\n")
+
 
 def main():
     if len(sys.argv) < 3:
@@ -73,6 +75,7 @@ def main():
         with open(os.path.join(output_dir, 'sureal.json'), 'w') as out_f:
             json.dump(results[0], out_f, indent=4, sort_keys=True)
     return 0
+
 
 if __name__ == '__main__':
     ret = main()
