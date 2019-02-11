@@ -481,16 +481,28 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     @staticmethod
     def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis):
         E, S = x_es.shape
+
+        # === gaussian ===
         a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
         a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
         vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
+        ret = - 1.0 / 2 * np.log(vs2_add_ace2) - 1.0 / 2 * a_es**2 / vs2_add_ace2
 
-        # logistic
-        s = np.sqrt(vs2_add_ace2 * 3 / np.pi**2)
-        ret = np.log(1.0 / 4.0 / s / np.cosh(a_es / 2.0 / s)**2)
+        # === logistic ===
+        # a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
+        # a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
+        # vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
+        # x_minus_mu = a_es
+        # s = np.sqrt(vs2_add_ace2 * 3 / np.pi**2)
+        # ret = np.log(1.0 / 4.0 / s / np.cosh(x_minus_mu / 2.0 / s)**2)
 
-        # gaussian
-        # ret = - 1.0 / 2 * np.log(vs2_add_ace2) - 1.0 / 2 * a_es**2 / vs2_add_ace2
+        # # === logistic 2 ===
+        # a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
+        # x_minus_mu1 = x_es - np.tile(b_s, (E, 1))
+        # x_minus_mu2 = x_es - np.tile(x_e, (S, 1)).T
+        # s1 = np.sqrt(np.tile(v_s**2, (E, 1)) * 3 / np.pi**2)
+        # s2 = np.sqrt(np.tile(a_c_e**2, (S, 1)).T * 3 / np.pi**2)
+        # ret = np.log((1.0 / 4.0 / s1 / np.cosh(x_minus_mu1 / 2.0 / s1)**2))
 
         ret = pd.DataFrame(ret).sum(axis=axis)
         return ret
