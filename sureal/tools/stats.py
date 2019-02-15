@@ -37,9 +37,9 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
         ConvolveTwoPdf(
             lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
             lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
+            f_truncation=1e-8,
+            g_truncation=1e-8,
             delta=1e-3,
-            f_truncation=1e-5,
-            g_truncation=1e-5,
         ).pdf(x - loc1 - loc2)
 
     # # === way 1: parallel_map (each job too small, bottlenecked by passing context) ===
@@ -118,7 +118,7 @@ class ConvolveTwoPdf(object):
     probability density at any real value.
     """
 
-    def __init__(self, f, g, delta=1e-2, f_truncation=1e-4, g_truncation=1e-4):
+    def __init__(self, f, g, delta=1e-2, f_truncation=1e-5, g_truncation=1e-5):
         self.f = f
         self.g = g
         self.delta = delta

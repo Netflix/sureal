@@ -498,8 +498,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
             mu1 = np.tile(b_s, (E, 1))
             mu2 = np.tile(x_e, (S, 1)).T
-            s1 = np.sqrt(np.tile(v_s**2, (E, 1)) * 3 / np.pi**2)
-            s2 = np.sqrt(np.tile(a_c_e**2, (S, 1)).T * 3 / np.pi**2)
+            s1 = np.sqrt(np.tile((v_s / (np.pi / np.sqrt(3.0)))**2, (E, 1)))
+            s2 = np.sqrt(np.tile((a_c_e / (np.pi / np.sqrt(3.0)))**2, (S, 1)).T)
             # ret = np.log(vectorized_logistic(x_es, mu1 + mu2, np.sqrt(s1**2 + s2**2)))
             ret = np.log(vectorized_convolution_of_two_logistics(x_es, mu1, s1, mu2, s2))
 
@@ -508,8 +508,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
             mu1 = np.tile(b_s, (E, 1))
             mu2 = np.tile(x_e, (S, 1)).T
-            s1 = np.sqrt(np.tile(v_s**2, (E, 1)) * 12)
-            s2 = np.sqrt(np.tile(a_c_e**2, (S, 1)).T * 12)
+            s1 = np.sqrt(np.tile(v_s**2, (E, 1)) * 12.)
+            s2 = np.sqrt(np.tile(a_c_e**2, (S, 1)).T * 12.)
             ret = np.log(vectorized_convolution_of_two_uniforms(x_es, mu1, s1, mu2, s2))
         else:
             assert False, 'Unknown numerical_pdf: {}'.format(numerical_pdf)
