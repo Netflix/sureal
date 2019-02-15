@@ -48,6 +48,7 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
         ConvolveTwoPdf(
             lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
             lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
+            # delta=1e-1,
         ).pdf(x - loc1 - loc2)
 
     ff = np.vectorize(f)

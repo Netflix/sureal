@@ -5,13 +5,14 @@ import numpy as np
 from scipy import linalg
 from scipy import stats
 import pandas as pd
+import time
 
 from sureal.core.mixin import TypeVersionEnabled
 from sureal.tools.decorator import deprecated
 from sureal.tools.misc import import_python_file, indices
 from sureal.dataset_reader import RawDatasetReader
 from sureal.tools.stats import vectorized_gaussian, vectorized_convolution_of_two_logistics, \
-    vectorized_convolution_of_two_uniforms
+    vectorized_convolution_of_two_uniforms, vectorized_logistic
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -480,8 +481,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
     DEFAULT_GRADIENT_METHOD = 'simplified'
     DEFAULT_NUMERICAL_PDF = 'gaussian'
-
-    DELTA_THR = 1e-8
+    DEFAULT_DELTA_THR = 1e-8
 
     @staticmethod
     def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis, numerical_pdf):
@@ -500,6 +500,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             mu2 = np.tile(x_e, (S, 1)).T
             s1 = np.sqrt(np.tile(v_s**2, (E, 1)) * 3 / np.pi**2)
             s2 = np.sqrt(np.tile(a_c_e**2, (S, 1)).T * 3 / np.pi**2)
+            # ret = np.log(vectorized_logistic(x_es, mu1 + mu2, np.sqrt(s1**2 + s2**2)))
             ret = np.log(vectorized_convolution_of_two_logistics(x_es, mu1, s1, mu2, s2))
 
         elif numerical_pdf == 'uniform':
@@ -530,6 +531,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         assert gradient_method == 'simplified' or gradient_method == 'original' or gradient_method == 'numerical'
 
         numerical_pdf = kwargs['numerical_pdf'] if 'numerical_pdf' in kwargs else cls.DEFAULT_NUMERICAL_PDF
+
+        delta_thr = kwargs['delta_thr'] if 'delta_thr' in kwargs else cls.DEFAULT_DELTA_THR
 
         def sum_over_content_id(xs, cids, num_c):
             assert len(xs) == len(cids)
@@ -590,6 +593,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         print('=== Belief Propagation ===')
 
+        then = time.time()
         itr = 0
         while True:
 
@@ -812,19 +816,26 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             likelihood = np.sum(cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, 1, numerical_pdf))
 
-            msg = 'Iteration {itr:4d}: change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
-                format(itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
-            sys.stdout.write(msg + '\r')
-            sys.stdout.flush()
+            now = time.time()
+            elapsed = now - then
+            then = now
+
+            msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
+                format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
+
+            # sys.stdout.write(msg + '\r')
+            # sys.stdout.flush()
+            print(msg)
+
             # time.sleep(0.001)
 
-            if delta_x_e < cls.DELTA_THR:
+            if delta_x_e < delta_thr:
                 break
 
             if itr >= MAX_ITR:
                 break
 
-        sys.stdout.write("\n")
+        # sys.stdout.write("\n")
 
         assert x_e_std is not None
         assert b_s_std is not None
