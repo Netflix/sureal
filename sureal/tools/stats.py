@@ -33,26 +33,35 @@ def vectorized_logistic(xs, locs, scales):
 
 def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
 
-    # f = lambda x, loc1, scale1, loc2, scale2: \
-    #     ConvolveTwoPdf(
-    #         lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
-    #         lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
-    #     ).pdf(x - loc1 - loc2)
+    f = lambda x, loc1, scale1, loc2, scale2: \
+        ConvolveTwoPdf(
+            lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
+            lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
+            delta=1e-3,
+            f_truncation=1e-5,
+            g_truncation=1e-5,
+        ).pdf(x - loc1 - loc2)
+
+    # # === way 1: parallel_map (each job too small, bottlenecked by passing context) ===
     # f2 = lambda x: f(*x)
     # xshape = xs.shape
     # assert xshape == locs1.shape == scales1.shape == locs2.shape == scales2.shape
     # res = parallel_map(f2, zip(xs.ravel(), locs1.ravel(), scales1.ravel(), locs2.ravel(), scales2.ravel()), pause_sec=None)
     # return np.reshape(res, xshape)
 
-    f = lambda x, loc1, scale1, loc2, scale2: \
-        ConvolveTwoPdf(
-            lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
-            lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
-            # delta=1e-1,
-        ).pdf(x - loc1 - loc2)
+    # # === way 2: vectorize (sequential execution) ===
+    # ff = np.vectorize(f)
+    # return ff(xs, locs1, scales1, locs2, scales2)
 
+    # === way 3: parallel map combined with vectorize (best speed) ===
     ff = np.vectorize(f)
-    return ff(xs, locs1, scales1, locs2, scales2)
+    ff2 = lambda x: ff(*x)
+    xshape = xs.shape
+    assert xshape == locs1.shape == scales1.shape == locs2.shape == scales2.shape
+    res = parallel_map(ff2, zip(xs, locs1, scales1, locs2, scales2), pause_sec=None)
+    return np.array(res)
+
+
 
 def convolution_of_two_uniforms(x, loc1, s1, loc2, s2):
     """
