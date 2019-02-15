@@ -488,6 +488,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         E, S = x_es.shape
 
         if numerical_pdf == 'gaussian':
+            # solution not unique
             a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
             mu_es = np.tile(x_e, (S, 1)).T + np.tile(b_s, (E, 1))
             vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
@@ -502,6 +503,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             ret = np.log(vectorized_convolution_of_two_logistics(x_es, mu1, s1, mu2, s2))
 
         elif numerical_pdf == 'uniform':
+            # gradient descent won't work due to zero density
             a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
             mu1 = np.tile(b_s, (E, 1))
             mu2 = np.tile(x_e, (S, 1)).T
