@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 import scipy.signal
-from inverse import inversefunc
+from .inverse import inversefunc
 
 import multiprocessing
 pool = multiprocessing.Pool()

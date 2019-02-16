@@ -820,14 +820,14 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             elapsed = now - then
             then = now
 
-            # msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
-            #     format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
             msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
-                format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=(np.nanmin(x_e), np.nanmean(x_e), np.nanmax(x_e)), b_s=(np.nanmin(b_s), np.nanmean(b_s), np.nanmax(b_s)), v_s=(np.nanmin(v_s), np.nanmean(v_s), np.nanmax(v_s)), a_c=(np.nanmin(a_c), np.nanmean(a_c), np.nanmax(a_c)))
+                format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
+            # msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
+            #     format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=(np.nanmin(x_e), np.nanmean(x_e), np.nanmax(x_e)), b_s=(np.nanmin(b_s), np.nanmean(b_s), np.nanmax(b_s)), v_s=(np.nanmin(v_s), np.nanmean(v_s), np.nanmax(v_s)), a_c=(np.nanmin(a_c), np.nanmean(a_c), np.nanmax(a_c)))
 
-            # sys.stdout.write(msg + '\r')
-            # sys.stdout.flush()
-            print(msg)
+            sys.stdout.write(msg + '\r')
+            sys.stdout.flush()
+            # print(msg)
 
             # time.sleep(0.001)
 
