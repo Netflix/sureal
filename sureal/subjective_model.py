@@ -611,7 +611,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 den = pd.DataFrame(den_num / den_den).sum(axis=0) # sum over e
                 b_s_new = num / den
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(den) # calculate std of x_e
+                b_s_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of x_e
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
@@ -622,7 +622,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = pd.DataFrame(order2).sum(axis=0) # sum over e
                 b_s_new = b_s - order1 / order2
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                b_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             elif gradient_method == 'numerical':
                 axis = 0 # sum over e
@@ -633,7 +633,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                                   + cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
                 b_s_new = b_s - order1 / order2
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                b_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             else:
                 assert False
@@ -662,7 +662,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 lpp = pd.DataFrame(
                     vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
                 ).sum(axis=0) # sum over e
-                v_s_std = 1.0 / np.sqrt(-lpp)
+                v_s_std = 1.0 / np.sqrt(np.maximum(0., -lpp))
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
@@ -678,7 +678,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = pd.DataFrame(order2).sum(axis=0) # sum over e
                 v_s_new = v_s - order1 / order2
                 v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
-                v_s_std = 1.0 / np.sqrt(-order2) # calculate std of v_s
+                v_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of v_s
 
             elif gradient_method == 'numerical':
                 axis = 0 # sum over e
@@ -689,7 +689,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                                   + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
                 v_s_new = v_s - order1 / order2
                 v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
-                v_s_std = 1.0 / np.sqrt(-order2) # calculate std of v_s
+                v_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of v_s
 
             else:
                 assert False
@@ -727,7 +727,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                     dataset_reader.content_id_of_dis_videos,
                     C
                 ) # sum over e:c(e)=c
-                a_c_std = 1.0 /np.sqrt(-lpp)
+                a_c_std = 1.0 /np.sqrt(np.maximum(0., -lpp))
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
@@ -745,7 +745,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 a_c_new = a_c - order1 / order2
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
-                a_c_std = 1.0 / np.sqrt(-order2) # calculate std of a_c
+                a_c_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of a_c
 
             elif gradient_method == 'numerical':
                 axis = 1 # sum over s
@@ -758,7 +758,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 a_c_new = a_c - order1 / order2
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
-                a_c_std = 1.0 / np.sqrt(-order2) # calculate std of a_c
+                a_c_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of a_c
 
             else:
                 assert False
@@ -782,7 +782,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 den = pd.DataFrame(den_num / den_den).sum(axis=1) # sum over s
                 x_e_new = num / den
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(den) # calculate std of x_e
+                x_e_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of x_e
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
@@ -794,7 +794,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = pd.DataFrame(order2).sum(axis=1) # sum over s
                 x_e_new = x_e - order1 / order2
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                x_e_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             elif gradient_method == 'numerical':
                 axis = 1 # sum over s
@@ -805,7 +805,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                                   + cls.loglikelihood_fcn(x_es, x_e - EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
                 x_e_new = x_e - order1 / order2
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                x_e_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             else:
                 assert False
@@ -820,8 +820,10 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             elapsed = now - then
             then = now
 
+            # msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
+            #     format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
             msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
-                format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
+                format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=(np.nanmin(x_e), np.nanmean(x_e), np.nanmax(x_e)), b_s=(np.nanmin(b_s), np.nanmean(b_s), np.nanmax(b_s)), v_s=(np.nanmin(v_s), np.nanmean(v_s), np.nanmax(v_s)), a_c=(np.nanmin(a_c), np.nanmean(a_c), np.nanmax(a_c)))
 
             # sys.stdout.write(msg + '\r')
             # sys.stdout.flush()
