@@ -156,7 +156,7 @@ class ConvolveTwoPdf(object):
         pmf_g = self.g(big_grid) * delta
         pmf_g = (pmf_g + np.hstack([pmf_g[1:], pmf_g[-1]])) / 2.  # trapezoidal rule for better accuracy
         conv_pmf = scipy.signal.fftconvolve(pmf_f, pmf_g, 'same')
-        conv_pmf = conv_pmf / sum(conv_pmf)
+        # conv_pmf = conv_pmf / sum(conv_pmf)
         conv_pdf = conv_pmf / delta
 
         self.model = {
@@ -166,4 +166,6 @@ class ConvolveTwoPdf(object):
 
     def _pdf(self, x):
         assert self.model is not None
-        return np.interp(x, self.model['grid'], self.model['pdf'], left=0.0, right=0.0)
+        return np.interp(x, self.model['grid'], self.model['pdf'],
+                         left=self.f_truncation*self.g_truncation,
+                         right=self.f_truncation*self.g_truncation)

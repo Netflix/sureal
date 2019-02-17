@@ -189,13 +189,13 @@ def inversefunc(func,
             warnings.warn("Trouble calculating inverse for values: "
                           "%s" % str(yin[~resultsmask]), RuntimeWarning)
 
-        try:
-            np.testing.assert_array_almost_equal(yin, func(results, *args),
-                                                 decimal=accuracy)
-        except AssertionError:
-            warnings.warn("Results obtained with less than %g "
-                          "decimal digits of accuracy"
-                          % accuracy, RuntimeWarning)
+        # try:
+        #     np.testing.assert_array_almost_equal(yin, func(results, *args),
+        #                                          decimal=accuracy)
+        # except AssertionError:
+        #     warnings.warn("Results obtained with less than %g "
+        #                   "decimal digits of accuracy"
+        #                   % accuracy, RuntimeWarning)
 
         return results.reshape(shapein)
 
