@@ -6,7 +6,7 @@ from .inverse import inversefunc
 import multiprocessing
 pool = multiprocessing.Pool()
 
-from sureal.tools.misc import parallel_map
+from misc import parallel_map
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -36,8 +36,15 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
 
     f = lambda x, loc1, scale1, loc2, scale2: \
         ConvolveTwoPdf(
-            lambda x: 1.0 / 4.0 / scale1 * sech(x / 2.0 / scale1)**2,
-            lambda x: 1.0 / 4.0 / scale2 * sech(x / 2.0 / scale2)**2,
+            # lambda x: 1.0 / 4.0 / scale1 * sech(x / 2.0 / scale1)**2,
+            # lambda x: 1.0 / 4.0 / scale2 * sech(x / 2.0 / scale2)**2,
+
+            # lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
+            # lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
+
+            lambda x: 1.0 / np.sqrt(2 * np.pi) / (scale1 * (np.pi / np.sqrt(3.0))) * np.exp(- (x)**2 / (2* (scale1 * (np.pi / np.sqrt(3.0)))**2)), # test gaussian
+            lambda x: 1.0 / np.sqrt(2 * np.pi) / (scale2 * (np.pi / np.sqrt(3.0))) * np.exp(- (x)**2 / (2* (scale2 * (np.pi / np.sqrt(3.0)))**2)), # test gaussian
+
             f_truncation=1e-8,
             g_truncation=1e-8,
             delta=1e-3,
@@ -61,6 +68,9 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
     assert xshape == locs1.shape == scales1.shape == locs2.shape == scales2.shape
     res = parallel_map(ff2, zip(xs, locs1, scales1, locs2, scales2), pause_sec=None)
     return np.array(res)
+
+    # === test: test one gaussian ===
+    # return 1.0 / np.sqrt(2 * np.pi * (scales1**2 + scales2**2) * (np.pi**2 / 3.)) * np.exp(- (xs - locs1 - locs2)**2 / (2* (scales1**2 + scales2**2) * (np.pi**2 / 3.)))
 
 
 
@@ -142,9 +152,9 @@ class ConvolveTwoPdf(object):
         reach = max(inv_f, inv_g)
         big_grid = np.arange(-reach, reach, self.delta)
         pmf_f = self.f(big_grid) * self.delta
-        pmf_f = (pmf_f + np.hstack([pmf_f[1:], pmf_f[-1]])) / 2.  # trapezoidal rule for better accuracy
+        # pmf_f = (pmf_f + np.hstack([pmf_f[1:], pmf_f[-1]])) / 2.  # trapezoidal rule for better accuracy
         pmf_g = self.g(big_grid) * self.delta
-        pmf_g = (pmf_g + np.hstack([pmf_g[1:], pmf_g[-1]])) / 2.  # trapezoidal rule for better accuracy
+        # pmf_g = (pmf_g + np.hstack([pmf_g[1:], pmf_g[-1]])) / 2.  # trapezoidal rule for better accuracy
         conv_pmf = scipy.signal.fftconvolve(pmf_f, pmf_g, 'same')
         conv_pmf = conv_pmf / sum(conv_pmf)
         conv_pdf = conv_pmf / self.delta
