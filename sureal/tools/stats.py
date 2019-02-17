@@ -39,11 +39,11 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
             # lambda x: 1.0 / 4.0 / scale1 * sech(x / 2.0 / scale1)**2,
             # lambda x: 1.0 / 4.0 / scale2 * sech(x / 2.0 / scale2)**2,
 
-            # lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
-            # lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
+            lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
+            lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
 
-            lambda x: 1.0 / np.sqrt(2 * np.pi) / (scale1 * (np.pi / np.sqrt(3.0))) * np.exp(- (x)**2 / (2* (scale1 * (np.pi / np.sqrt(3.0)))**2)), # test gaussian
-            lambda x: 1.0 / np.sqrt(2 * np.pi) / (scale2 * (np.pi / np.sqrt(3.0))) * np.exp(- (x)**2 / (2* (scale2 * (np.pi / np.sqrt(3.0)))**2)), # test gaussian
+            # lambda x: 1.0 / np.sqrt(2 * np.pi) / (scale1 * (np.pi / np.sqrt(3.0))) * np.exp(- (x)**2 / (2* (scale1 * (np.pi / np.sqrt(3.0)))**2)), # test gaussian
+            # lambda x: 1.0 / np.sqrt(2 * np.pi) / (scale2 * (np.pi / np.sqrt(3.0))) * np.exp(- (x)**2 / (2* (scale2 * (np.pi / np.sqrt(3.0)))**2)), # test gaussian
 
             f_truncation=1e-8,
             g_truncation=1e-8,
