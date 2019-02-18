@@ -36,20 +36,23 @@ def sech(x):
 def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
 
     f = lambda x, loc1, scale1, loc2, scale2: \
-        ConvolveTwoPdf(
-            # lambda x: 1.0 / 4.0 / scale1 * sech(x / 2.0 / scale1)**2,
-            # lambda x: 1.0 / 4.0 / scale2 * sech(x / 2.0 / scale2)**2,
+        np.maximum(
+            1e-10,
+            ConvolveTwoPdf(
+                # lambda x: 1.0 / 4.0 / scale1 * sech(x / 2.0 / scale1)**2,
+                # lambda x: 1.0 / 4.0 / scale2 * sech(x / 2.0 / scale2)**2,
 
-            # lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
-            # lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
+                # lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
+                # lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
 
-            lambda x: 1.0 / np.sqrt(2 * np.pi * (scale1**2) * (np.pi**2 / 3.)) * np.exp(- x**2 / (2* (scale1**2) * (np.pi**2 / 3.))), # test gaussian
-            lambda x: 1.0 / np.sqrt(2 * np.pi * (scale2**2) * (np.pi**2 / 3.)) * np.exp(- x**2 / (2* (scale2**2) * (np.pi**2 / 3.))), # test gaussian
+                lambda x: 1.0 / np.sqrt(2 * np.pi * (scale1**2) * (np.pi**2 / 3.)) * np.exp(- x**2 / (2* (scale1**2) * (np.pi**2 / 3.))), # test gaussian
+                lambda x: 1.0 / np.sqrt(2 * np.pi * (scale2**2) * (np.pi**2 / 3.)) * np.exp(- x**2 / (2* (scale2**2) * (np.pi**2 / 3.))), # test gaussian
 
-            f_truncation=1e-8,
-            g_truncation=1e-8,
-            delta=1e-2,
-        ).pdf(x - loc1 - loc2)
+                f_truncation=1e-8,
+                g_truncation=1e-8,
+                delta=1e-2,
+            ).pdf(x - loc1 - loc2)
+        )
 
     # # === way 1: parallel_map (each job too small, bottlenecked by passing context) ===
     # f2 = lambda x: f(*x)
