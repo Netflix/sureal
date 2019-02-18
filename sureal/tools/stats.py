@@ -157,11 +157,10 @@ class ConvolveTwoPdf(object):
         pmf_g = (pmf_g + np.hstack([pmf_g[1:], pmf_g[-1]])) / 2.  # trapezoidal rule for better accuracy
         conv_pmf = scipy.signal.fftconvolve(pmf_f, pmf_g, 'same')
 
-        try:
-            np.testing.assert_almost_equal(sum(conv_pmf), 1, decimal=3)
-        except AssertionError:
-            warnings.warn('expect sum(conv_pmf) close to 1.0 but is {}'.format(sum(conv_pmf)),
-                          RuntimeWarning)
+        # try:
+        #     np.testing.assert_almost_equal(sum(conv_pmf), 1, decimal=3)
+        # except AssertionError:
+        #     warnings.warn('expect sum(conv_pmf) close to 1.0 but is {}'.format(sum(conv_pmf)))
 
         conv_pdf = conv_pmf / self.delta
 
