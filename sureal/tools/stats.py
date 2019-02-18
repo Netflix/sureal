@@ -47,7 +47,7 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
 
             f_truncation=1e-8,
             g_truncation=1e-8,
-            steps=1000,
+            delta=1e-2,
         ).pdf(x - loc1 - loc2)
 
     # # === way 1: parallel_map (each job too small, bottlenecked by passing context) ===
@@ -128,10 +128,10 @@ class ConvolveTwoPdf(object):
     probability density at any real value.
     """
 
-    def __init__(self, f, g, steps=100, f_truncation=1e-5, g_truncation=1e-5):
+    def __init__(self, f, g, delta=1e-2, f_truncation=1e-5, g_truncation=1e-5):
         self.f = f
         self.g = g
-        self.steps = steps
+        self.delta = delta
         self.f_truncation=f_truncation
         self.g_truncation=g_truncation
 
@@ -149,15 +149,17 @@ class ConvolveTwoPdf(object):
         assert inv_f > 0
         assert inv_g > 0
         reach = max(inv_f, inv_g)
-        big_grid = np.linspace(-reach, reach, num=self.steps)
-        delta = np.mean(np.diff(big_grid)[:-1])
-        pmf_f = self.f(big_grid) * delta
+        big_grid = np.arange(-reach, reach, self.delta)
+        pmf_f = self.f(big_grid) * self.delta
         pmf_f = (pmf_f + np.hstack([pmf_f[1:], pmf_f[-1]])) / 2.  # trapezoidal rule for better accuracy
-        pmf_g = self.g(big_grid) * delta
+        pmf_g = self.g(big_grid) * self.delta
         pmf_g = (pmf_g + np.hstack([pmf_g[1:], pmf_g[-1]])) / 2.  # trapezoidal rule for better accuracy
         conv_pmf = scipy.signal.fftconvolve(pmf_f, pmf_g, 'same')
-        # conv_pmf = conv_pmf / sum(conv_pmf)
-        conv_pdf = conv_pmf / delta
+        np.testing.assert_almost_equal(
+            sum(conv_pmf), 1, decimal=5,
+            err_msg='expect sum(conv_pmf) close to 1.0 but is {}'.format(sum(conv_pmf))
+        )
+        conv_pdf = conv_pmf / self.delta
 
         self.model = {
             'grid': big_grid,
