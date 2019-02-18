@@ -37,18 +37,18 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
 
     f = lambda x, loc1, scale1, loc2, scale2: \
         ConvolveTwoPdf(
-            # lambda x: 1.0 / 4.0 / scale1 * sech(x / 2.0 / scale1)**2,
-            # lambda x: 1.0 / 4.0 / scale2 * sech(x / 2.0 / scale2)**2,
+            lambda x: 1.0 / 4.0 / scale1 * sech(x / 2.0 / scale1)**2,
+            lambda x: 1.0 / 4.0 / scale2 * sech(x / 2.0 / scale2)**2,
 
             # lambda x: 1.0 / 4.0 / scale1 / np.cosh(x / 2.0 / scale1)**2,
             # lambda x: 1.0 / 4.0 / scale2 / np.cosh(x / 2.0 / scale2)**2,
 
-            lambda x: 1.0 / np.sqrt(2 * np.pi * (scale1**2) * (np.pi**2 / 3.)) * np.exp(- x**2 / (2* (scale1**2) * (np.pi**2 / 3.))), # test gaussian
-            lambda x: 1.0 / np.sqrt(2 * np.pi * (scale2**2) * (np.pi**2 / 3.)) * np.exp(- x**2 / (2* (scale2**2) * (np.pi**2 / 3.))), # test gaussian
+            # lambda x: 1.0 / np.sqrt(2 * np.pi * (scale1**2) * (np.pi**2 / 3.)) * np.exp(- x**2 / (2* (scale1**2) * (np.pi**2 / 3.))), # test gaussian
+            # lambda x: 1.0 / np.sqrt(2 * np.pi * (scale2**2) * (np.pi**2 / 3.)) * np.exp(- x**2 / (2* (scale2**2) * (np.pi**2 / 3.))), # test gaussian
 
-            f_truncation=1e-10,
-            g_truncation=1e-10,
-            delta=1e-2,
+            f_truncation=1e-12,
+            g_truncation=1e-12,
+            delta=3e-3,
         ).pdf(x - loc1 - loc2)
 
     # # === way 1: parallel_map (each job too small, bottlenecked by passing context) ===
@@ -67,7 +67,8 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
     ff2 = lambda x: ff(*x)
     xshape = xs.shape
     assert xshape == locs1.shape == scales1.shape == locs2.shape == scales2.shape
-    res = parallel_map(ff2, zip(xs, locs1, scales1, locs2, scales2), pause_sec=None)
+    with np.errstate(over='ignore'):
+        res = parallel_map(ff2, zip(xs, locs1, scales1, locs2, scales2), pause_sec=None)
     return np.array(res)
 
     # === test: test one gaussian ===
