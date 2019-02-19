@@ -820,6 +820,25 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             elapsed = now - then
             then = now
 
+            # === start of temp: test initialization to groundtruth ===
+            try:
+                initialized_to_ground_truth
+            except NameError:
+                initialized_to_ground_truth = True
+                np.random.seed(0)
+                synthetic_result_dict = {
+                    'quality_scores': np.random.uniform(1, 5, 79),
+                    'observer_bias': np.random.normal(0, 1, 30),
+                    'observer_inconsistency': np.abs(np.random.uniform(0.0, 0.4, 30)),
+                    'content_bias': np.random.normal(0, 0.00001, 9),
+                    'content_ambiguity': np.abs(np.random.uniform(0.4, 0.6, 9)),
+                }
+                x_e = synthetic_result_dict['quality_scores']
+                b_s = synthetic_result_dict['observer_bias']
+                v_s = synthetic_result_dict['observer_inconsistency']
+                a_c = synthetic_result_dict['content_ambiguity']
+            # === end of temp: test initialization to groundtruth ===
+
             # msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
             #     format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
             # msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
