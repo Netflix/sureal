@@ -379,6 +379,36 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
         return z_es
 
 
+class SyntheticLogisticRawDatasetReader(SyntheticRawDatasetReader):
+
+    @property
+    def opinion_score_2darray(self):
+        """
+        Override DatasetReader.opinion_score_2darray(self), based on input
+        synthetic_result.
+        use logistic instead of
+        """
+
+        S = self.num_observers
+        E = self.num_dis_videos
+
+        q_e = np.array(self.input_dict['quality_scores'])
+        q_es = np.tile(q_e, (S, 1)).T
+
+        b_s = np.array(self.input_dict['observer_bias'])
+        sigma_s = np.array(self.input_dict['observer_inconsistency'])
+        x_es = np.tile(b_s, (E, 1)) + np.random.logistic(0, 1, [E, S]) * np.tile(sigma_s / (np.pi / np.sqrt(3)), (E, 1))
+
+        mu_c = np.array(self.input_dict['content_bias'])
+        delta_c = np.array(self.input_dict['content_ambiguity'])
+        mu_c_e = np.array(list(map(lambda i: mu_c[i], self.content_id_of_dis_videos)))
+        delta_c_e = np.array(list(map(lambda i: delta_c[i], self.content_id_of_dis_videos)))
+        y_es = np.tile(mu_c_e, (S, 1)).T + np.random.logistic(0, 1, [E, S]) * np.tile(delta_c_e / (np.pi / np.sqrt(3)), (S, 1)).T
+
+        z_es = q_es + x_es + y_es
+        return z_es
+
+
 class MissingDataRawDatasetReader(MockedRawDatasetReader):
     """
     Dataset reader that simulates random missing data. It reads a dataset as

@@ -5,11 +5,14 @@ import numpy as np
 from scipy import linalg
 from scipy import stats
 import pandas as pd
+import time
 
 from sureal.core.mixin import TypeVersionEnabled
 from sureal.tools.decorator import deprecated
 from sureal.tools.misc import import_python_file, indices
 from sureal.dataset_reader import RawDatasetReader
+from sureal.tools.stats import vectorized_gaussian, vectorized_convolution_of_two_logistics, \
+    vectorized_convolution_of_two_uniforms, vectorized_logistic
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -477,14 +480,40 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     mode = 'DEFAULT'
 
     DEFAULT_GRADIENT_METHOD = 'simplified'
+    DEFAULT_NUMERICAL_PDF = 'gaussian'
+    DEFAULT_DELTA_THR = 1e-8
 
     @staticmethod
-    def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis):
+    def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis, numerical_pdf):
         E, S = x_es.shape
-        a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
-        a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-        vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-        ret = - 1.0 / 2 * np.log(vs2_add_ace2) - 1.0 / 2 * a_es**2 / vs2_add_ace2
+
+        if numerical_pdf == 'gaussian':
+            # solution not unique
+            a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
+            mu_es = np.tile(x_e, (S, 1)).T + np.tile(b_s, (E, 1))
+            vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
+            ret = np.log(vectorized_gaussian(x_es, mu_es, np.sqrt(vs2_add_ace2)))
+
+        elif numerical_pdf == 'logistic':
+            a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
+            mu1 = np.tile(b_s, (E, 1))
+            mu2 = np.tile(x_e, (S, 1)).T
+            s1 = np.sqrt(np.tile((v_s / (np.pi / np.sqrt(3.0)))**2, (E, 1)))
+            s2 = np.sqrt(np.tile((a_c_e / (np.pi / np.sqrt(3.0)))**2, (S, 1)).T)
+            # ret = np.log(vectorized_logistic(x_es, mu1 + mu2, np.sqrt(s1**2 + s2**2)))
+            ret = np.log(vectorized_convolution_of_two_logistics(x_es, mu1, s1, mu2, s2))
+
+        elif numerical_pdf == 'uniform':
+            # gradient descent won't work due to zero density
+            a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
+            mu1 = np.tile(b_s, (E, 1))
+            mu2 = np.tile(x_e, (S, 1)).T
+            s1 = np.sqrt(np.tile(v_s**2, (E, 1)) * 12.)
+            s2 = np.sqrt(np.tile(a_c_e**2, (S, 1)).T * 12.)
+            ret = np.log(vectorized_convolution_of_two_uniforms(x_es, mu1, s1, mu2, s2))
+        else:
+            assert False, 'Unknown numerical_pdf: {}'.format(numerical_pdf)
+
         ret = pd.DataFrame(ret).sum(axis=axis)
         return ret
 
@@ -500,6 +529,10 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         gradient_method = kwargs['gradient_method'] if 'gradient_method' in kwargs else cls.DEFAULT_GRADIENT_METHOD
         assert gradient_method == 'simplified' or gradient_method == 'original' or gradient_method == 'numerical'
+
+        numerical_pdf = kwargs['numerical_pdf'] if 'numerical_pdf' in kwargs else cls.DEFAULT_NUMERICAL_PDF
+
+        delta_thr = kwargs['delta_thr'] if 'delta_thr' in kwargs else cls.DEFAULT_DELTA_THR
 
         def sum_over_content_id(xs, cids, num_c):
             assert len(xs) == len(cids)
@@ -556,11 +589,11 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         MAX_ITR = 10000
         REFRESH_RATE = 0.1
-        DELTA_THR = 1e-8
         EPSILON = 1e-3
 
         print('=== Belief Propagation ===')
 
+        then = time.time()
         itr = 0
         while True:
 
@@ -578,7 +611,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 den = pd.DataFrame(den_num / den_den).sum(axis=0) # sum over e
                 b_s_new = num / den
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(den) # calculate std of x_e
+                b_s_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of x_e
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
@@ -589,18 +622,18 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = pd.DataFrame(order2).sum(axis=0) # sum over e
                 b_s_new = b_s - order1 / order2
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                b_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             elif gradient_method == 'numerical':
                 axis = 0 # sum over e
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON / 2.0, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON / 2.0, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON / 2.0, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
+                         cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON / 2.0, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                                  + cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
                 b_s_new = b_s - order1 / order2
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
-                b_s_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                b_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             else:
                 assert False
@@ -629,7 +662,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 lpp = pd.DataFrame(
                     vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
                 ).sum(axis=0) # sum over e
-                v_s_std = 1.0 / np.sqrt(-lpp)
+                v_s_std = 1.0 / np.sqrt(np.maximum(0., -lpp))
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
@@ -645,18 +678,18 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = pd.DataFrame(order2).sum(axis=0) # sum over e
                 v_s_new = v_s - order1 / order2
                 v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
-                v_s_std = 1.0 / np.sqrt(-order2) # calculate std of v_s
+                v_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of v_s
 
             elif gradient_method == 'numerical':
                 axis = 0 # sum over e
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s + EPSILON / 2.0, a_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON / 2.0, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s + EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s + EPSILON / 2.0, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
+                         cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON / 2.0, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s + EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
                 v_s_new = v_s - order1 / order2
                 v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
-                v_s_std = 1.0 / np.sqrt(-order2) # calculate std of v_s
+                v_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of v_s
 
             else:
                 assert False
@@ -694,7 +727,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                     dataset_reader.content_id_of_dis_videos,
                     C
                 ) # sum over e:c(e)=c
-                a_c_std = 1.0 /np.sqrt(-lpp)
+                a_c_std = 1.0 /np.sqrt(np.maximum(0., -lpp))
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
@@ -712,20 +745,20 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 a_c_new = a_c - order1 / order2
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
-                a_c_std = 1.0 / np.sqrt(-order2) # calculate std of a_c
+                a_c_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of a_c
 
             elif gradient_method == 'numerical':
                 axis = 1 # sum over s
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
+                         cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
                 order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
                 a_c_new = a_c - order1 / order2
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
-                a_c_std = 1.0 / np.sqrt(-order2) # calculate std of a_c
+                a_c_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of a_c
 
             else:
                 assert False
@@ -749,7 +782,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 den = pd.DataFrame(den_num / den_den).sum(axis=1) # sum over s
                 x_e_new = num / den
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(den) # calculate std of x_e
+                x_e_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of x_e
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
@@ -761,18 +794,18 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 order2 = pd.DataFrame(order2).sum(axis=1) # sum over s
                 x_e_new = x_e - order1 / order2
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                x_e_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             elif gradient_method == 'numerical':
                 axis = 1 # sum over s
-                order1 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON / 2.0, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis) -
-                         cls.loglikelihood_fcn(x_es, x_e - EPSILON / 2.0, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)
-                                  + cls.loglikelihood_fcn(x_es, x_e - EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=axis)) / EPSILON**2
+                order1 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON / 2.0, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
+                         cls.loglikelihood_fcn(x_es, x_e - EPSILON / 2.0, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                                  + cls.loglikelihood_fcn(x_es, x_e - EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
                 x_e_new = x_e - order1 / order2
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
-                x_e_std = 1.0 / np.sqrt(-order2) # calculate std of x_e
+                x_e_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             else:
                 assert False
@@ -781,15 +814,26 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             delta_x_e = linalg.norm(x_e_prev - x_e)
 
-            likelihood = np.sum(cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis=1))
+            likelihood = np.sum(cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, 1, numerical_pdf))
 
-            msg = 'Iteration {itr:4d}: change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
-                format(itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
+            now = time.time()
+            elapsed = now - then
+            then = now
+
+            msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
+                format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
+            # msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
+            #     format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=(np.min(x_e), np.mean(x_e), np.max(x_e)), b_s=(np.min(b_s), np.mean(b_s), np.max(b_s)), v_s=(np.min(v_s), np.mean(v_s), np.max(v_s)), a_c=(np.min(a_c), np.mean(a_c), np.max(a_c)))
+            # msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s (min) {v_s} ({v_s_min}), a_c (min) {a_c} ({a_c_min})'.\
+            #     format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.mean(x_e), b_s=np.mean(b_s), v_s=np.mean(v_s), v_s_min=np.min(v_s), a_c=np.mean(a_c), a_c_min=np.min(a_c))
+
             sys.stdout.write(msg + '\r')
             sys.stdout.flush()
+            # print(msg)
+
             # time.sleep(0.001)
 
-            if delta_x_e < DELTA_THR:
+            if delta_x_e < delta_thr:
                 break
 
             if itr >= MAX_ITR:

@@ -33,16 +33,18 @@ To use SUREAL from source, a number of packages are required:
 
 Under Ubuntu, you may also need to install the `python-tk` or `python3-tk` packages via `apt`.
 
-First, upgrade `pip` to the newest version:
+First, upgrade `pip` to the newest version; then install the required Python packages:
 
 ```
 sudo -H pip install --upgrade pip
-```
-
-Then install the required Python packages:
-
-```
 pip install --user -r requirements.txt
+```
+
+For Python 3, use:
+
+```
+sudo -H pip3 install --upgrade pip
+pip3 install --user -r requirements.txt
 ```
 
 ## Testing

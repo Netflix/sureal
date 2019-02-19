@@ -21,19 +21,19 @@ class RawDatasetReaderTest(unittest.TestCase):
         self.dataset_reader = RawDatasetReader(self.dataset)
 
     def test_read_dataset_stats(self):
-        self.assertEquals(self.dataset_reader.num_ref_videos, 9)
-        self.assertEquals(self.dataset_reader.max_content_id_of_ref_videos, 8)
-        self.assertEquals(self.dataset_reader.num_dis_videos, 79)
-        self.assertEquals(self.dataset_reader.num_observers, 26)
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.max_content_id_of_ref_videos, 8)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
 
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertAlmostEquals(np.mean(os_2darray), 3.544790652385589, places=4)
-        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.64933186478291516, places=4)
+        self.assertAlmostEqual(np.mean(os_2darray), 3.544790652385589, places=4)
+        self.assertAlmostEqual(np.mean(np.std(os_2darray, axis=1)), 0.64933186478291516, places=4)
 
     def test_dis_videos_content_ids(self):
         content_ids = self.dataset_reader.content_id_of_dis_videos
-        self.assertAlmostEquals(np.mean(content_ids), 3.8607594936708862, places=4)
+        self.assertAlmostEqual(np.mean(content_ids), 3.8607594936708862, places=4)
 
     def test_disvideo_is_refvideo(self):
         l = self.dataset_reader.disvideo_is_refvideo
@@ -60,19 +60,19 @@ class RawDatasetReaderPartialTest(unittest.TestCase):
         self.dataset_reader = RawDatasetReader(self.dataset)
 
     def test_read_dataset_stats(self):
-        self.assertEquals(self.dataset_reader.num_ref_videos, 7)
-        self.assertEquals(self.dataset_reader.max_content_id_of_ref_videos, 8)
-        self.assertEquals(self.dataset_reader.num_dis_videos, 51)
-        self.assertEquals(self.dataset_reader.num_observers, 26)
+        self.assertEqual(self.dataset_reader.num_ref_videos, 7)
+        self.assertEqual(self.dataset_reader.max_content_id_of_ref_videos, 8)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 51)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
 
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertAlmostEquals(np.mean(os_2darray), 3.4871794871794872, places=4)
-        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.65626252041788125, places=4)
+        self.assertAlmostEqual(np.mean(os_2darray), 3.4871794871794872, places=4)
+        self.assertAlmostEqual(np.mean(np.std(os_2darray, axis=1)), 0.65626252041788125, places=4)
 
     def test_dis_videos_content_ids(self):
         content_ids = self.dataset_reader.content_id_of_dis_videos
-        self.assertAlmostEquals(np.mean(content_ids), 3.9215686274509802, places=4)
+        self.assertAlmostEqual(np.mean(content_ids), 3.9215686274509802, places=4)
 
     def test_disvideo_is_refvideo(self):
         l = self.dataset_reader.disvideo_is_refvideo
@@ -109,17 +109,17 @@ class SyntheticDatasetReaderTest(unittest.TestCase):
         self.dataset_reader = SyntheticRawDatasetReader(dataset, input_dict=info_dict)
 
     def test_read_dataset_stats(self):
-        self.assertEquals(self.dataset_reader.num_ref_videos, 9)
-        self.assertEquals(self.dataset_reader.num_dis_videos, 79)
-        self.assertEquals(self.dataset_reader.num_observers, 26)
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
 
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertAlmostEquals(np.mean(os_2darray), 3.1912209428772669, places=4)
+        self.assertAlmostEqual(np.mean(os_2darray), 3.1912209428772669, places=4)
 
     def test_dis_videos_content_ids(self):
         content_ids = self.dataset_reader.content_id_of_dis_videos
-        self.assertAlmostEquals(np.mean(content_ids), 3.8607594936708862, places=4)
+        self.assertAlmostEqual(np.mean(content_ids), 3.8607594936708862, places=4)
 
     def test_disvideo_is_refvideo(self):
         l = self.dataset_reader.disvideo_is_refvideo
@@ -134,7 +134,7 @@ class SyntheticDatasetReaderTest(unittest.TestCase):
         old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
-        self.assertNotEquals(old_scores, new_scores)
+        self.assertNotEqual(old_scores, new_scores)
 
 
 class MissingDatasetReaderTest(unittest.TestCase):
@@ -153,7 +153,7 @@ class MissingDatasetReaderTest(unittest.TestCase):
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
         self.assertTrue(np.isnan(np.mean(os_2darray)))
-        self.assertEquals(np.isnan(os_2darray).sum(), 201)
+        self.assertEqual(np.isnan(os_2darray).sum(), 201)
 
     def test_to_dataset(self):
         dataset = self.dataset_reader.to_dataset()
@@ -161,7 +161,7 @@ class MissingDatasetReaderTest(unittest.TestCase):
         old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
-        self.assertNotEquals(old_scores, new_scores)
+        self.assertNotEqual(old_scores, new_scores)
 
 
 class SelectedSubjectDatasetReaderTest(unittest.TestCase):
@@ -178,13 +178,13 @@ class SelectedSubjectDatasetReaderTest(unittest.TestCase):
         self.dataset_reader = SelectSubjectRawDatasetReader(dataset, input_dict=info_dict)
 
     def test_read_dataset_stats(self):
-        self.assertEquals(self.dataset_reader.num_ref_videos, 9)
-        self.assertEquals(self.dataset_reader.num_dis_videos, 79)
-        self.assertEquals(self.dataset_reader.num_observers, 5)
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 5)
 
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertEquals(os_2darray.shape, (79, 5))
+        self.assertEqual(os_2darray.shape, (79, 5))
 
     def test_to_dataset(self):
         dataset = self.dataset_reader.to_dataset()
@@ -192,7 +192,7 @@ class SelectedSubjectDatasetReaderTest(unittest.TestCase):
         old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
-        self.assertNotEquals(old_scores, new_scores)
+        self.assertNotEqual(old_scores, new_scores)
 
 
 class CorruptSubjectDatasetReaderTestWithCorruptionProb(unittest.TestCase):
@@ -210,8 +210,8 @@ class CorruptSubjectDatasetReaderTestWithCorruptionProb(unittest.TestCase):
         }
         self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertEquals(os_2darray.shape, (79, 26))
-        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.64933186478291516, places=4)
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(np.mean(np.std(os_2darray, axis=1)), 0.64933186478291516, places=4)
 
     def test_opinion_score_2darray_with_corruption_prob2(self):
         info_dict = {
@@ -220,8 +220,8 @@ class CorruptSubjectDatasetReaderTestWithCorruptionProb(unittest.TestCase):
         }
         self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertEquals(os_2darray.shape, (79, 26))
-        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.73123067709849221, places=4)
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(np.mean(np.std(os_2darray, axis=1)), 0.73123067709849221, places=4)
 
     def test_opinion_score_2darray_with_corruption_prob3(self):
         info_dict = {
@@ -230,8 +230,8 @@ class CorruptSubjectDatasetReaderTestWithCorruptionProb(unittest.TestCase):
         }
         self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertEquals(os_2darray.shape, (79, 26))
-        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.85118397722242856, places=4)
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(np.mean(np.std(os_2darray, axis=1)), 0.85118397722242856, places=4)
 
     def test_opinion_score_2darray_with_corruption_prob4(self):
         info_dict = {
@@ -240,8 +240,8 @@ class CorruptSubjectDatasetReaderTestWithCorruptionProb(unittest.TestCase):
         }
         self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertEquals(os_2darray.shape, (79, 26))
-        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.96532565883975119, places=4)
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(np.mean(np.std(os_2darray, axis=1)), 0.96532565883975119, places=4)
 
 
 class CorruptSubjectDatasetReaderTest(unittest.TestCase):
@@ -258,14 +258,14 @@ class CorruptSubjectDatasetReaderTest(unittest.TestCase):
         self.dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
 
     def test_read_dataset_stats(self):
-        self.assertEquals(self.dataset_reader.num_ref_videos, 9)
-        self.assertEquals(self.dataset_reader.num_dis_videos, 79)
-        self.assertEquals(self.dataset_reader.num_observers, 26)
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
 
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertEquals(os_2darray.shape, (79, 26))
-        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.93177573807000225, places=4)
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(np.mean(np.std(os_2darray, axis=1)), 0.93177573807000225, places=4)
 
     def test_to_dataset(self):
         dataset = self.dataset_reader.to_dataset()
@@ -273,7 +273,7 @@ class CorruptSubjectDatasetReaderTest(unittest.TestCase):
         old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
-        self.assertNotEquals(old_scores, new_scores)
+        self.assertNotEqual(old_scores, new_scores)
 
 
 class CorruptDataDatasetReaderTest(unittest.TestCase):
@@ -291,7 +291,7 @@ class CorruptDataDatasetReaderTest(unittest.TestCase):
 
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
-        self.assertAlmostEquals(np.mean(np.std(os_2darray, axis=1)), 0.79796204942957094, places=4)
+        self.assertAlmostEqual(np.mean(np.std(os_2darray, axis=1)), 0.79796204942957094, places=4)
 
     def test_to_dataset(self):
         dataset = self.dataset_reader.to_dataset()
@@ -299,7 +299,7 @@ class CorruptDataDatasetReaderTest(unittest.TestCase):
         old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
-        self.assertNotEquals(old_scores, new_scores)
+        self.assertNotEqual(old_scores, new_scores)
 
 
 if __name__ == '__main__':
