@@ -48,7 +48,7 @@ def vectorized_convolution_of_two_logistics(xs, locs1, scales1, locs2, scales2):
 
             f_truncation=1e-12,
             g_truncation=1e-12,
-            delta=3e-3,
+            delta=3.0e-3,
         ).pdf(x - loc1 - loc2)
 
     # # === way 1: parallel_map (each job too small, bottlenecked by passing context) ===
