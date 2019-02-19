@@ -824,8 +824,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             #     format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.nanmean(x_e), b_s=np.nanmean(b_s), v_s=np.nanmean(v_s), a_c=np.nanmean(a_c))
             # msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s {v_s}, a_c {a_c}'.\
             #     format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=(np.min(x_e), np.mean(x_e), np.max(x_e)), b_s=(np.min(b_s), np.mean(b_s), np.max(b_s)), v_s=(np.min(v_s), np.mean(v_s), np.max(v_s)), a_c=(np.min(a_c), np.mean(a_c), np.max(a_c)))
-            msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s (min) {v_s}, a_c (min) {a_c}'.\
-                format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.mean(x_e), b_s=np.mean(b_s), v_s=np.min(v_s), a_c=np.min(a_c))
+            msg = 'Iteration {itr:4d}: sec {sec:.1f}, change {delta_x_e}, likelihood {likelihood}, x_e {x_e}, b_s {b_s}, v_s (min) {v_s} ({v_s_min}), a_c (min) {a_c} ({a_c_min})'.\
+                format(sec=elapsed, itr=itr, delta_x_e=delta_x_e, likelihood=likelihood, x_e=np.mean(x_e), b_s=np.mean(b_s), v_s=np.mean(v_s), v_s_min=np.min(v_s), a_c=np.mean(a_c), a_c_min=np.min(a_c))
 
             # sys.stdout.write(msg + '\r')
             # sys.stdout.flush()
