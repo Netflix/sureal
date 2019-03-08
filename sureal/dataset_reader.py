@@ -329,6 +329,14 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
     Dataset reader that generates synthetic data. It reads a dataset as baseline,
     and override the opinion_score_2darray based on input_dict.
     """
+
+    @property
+    def num_observers(self):
+        assert 'observer_bias' in self.input_dict
+        assert 'observer_inconsistency' in self.input_dict
+        assert self.input_dict['observer_bias'].shape[0] == self.input_dict['observer_inconsistency'].shape[0]
+        return self.input_dict['observer_bias'].shape[0]
+
     def _assert_input_dict(self):
         assert 'quality_scores' in self.input_dict
         assert 'observer_bias' in self.input_dict
