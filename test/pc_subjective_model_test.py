@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import scipy.stats as st
 
 from sureal.config import SurealConfig
 from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
@@ -22,8 +23,10 @@ class PcSubjectiveModelTest(unittest.TestCase):
 
     def test_btnr_subjective_model(self):
         subjective_model = BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(self.pc_dataset_reader)
-        result = subjective_model.run_modeling()
-        # self.assertAlmostEquals(np.sum(result['quality_scores']), -6.943838331662571, places=4)
-        self.assertAlmostEquals(np.var(result['quality_scores']), 5.2872992787167785, places=4)
-        self.assertAlmostEquals(np.sum(result['quality_scores_std']), 5.397815760274957, places=4)
-        self.assertAlmostEquals(np.var(result['quality_scores_std']), 0.003260041166587138, places=4)
+        result = subjective_model.run_modeling(zscore_output=True)
+        self.assertAlmostEquals(np.sum(result['quality_scores']), 0, places=4)
+        self.assertAlmostEquals(np.var(result['quality_scores']), 1, places=4)
+        self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.8411279645566632, places=4)
+        self.assertAlmostEquals(np.sum(result['quality_scores_std']), 2.3474757263050097, places=4)
+        self.assertAlmostEquals(np.var(result['quality_scores_std']), 0.0006165796552712534, places=8)
+        self.assertAlmostEqual(st.kurtosis(result['quality_scores_std']), 4.8718876179528365, places=4)

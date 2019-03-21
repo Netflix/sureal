@@ -162,5 +162,14 @@ class BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(PairedCompSubjectiveMod
         std = np.diagonal(cov)
         std = np.hstack([std, np.array([0])])
 
-        result = {'quality_scores': list(scores), 'quality_scores_std': list(std)}
+        zscore_output = kwargs['zscore_output'] if 'zscore_output' in kwargs and 'zscore_output' is not None else False
+
+        if zscore_output:
+            scores_mean = np.mean(scores)
+            scores_std = np.std(scores)
+            scores = (scores - scores_mean) / scores_std
+            std = std / scores_std
+
+        result = {'quality_scores': list(scores),
+                  'quality_scores_std': list(std)}
         return result
