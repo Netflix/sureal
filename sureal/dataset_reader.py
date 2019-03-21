@@ -290,12 +290,20 @@ class RawDatasetReader(DatasetReader):
         assert tiebreak_method == 'even_split' or tiebreak_method == 'coin_toss'
         assert randomness_level is None or np.isscalar(randomness_level) and randomness_level >= 0.0 and randomness_level <= 1.0
 
-        # for now, works for dict-style raw dataset only
-        assert isinstance(self.dataset.dis_videos[0]['os'], dict)
+        dis_videos = self.dataset.dis_videos
+        if isinstance(dis_videos[0]['os'], dict):
+            pass
+        elif isinstance(dis_videos[0]['os'], (list, tuple)):
+            # converting to dict_style
+            for dis_video in dis_videos:
+                scores = dis_video['os']
+                dis_video['os'] = dict(zip(map(lambda x: str(x), range(len(scores))), scores))
+        else:
+            assert False
 
         # build nested subject-asset_id dict: subj -> (asset_id -> dis_video)
         d_subj_assetid = dict()
-        for dis_video in self.dataset.dis_videos:
+        for dis_video in dis_videos:
             for subj in dis_video['os']:
                 if subj not in d_subj_assetid:
                     d_subj_assetid[subj] = dict()
@@ -303,7 +311,7 @@ class RawDatasetReader(DatasetReader):
                 d_subj_assetid[subj][dis_video['asset_id']] = {'score': dis_video['os'][subj], 'content_id': dis_video['content_id']}
 
         # prepare new dis_videos, and create index from asset_id to dis_videos
-        new_dis_videos = copy.deepcopy(self.dataset.dis_videos)
+        new_dis_videos = copy.deepcopy(dis_videos)
         d_assetid_disvideoidx = dict() # build dict: asset_id -> index of dis_videos
         for i_dis_video, dis_video in enumerate(new_dis_videos):
             dis_video['os'] = dict()
@@ -617,6 +625,7 @@ class PairedCompDatasetReader(RawDatasetReader):
         """
         super(PairedCompDatasetReader, self)._assert_dataset()
 
+        num_dis_videos = self.num_dis_videos
         for dis_video in self.dataset.dis_videos:
             # e.g. 'os': {(' Diana Pena Alas', 120): 1, ...
             assert 'os' in dis_video
@@ -624,6 +633,9 @@ class PairedCompDatasetReader(RawDatasetReader):
             for key in dis_video['os'].keys():
                 assert isinstance(key[0], str)
                 assert isinstance(key[1], int)
+            # for now, asset_id must be continuous
+            assert dis_video['asset_id'] >= 0 and dis_video['asset_id'] < num_dis_videos, \
+                'asset_is must be in [0, {}) but is {}'.format(num_dis_videos, dis_video['asset_id'])
 
     @property
     @persist

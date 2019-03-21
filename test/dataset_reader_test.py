@@ -10,7 +10,7 @@ from sureal.config import SurealConfig
 from sureal.tools.misc import import_python_file, indices
 from sureal.dataset_reader import RawDatasetReader, SyntheticRawDatasetReader, \
     MissingDataRawDatasetReader, SelectSubjectRawDatasetReader, \
-    CorruptSubjectRawDatasetReader, CorruptDataRawDatasetReader
+    CorruptSubjectRawDatasetReader, CorruptDataRawDatasetReader, PairedCompDatasetReader
 
 
 class RawDatasetReaderTest(unittest.TestCase):
@@ -300,6 +300,52 @@ class CorruptDataDatasetReaderTest(unittest.TestCase):
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
         self.assertNotEqual(old_scores, new_scores)
+
+
+class RawDatasetReaderPCTest(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        dataset = import_python_file(dataset_filepath)
+        self.dataset_reader = RawDatasetReader(dataset)
+
+    def test_dataset_to_pc_dataset(self):
+        pc_dataset = self.dataset_reader.to_pc_dataset()
+        pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
+        opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
+        self.assertEqual(np.nansum(opinion_score_3darray), 8242)
+        self.assertEqual(np.nanmean(opinion_score_3darray), 0.816039603960396)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
+
+    def test_dataset_to_pc_dataset_within_subject(self):
+        pc_dataset = self.dataset_reader.to_pc_dataset(pc_type='within_subject')
+        pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
+        opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
+        self.assertEqual(np.nansum(opinion_score_3darray), 80106)
+        self.assertEqual(np.nanmean(opinion_score_3darray), 0.8050935185278244)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
+
+    def test_dataset_to_pc_dataset_coin_toss(self):
+        pc_dataset = self.dataset_reader.to_pc_dataset(tiebreak_method='coin_toss')
+        pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
+        opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
+        self.assertEqual(np.nansum(opinion_score_3darray), 8242)
+        self.assertEqual(np.nanmean(opinion_score_3darray), 1.0)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 1.0)
+        self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
+
+    def test_dataset_to_pc_dataset_random(self):
+        import random
+        random.seed(0)
+        pc_dataset = self.dataset_reader.to_pc_dataset(randomness_level=0.5)
+        pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
+        opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
+        self.assertEqual(np.nansum(opinion_score_3darray), 8242)
+        self.assertEqual(np.nanmean(opinion_score_3darray), 0.8973326075122482)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
 
 if __name__ == '__main__':
