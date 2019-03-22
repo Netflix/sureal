@@ -1,8 +1,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from sureal.dataset_reader import RawDatasetReader
+from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
 from sureal.tools.misc import import_python_file, import_json_file
+from vmaf.tools.misc import import_python_file
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -228,3 +229,23 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         plt.tight_layout()
 
     return dataset, subjective_models, results
+
+
+def visualize_pc_dataset(dataset_filepath):
+
+    dataset = import_python_file(dataset_filepath)
+    dataset_reader = PairedCompDatasetReader(dataset)
+    tensor_pvs_pvs_subject = dataset_reader.opinion_score_3darray
+
+    plt.figure()
+    # plot the rate of winning x, 0 <= x <= 1.0, of one PVS compared against another PVS
+    mtx_pvs_pvs = np.nansum(tensor_pvs_pvs_subject, axis=2) \
+                  / (np.nansum(tensor_pvs_pvs_subject, axis=2) +
+                     np.nansum(tensor_pvs_pvs_subject, axis=2).transpose())
+    plt.imshow(mtx_pvs_pvs, interpolation='nearest')
+    plt.title(r'Paired Comparison Winning Rate')
+    plt.ylabel(r'PVS ($e$)')
+    plt.xlabel(r'PVS ($f$) [Compared Against]')
+    plt.set_cmap('jet')
+    plt.colorbar()
+    plt.tight_layout()

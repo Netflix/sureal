@@ -1,8 +1,12 @@
 import pprint
 import copy
+import random
 
 import numpy as np
+
 from sureal.tools.misc import empty_object, get_unique_sorted_list
+from sureal.tools.decorator import memoized as persist
+from sureal.tools.misc import get_unique_sorted_list
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -178,27 +182,7 @@ class RawDatasetReader(DatasetReader):
 
     def to_aggregated_dataset(self, aggregate_scores, **kwargs):
 
-        newone = empty_object()
-
-        # systematically copy fields, e.g. dataset_name, yuv_fmt, width, height, ...
-        for key in self.dataset.__dict__.keys():
-            if not key.startswith('__'): # filter out those e.g. __builtin__ ...
-                setattr(newone, key, getattr(self.dataset, key))
-
-        if 'quality_width' in kwargs and kwargs['quality_width'] is not None:
-            newone.quality_width = kwargs['quality_width']
-        elif hasattr(self.dataset, 'quality_width'):
-            newone.quality_width = self.dataset.quality_width
-
-        if 'quality_height' in kwargs and kwargs['quality_height'] is not None:
-            newone.quality_height = kwargs['quality_height']
-        elif hasattr(self.dataset, 'quality_height'):
-            newone.quality_height = self.dataset.quality_height
-
-        if 'resampling_type' in kwargs and kwargs['resampling_type'] is not None:
-            newone.resampling_type = kwargs['resampling_type']
-        elif hasattr(self.dataset, 'resampling_type'):
-            newone.resampling_type = self.dataset.resampling_type
+        newone = self._prepare_new_dataset(kwargs)
 
         # ref_videos: deepcopy
         newone.ref_videos = copy.deepcopy(self.dataset.ref_videos)
@@ -229,6 +213,26 @@ class RawDatasetReader(DatasetReader):
 
         return newone
 
+    def _prepare_new_dataset(self, kwargs):
+        newone = empty_object()
+        # systematically copy fields, e.g. dataset_name, yuv_fmt, width, height, ...
+        for key in self.dataset.__dict__.keys():
+            if not key.startswith('__'):  # filter out those e.g. __builtin__ ...
+                setattr(newone, key, getattr(self.dataset, key))
+        if 'quality_width' in kwargs and kwargs['quality_width'] is not None:
+            newone.quality_width = kwargs['quality_width']
+        elif hasattr(self.dataset, 'quality_width'):
+            newone.quality_width = self.dataset.quality_width
+        if 'quality_height' in kwargs and kwargs['quality_height'] is not None:
+            newone.quality_height = kwargs['quality_height']
+        elif hasattr(self.dataset, 'quality_height'):
+            newone.quality_height = self.dataset.quality_height
+        if 'resampling_type' in kwargs and kwargs['resampling_type'] is not None:
+            newone.resampling_type = kwargs['resampling_type']
+        elif hasattr(self.dataset, 'resampling_type'):
+            newone.resampling_type = self.dataset.resampling_type
+        return newone
+
     def to_aggregated_dataset_file(self, dataset_filepath, aggregate_scores, **kwargs):
         aggregate_dataset = self.to_aggregated_dataset(aggregate_scores, **kwargs)
         self.write_out_dataset(aggregate_dataset, dataset_filepath)
@@ -237,27 +241,7 @@ class RawDatasetReader(DatasetReader):
 
         import math
 
-        newone = empty_object()
-
-        # systematically copy fields, e.g. dataset_name, yuv_fmt, width, height, ...
-        for key in self.dataset.__dict__.keys():
-            if not key.startswith('__'): # filter out those e.g. __builtin__ ...
-                setattr(newone, key, getattr(self.dataset, key))
-
-        if 'quality_width' in kwargs and kwargs['quality_width'] is not None:
-            newone.quality_width = kwargs['quality_width']
-        elif hasattr(self.dataset, 'quality_width'):
-            newone.quality_width = self.dataset.quality_width
-
-        if 'quality_height' in kwargs and kwargs['quality_height'] is not None:
-            newone.quality_height = kwargs['quality_height']
-        elif hasattr(self.dataset, 'quality_height'):
-            newone.quality_height = self.dataset.quality_height
-
-        if 'resampling_type' in kwargs and kwargs['resampling_type'] is not None:
-            newone.resampling_type = kwargs['resampling_type']
-        elif hasattr(self.dataset, 'resampling_type'):
-            newone.resampling_type = self.dataset.resampling_type
+        newone = self._prepare_new_dataset(kwargs)
 
         # ref_videos: deepcopy
         newone.ref_videos = copy.deepcopy(self.dataset.ref_videos)
@@ -290,6 +274,99 @@ class RawDatasetReader(DatasetReader):
     def to_persubject_dataset_file(self, dataset_filepath, quality_scores, **kwargs):
         persubject_dataset = self.to_persubject_dataset(quality_scores, **kwargs)
         self.write_out_dataset(persubject_dataset, dataset_filepath)
+
+    def to_pc_dataset(self, **kwargs):
+
+        newone = self._prepare_new_dataset(kwargs)
+
+        # ref_videos: deepcopy
+        newone.ref_videos = copy.deepcopy(self.dataset.ref_videos)
+
+        pc_type = kwargs['pc_type'] if 'pc_type' in kwargs and kwargs['pc_type'] is not None else 'within_subject_and_content'
+        tiebreak_method = kwargs['tiebreak_method'] if 'tiebreak_method' in kwargs and kwargs['tiebreak_method'] is not None else 'even_split'
+        randomness_level = kwargs['randomness_level'] if 'randomness_level' in kwargs and kwargs['randomness_level'] is not None else None
+
+        assert pc_type == 'within_subject_and_content' or pc_type == 'within_subject'
+        assert tiebreak_method == 'even_split' or tiebreak_method == 'coin_toss'
+        assert randomness_level is None or np.isscalar(randomness_level) and randomness_level >= 0.0 and randomness_level <= 1.0
+
+        dis_videos = self.dataset.dis_videos
+        if isinstance(dis_videos[0]['os'], dict):
+            pass
+        elif isinstance(dis_videos[0]['os'], (list, tuple)):
+            # converting to dict_style
+            for dis_video in dis_videos:
+                scores = dis_video['os']
+                dis_video['os'] = dict(zip(map(lambda x: str(x), range(len(scores))), scores))
+        else:
+            assert False
+
+        # build nested subject-asset_id dict: subj -> (asset_id -> dis_video)
+        d_subj_assetid = dict()
+        for dis_video in dis_videos:
+            for subj in dis_video['os']:
+                if subj not in d_subj_assetid:
+                    d_subj_assetid[subj] = dict()
+                assert dis_video['asset_id'] not in d_subj_assetid[subj] # assuming no repetition for single subject and a dis_video
+                d_subj_assetid[subj][dis_video['asset_id']] = {'score': dis_video['os'][subj], 'content_id': dis_video['content_id']}
+
+        # prepare new dis_videos, and create index from asset_id to dis_videos
+        new_dis_videos = copy.deepcopy(dis_videos)
+        d_assetid_disvideoidx = dict() # build dict: asset_id -> index of dis_videos
+        for i_dis_video, dis_video in enumerate(new_dis_videos):
+            dis_video['os'] = dict()
+            d_assetid_disvideoidx[dis_video['asset_id']] = i_dis_video
+
+        # iterate through subj, compare asset_id pairs (upper triangle only), put pc results into new
+        for subj in d_subj_assetid:
+            assetids = sorted(d_subj_assetid[subj].keys())
+            for idx in range(len(assetids)):
+                for idx2 in range(idx):
+                    assetid = assetids[idx]
+                    assetid2 = assetids[idx2]
+                    content_id = d_subj_assetid[subj][assetid]['content_id']
+                    content_id2 = d_subj_assetid[subj][assetid2]['content_id']
+
+                    if pc_type == 'within_subject_and_content':
+                        if content_id != content_id2:
+                            continue
+                    elif pc_type == 'within_subject':
+                        pass
+                    else:
+                        assert False, "unknown pc_type: {}".format(pc_type)
+
+                    if randomness_level is not None and random.random() < randomness_level:
+                        if random.random() > 0.5:
+                            new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
+                        else:
+                            new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
+                    else:
+                        score = d_subj_assetid[subj][assetid]['score']
+                        score2 = d_subj_assetid[subj][assetid2]['score']
+                        if score > score2:
+                            new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
+                        elif score < score2:
+                            new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
+                        else:
+                            if tiebreak_method == 'even_split':
+                                # each one gets fair share
+                                new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0.5
+                                new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0.5
+                            elif tiebreak_method == 'coin_toss':
+                                if random.random() > 0.5:
+                                    new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
+                                else:
+                                    new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
+                            else:
+                                assert False, "unknown tiebreak_method: {}".format(tiebreak_method)
+
+        newone.dis_videos = new_dis_videos
+
+        return newone
+
+    def to_pc_dataset_file(self, dataset_filepath, **kwargs):
+        pc_dataset = self.to_pc_dataset(**kwargs)
+        self.write_out_dataset(pc_dataset, dataset_filepath)
 
 
 class MockedRawDatasetReader(RawDatasetReader):
@@ -537,3 +614,73 @@ class CorruptDataRawDatasetReader(MockedRawDatasetReader):
                                                       np.isnan(mask).sum())
 
         return score_mtx
+
+
+class PairedCompDatasetReader(RawDatasetReader):
+    """ Reader for a subjective quality test dataset with paired comparison scores. """
+
+    def _assert_dataset(self):
+        """
+        Override RawDatasetReader._assert_dataset
+        """
+        super(PairedCompDatasetReader, self)._assert_dataset()
+
+        num_dis_videos = self.num_dis_videos
+        for dis_video in self.dataset.dis_videos:
+            # e.g. 'os': {(' Diana Pena Alas', 120): 1, ...
+            assert 'os' in dis_video
+            assert isinstance(dis_video['os'], dict)
+            for key in dis_video['os'].keys():
+                assert isinstance(key[0], str)
+                assert isinstance(key[1], int)
+            # for now, asset_id must be continuous
+            assert dis_video['asset_id'] >= 0 and dis_video['asset_id'] < num_dis_videos, \
+                'asset_is must be in [0, {}) but is {}'.format(num_dis_videos, dis_video['asset_id'])
+
+    @property
+    @persist
+    def opinion_score_3darray(self):
+        """ 3darray storing raw opinion scores, with first dimension the distorted videos (PVS),
+        second dimension the distorted videos (PVS) compared against, and third dimension the
+        observers. """
+
+        list_observers = self._get_list_observers()
+
+        # build dict: observer -> i_observer
+        dict_observer_to_iobserver = dict()
+        for i_observer, observer in enumerate(list_observers):
+            dict_observer_to_iobserver[observer] = i_observer
+
+        score_3darray = float("NaN") * np.ones([self.num_dis_videos, self.num_dis_videos, self.num_observers])
+
+        for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
+            for key, value in dis_video['os'].iteritems():
+                subject, pvs_j = key
+                pvs_i = i_dis_video
+                score_3darray[pvs_i][pvs_j][dict_observer_to_iobserver[subject]] = value # CAUTION: note the dimension change!
+
+        return score_3darray
+
+    def _get_list_observers(self):
+        for dis_video in self.dataset.dis_videos:
+            assert isinstance(dis_video['os'], dict)
+
+        list_observers = []
+        for dis_video in self.dataset.dis_videos:
+            observers = map(lambda x: x[0], dis_video['os'].keys())
+            observers = list(set(observers))
+            list_observers += observers
+
+        return get_unique_sorted_list(list_observers)
+
+    @property
+    def ref_score(self):
+        raise NotImplementedError
+
+    @property
+    def opinion_score_2darray(self):
+        # return np.nansum(self.opinion_score_3darray, axis=1)
+        raise NotImplementedError
+
+    def to_persubject_dataset(self, quality_scores, **kwargs):
+        raise NotImplementedError
