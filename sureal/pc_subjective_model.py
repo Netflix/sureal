@@ -173,3 +173,53 @@ class BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(PairedCompSubjectiveMod
         result = {'quality_scores': list(scores),
                   'quality_scores_std': list(std)}
         return result
+
+
+class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
+    """ Bradley-Terry model based on maximum likelihood estimation, classical version.
+    """
+
+    TYPE = 'BTMLE'
+    VERSION = '1.0'
+
+    @classmethod
+    def _run_modeling(clscls, dataset_reader, **kwargs):
+
+        alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
+
+        # alpha = np.array(
+        #     [[0, 3, 2, 7],
+        #      [1, 0, 6, 3],
+        #      [4, 3, 0, 0],
+        #      [1, 2, 5, 0]]
+        #     )
+
+        M, M_ = alpha.shape
+        assert M == M_
+
+        iteration = 0
+        p = 1.0 / M * np.ones(M)
+        change = sys.float_info.max
+
+        DELTA_THR = 1e-8
+
+        while change > DELTA_THR:
+            iteration += 1
+            p_prev = p
+            n = alpha + alpha.T
+            pp = np.tile(p, (M, 1)) + np.tile(p, (M, 1)).T
+            p = np.sum(alpha, axis=0) / np.sum(n / pp, axis=0)
+
+            p = p / np.sum(p)
+
+            change = linalg.norm(p - p_prev)
+
+            msg = 'Iteration {itr:4d}: change {change}, mean p {p}'.format(itr=iteration, change=linalg.norm(change), p=np.mean(p))
+            sys.stdout.write(msg + '\r')
+            sys.stdout.flush()
+            time.sleep(0.01)
+
+        scores = np.log(p)
+
+        result = {'quality_scores': list(scores), 'quality_scores_std': np.zeros(M)}
+        return result
