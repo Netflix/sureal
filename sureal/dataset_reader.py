@@ -285,10 +285,12 @@ class RawDatasetReader(DatasetReader):
         pc_type = kwargs['pc_type'] if 'pc_type' in kwargs and kwargs['pc_type'] is not None else 'within_subject_and_content'
         tiebreak_method = kwargs['tiebreak_method'] if 'tiebreak_method' in kwargs and kwargs['tiebreak_method'] is not None else 'even_split'
         randomness_level = kwargs['randomness_level'] if 'randomness_level' in kwargs and kwargs['randomness_level'] is not None else None
+        sampling_rate = kwargs['sampling_rate'] if 'sampling_rate' in kwargs and kwargs['sampling_rate'] is not None else None
 
         assert pc_type == 'within_subject_and_content' or pc_type == 'within_subject'
         assert tiebreak_method == 'even_split' or tiebreak_method == 'coin_toss'
         assert randomness_level is None or np.isscalar(randomness_level) and randomness_level >= 0.0 and randomness_level <= 1.0
+        assert sampling_rate is None or np.isscalar(sampling_rate) and sampling_rate >= 0.0 and sampling_rate <= 1.0
 
         dis_videos = self.dataset.dis_videos
         if isinstance(dis_videos[0]['os'], dict):
@@ -334,6 +336,10 @@ class RawDatasetReader(DatasetReader):
                         pass
                     else:
                         assert False, "unknown pc_type: {}".format(pc_type)
+
+                    if sampling_rate is not None:
+                        if random.random() > sampling_rate:
+                            continue
 
                     if randomness_level is not None and random.random() < randomness_level:
                         if random.random() > 0.5:
