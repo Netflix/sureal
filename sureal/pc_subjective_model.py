@@ -142,7 +142,7 @@ class BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(PairedCompSubjectiveMod
             d2L = -np.diag(np.sum(y, axis=1))
             d2L[squaregind] = y[:, :-1][squaregind]
 
-            cov = - linalg.pinv(d2L)
+            # cov = - linalg.pinv(d2L)
 
             change = np.matmul(linalg.pinv(d2L), dL)
             change = np.hstack([change, np.array([0])])
@@ -159,8 +159,8 @@ class BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(PairedCompSubjectiveMod
         scores = gamma
         scores[-1] = 0.0
 
-        std = np.diagonal(cov)
-        std = np.hstack([std, np.array([0])])
+        # std = np.diagonal(cov)
+        # std = np.hstack([std, np.array([0])])
 
         zscore_output = kwargs['zscore_output'] if 'zscore_output' in kwargs and 'zscore_output' is not None else False
 
@@ -168,10 +168,10 @@ class BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(PairedCompSubjectiveMod
             scores_mean = np.mean(scores)
             scores_std = np.std(scores)
             scores = (scores - scores_mean) / scores_std
-            std = std / scores_std
+            # std = std / scores_std
 
         result = {'quality_scores': list(scores),
-                  'quality_scores_std': list(std)}
+                  'quality_scores_std': None}
         return result
 
 
@@ -219,7 +219,17 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
             sys.stdout.flush()
             time.sleep(0.01)
 
-        scores = np.log(p)
+        n = alpha + alpha.T
+        pp = np.tile(p, (M, 1)) + np.tile(p, (M, 1)).T
+        lbda_ii = np.sum(-alpha / np.tile(p, (M, 1))**2 + n / pp**2, axis=0)
+        lbda_ij = n / pp*2
+        lbda = lbda_ij + np.diag(lbda_ii)
+        cova = np.linalg.pinv(np.vstack([np.hstack([-lbda, np.ones([M, 1])]), np.hstack([np.ones([1, M]), np.array([[0]])])]))
+        vari = np.diagonal(cova)[:-1]
+        stdv = np.sqrt(vari)
 
-        result = {'quality_scores': list(scores), 'quality_scores_std': np.zeros(M)}
+        scores = np.log(p)
+        scores_std = stdv / p # y = log(x) -> dy = 1/x * dx
+
+        result = {'quality_scores': list(scores), 'quality_scores_std': list(scores_std)}
         return result

@@ -28,9 +28,7 @@ class PcSubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEquals(np.sum(result['quality_scores']), 0, places=4)
         self.assertAlmostEquals(np.var(result['quality_scores']), 1, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.6783168176396557, places=4)
-        self.assertAlmostEquals(np.sum(result['quality_scores_std']), 0.31156653337524054, places=4)
-        self.assertAlmostEquals(np.var(result['quality_scores_std']), 1.8108469372084607e-06, places=8)
-        self.assertAlmostEqual(st.kurtosis(result['quality_scores_std']), 4.41020867586776, places=4)
+        self.assertTrue(result['quality_scores_std'] is None)
 
     def test_btmle_subjective_model(self):
         subjective_model = BradleyTerryMlePairedCompSubjectiveModel(self.pc_dataset_reader)
@@ -38,6 +36,6 @@ class PcSubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEquals(np.sum(result['quality_scores']), -518.137899354101, places=4)
         self.assertAlmostEquals(np.var(result['quality_scores']), 4.286932098917939, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.6783168176396557, places=4)
-        self.assertAlmostEquals(np.sum(result['quality_scores_std']), 0.0, places=4)
-        self.assertAlmostEquals(np.var(result['quality_scores_std']), 0.0, places=8)
-        self.assertAlmostEqual(st.kurtosis(result['quality_scores_std']), -3.0, places=4)
+        self.assertAlmostEquals(np.sum(result['quality_scores_std']), 5.2435100711014675, places=4)
+        self.assertAlmostEquals(np.var(result['quality_scores_std']), 0.00012353987792172564, places=8)
+        self.assertAlmostEqual(st.kurtosis(result['quality_scores_std']), 1.5798669747439735, places=4)
