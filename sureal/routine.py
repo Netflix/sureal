@@ -83,7 +83,10 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                                 label=subjective_model.TYPE)
                 elif plot_type == 'errorbar':
                     if 'quality_scores_std' in result:
-                        quality_error = np.array(result['quality_scores_std']) * 1.96 # 95% C.I.
+                        try:
+                            quality_error = np.array(result['quality_scores_std']) * 1.96 # 95% C.I.
+                        except TypeError:
+                            quality_error = None
                         ax_quality.errorbar(np.array(xs)+shift_count*bar_width+0.2, quality,
                                             yerr=quality_error, fmt='.',
                                             color=colors[shift_count],
