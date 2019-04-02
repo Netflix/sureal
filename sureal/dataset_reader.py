@@ -635,7 +635,7 @@ class PairedCompDatasetReader(RawDatasetReader):
                 assert isinstance(key[1], int)
             # for now, asset_id must be continuous
             assert dis_video['asset_id'] >= 0 and dis_video['asset_id'] < num_dis_videos, \
-                'asset_is must be in [0, {}) but is {}'.format(num_dis_videos, dis_video['asset_id'])
+                'asset_id must be in [0, {}) but is {}'.format(num_dis_videos, dis_video['asset_id'])
 
     @property
     @persist
