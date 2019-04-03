@@ -660,7 +660,7 @@ class PairedCompDatasetReader(RawDatasetReader):
         score_3darray = float("NaN") * np.ones([self.num_dis_videos, self.num_dis_videos, self.num_observers])
 
         for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
-            for key, value in dis_video['os'].iteritems():
+            for key, value in dis_video['os'].items():
                 subject, pvs_j = key
                 pvs_i = i_dis_video
                 score_3darray[pvs_i][pvs_j][dict_observer_to_iobserver[subject]] = value # CAUTION: note the dimension change!
