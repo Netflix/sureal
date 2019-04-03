@@ -7,7 +7,7 @@ import warnings
 import multiprocessing
 pool = multiprocessing.Pool()
 
-from misc import parallel_map
+from .misc import parallel_map
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
