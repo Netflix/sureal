@@ -3,7 +3,6 @@ from matplotlib import pyplot as plt
 
 from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
 from sureal.tools.misc import import_python_file, import_json_file
-from vmaf.tools.misc import import_python_file
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
