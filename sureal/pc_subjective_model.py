@@ -208,7 +208,7 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
             p_prev = p
             n = alpha + alpha.T
             pp = np.tile(p, (M, 1)) + np.tile(p, (M, 1)).T
-            p = np.sum(alpha, axis=0) / np.sum(n / pp, axis=0)
+            p = np.sum(alpha, axis=1) / np.sum(n / pp, axis=1) # summing over axis=1 marginalizes j
 
             p = p / np.sum(p)
 
@@ -221,7 +221,7 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         n = alpha + alpha.T
         pp = np.tile(p, (M, 1)) + np.tile(p, (M, 1)).T
-        lbda_ii = np.sum(-alpha / np.tile(p, (M, 1))**2 + n / pp**2, axis=0)
+        lbda_ii = np.sum(-alpha / np.tile(p, (M, 1)).T**2 + n / pp**2, axis=1) # summing over axis=1 marginalizes j
         lbda_ij = n / pp*2
         lbda = lbda_ij + np.diag(lbda_ii)
         cova = np.linalg.pinv(np.vstack([np.hstack([-lbda, np.ones([M, 1])]), np.hstack([np.ones([1, M]), np.array([[0]])])]))

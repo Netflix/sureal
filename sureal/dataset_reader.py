@@ -303,7 +303,7 @@ class RawDatasetReader(DatasetReader):
         else:
             assert False
 
-        # build nested subject-asset_id dict: subj -> (asset_id -> dis_video)
+        # build nested subject-asset_id dict: subj -> (asset_id -> {'score': score, 'content_id': content_id, ...})
         d_subj_assetid = dict()
         for dis_video in dis_videos:
             for subj in dis_video['os']:
@@ -344,14 +344,18 @@ class RawDatasetReader(DatasetReader):
                     if randomness_level is not None and random.random() < randomness_level:
                         if random.random() > 0.5:
                             new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
+                            # new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0 # redundant
                         else:
+                            # new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0 # redundant
                             new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                     else:
                         score = d_subj_assetid[subj][assetid]['score']
                         score2 = d_subj_assetid[subj][assetid2]['score']
                         if score > score2:
                             new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
+                            # new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0 # redundant
                         elif score < score2:
+                            # new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0 # redundant
                             new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                         else:
                             if tiebreak_method == 'even_split':
@@ -361,7 +365,9 @@ class RawDatasetReader(DatasetReader):
                             elif tiebreak_method == 'coin_toss':
                                 if random.random() > 0.5:
                                     new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
+                                    # new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0 # redundant
                                 else:
+                                    # new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0 # redundant
                                     new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                             else:
                                 assert False, "unknown tiebreak_method: {}".format(tiebreak_method)
