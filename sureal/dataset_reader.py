@@ -286,11 +286,19 @@ class RawDatasetReader(DatasetReader):
         tiebreak_method = kwargs['tiebreak_method'] if 'tiebreak_method' in kwargs and kwargs['tiebreak_method'] is not None else 'even_split'
         randomness_level = kwargs['randomness_level'] if 'randomness_level' in kwargs and kwargs['randomness_level'] is not None else None
         sampling_rate = kwargs['sampling_rate'] if 'sampling_rate' in kwargs and kwargs['sampling_rate'] is not None else None
+        per_asset_sampling_rates = kwargs['per_asset_sampling_rates'] if 'per_asset_sampling_rates' in kwargs and kwargs['per_asset_sampling_rates'] is not None else None
 
         assert pc_type == 'within_subject_and_content' or pc_type == 'within_subject'
         assert tiebreak_method == 'even_split' or tiebreak_method == 'coin_toss'
-        assert randomness_level is None or np.isscalar(randomness_level) and randomness_level >= 0.0 and randomness_level <= 1.0
-        assert sampling_rate is None or np.isscalar(sampling_rate) and sampling_rate >= 0.0 and sampling_rate <= 1.0
+        assert randomness_level is None or np.isscalar(randomness_level) and 0.0 <= randomness_level <= 1.0
+
+        assert not (sampling_rate is not None and per_asset_sampling_rates is not None)
+        if sampling_rate is not None:
+            assert np.isscalar(sampling_rate) and 0.0 <= sampling_rate <= 1.0
+        if per_asset_sampling_rates is not None:
+            assert len(per_asset_sampling_rates) == len(self.dataset.dis_videos)
+            for per_asset_sampling_rate in per_asset_sampling_rates:
+                assert np.isscalar(per_asset_sampling_rate) and 0.0 <= per_asset_sampling_rate <= 1.0
 
         dis_videos = self.dataset.dis_videos
         if isinstance(dis_videos[0]['os'], dict):
@@ -341,6 +349,12 @@ class RawDatasetReader(DatasetReader):
                         if random.random() > sampling_rate:
                             continue
 
+                    if per_asset_sampling_rates is not None:
+                        # the true sampling rate of a pair is the mean of the sampling rate of the two assets:
+                        true_sampling_rate = (per_asset_sampling_rates[idx] + per_asset_sampling_rates[idx2]) / 2.0
+                        if random.random() > true_sampling_rate:
+                            continue
+
                     if randomness_level is not None and random.random() < randomness_level:
                         if random.random() > 0.5:
                             new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
@@ -371,7 +385,6 @@ class RawDatasetReader(DatasetReader):
                                     new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                             else:
                                 assert False, "unknown tiebreak_method: {}".format(tiebreak_method)
-
         newone.dis_videos = new_dis_videos
 
         return newone
