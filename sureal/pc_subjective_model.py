@@ -1,8 +1,11 @@
 import sys
 import time
+from functools import partial
 
 import numpy as np
 from scipy import linalg
+from scipy.optimize import minimize
+from scipy.stats import norm
 
 from sureal.subjective_model import SubjectiveModel
 from sureal.dataset_reader import PairedCompDatasetReader
@@ -186,7 +189,6 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
     def _run_modeling(clscls, dataset_reader, **kwargs):
 
         alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
-
         # alpha = np.array(
         #     [[0, 3, 2, 7],
         #      [1, 0, 6, 3],
@@ -197,6 +199,8 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         M, M_ = alpha.shape
         assert M == M_
 
+        n = alpha + alpha.T
+
         iteration = 0
         p = 1.0 / M * np.ones(M)
         change = sys.float_info.max
@@ -206,7 +210,6 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         while change > DELTA_THR:
             iteration += 1
             p_prev = p
-            n = alpha + alpha.T
             pp = np.tile(p, (M, 1)) + np.tile(p, (M, 1)).T
             p = np.sum(alpha, axis=1) / np.sum(n / pp, axis=1) # summing over axis=1 marginalizes j
 
@@ -219,7 +222,6 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
             sys.stdout.flush()
             time.sleep(0.01)
 
-        n = alpha + alpha.T
         pp = np.tile(p, (M, 1)) + np.tile(p, (M, 1)).T
         lbda_ii = np.sum(-alpha / np.tile(p, (M, 1)).T**2 + n / pp**2, axis=1) # summing over axis=1 marginalizes j
         lbda_ij = n / pp*2
@@ -233,3 +235,49 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         result = {'quality_scores': list(scores), 'quality_scores_std': list(scores_std)}
         return result
+
+
+class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
+    """ Thurstone model based on maximum likelihood estimation, classical version
+    """
+
+    TYPE = 'THURSTONE_MLE'
+    VERSION = '1.0'
+
+    @classmethod
+    def _run_modeling(cls, dataset_reader, **kwargs):
+
+        alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
+        # alpha = np.array(
+        #     [[0, 3, 2, 7],
+        #      [1, 0, 6, 3],
+        #      [4, 3, 0, 0],
+        #      [1, 2, 5, 0]]
+        #     )
+
+        M, M_ = alpha.shape
+        assert M == M_
+
+        llf_partial = partial(cls.log_likelihood_function, alpha=alpha, M=M)
+
+        v0 = np.zeros(M)
+
+        ret = minimize(llf_partial, v0, method='SLSQP', jac='2-point', options={'ftol': 1e-8, 'disp': True, 'maxiter':1000})
+        assert ret.success, "minimization is unsuccessful."
+
+        result = {'quality_scores': ret.x, 'quality_scores_std': None}
+        return result
+
+    @staticmethod
+    def log_likelihood_function(v, alpha, M):
+        epsilon = 1e-8 / M
+        mtx = alpha * np.log(
+            norm.cdf(
+                np.tile(v, (M, 1)) - np.tile(v, (M, 1)).T
+            ) + epsilon
+        ) + alpha.T * np.log(
+            1.0 - norm.cdf(
+                np.tile(v, (M, 1)) - np.tile(v, (M, 1)).T
+            ) + epsilon
+        )
+        return np.sum(mtx)

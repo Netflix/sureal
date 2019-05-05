@@ -6,7 +6,7 @@ import scipy.stats as st
 from sureal.config import SurealConfig
 from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
 from sureal.pc_subjective_model import BradleyTerryNewtonRaphsonPairedCompSubjectiveModel, \
-    BradleyTerryMlePairedCompSubjectiveModel
+    BradleyTerryMlePairedCompSubjectiveModel, ThurstoneMlePairedCompSubjectiveModel
 from sureal.tools.misc import import_python_file
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -29,13 +29,21 @@ class PcSubjectiveModelTest(unittest.TestCase):
 
     def test_btmle_subjective_model(self):
         subjective_model = BradleyTerryMlePairedCompSubjectiveModel(self.pc_dataset_reader)
-        result = subjective_model.run_modeling(zscore_output=True)
+        result = subjective_model.run_modeling()
         self.assertAlmostEquals(float(np.sum(result['quality_scores'])), -187.18634399309573, places=4)
         self.assertAlmostEquals(float(np.var(result['quality_scores'])), 3.1442888768417054, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), 0.5649254682803901, places=4)
         self.assertAlmostEquals(float(np.sum(result['quality_scores_std'])), 11.136592174843651, places=4)
         self.assertAlmostEquals(float(np.var(result['quality_scores_std'])), 0.003890667402965306, places=8)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores_std']), 1.960577186185537, places=4)
+
+    def test_thrustone_mle_subjective_model(self):
+        subjective_model = ThurstoneMlePairedCompSubjectiveModel(self.pc_dataset_reader)
+        result = subjective_model.run_modeling()
+        self.assertAlmostEquals(float(np.sum(result['quality_scores'])), 1.0689804885978447, places=4)
+        self.assertAlmostEquals(float(np.var(result['quality_scores'])), 7287.9530032084995, places=4)
+        self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -1.2214918233986494, places=4)
+        self.assertTrue(result['quality_scores_std'] is None)
 
 
 class PcSubjectiveModelTestSynthetic(unittest.TestCase):
@@ -57,7 +65,7 @@ class PcSubjectiveModelTestSynthetic(unittest.TestCase):
 
     def test_btmle_subjective_model(self):
         subjective_model = BradleyTerryMlePairedCompSubjectiveModel(self.pc_dataset_reader)
-        result = subjective_model.run_modeling(zscore_output=True)
+        result = subjective_model.run_modeling()
         self.assertAlmostEquals(float(np.sum(result['quality_scores'])), -441.51458317430405, places=4)
         self.assertAlmostEquals(float(np.var(result['quality_scores'])), 4.286932098917939, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.6783168176396557, places=4)
