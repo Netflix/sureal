@@ -276,8 +276,8 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
                 np.tile(v, (M, 1)) - np.tile(v, (M, 1)).T
             ) + epsilon
         ) + alpha.T * np.log(
-            1.0 - norm.cdf(
-                np.tile(v, (M, 1)) - np.tile(v, (M, 1)).T
+            norm.cdf(
+                np.tile(v, (M, 1)).T - np.tile(v, (M, 1))
             ) + epsilon
         )
         return np.sum(mtx)
