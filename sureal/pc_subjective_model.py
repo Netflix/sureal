@@ -188,13 +188,14 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
     @classmethod
     def _run_modeling(clscls, dataset_reader, **kwargs):
 
-        alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
+        # example:
         # alpha = np.array(
         #     [[0, 3, 2, 7],
         #      [1, 0, 6, 3],
         #      [4, 3, 0, 0],
         #      [1, 2, 5, 0]]
         #     )
+        alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
 
         M, M_ = alpha.shape
         assert M == M_
@@ -210,7 +211,18 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         while change > DELTA_THR:
             iteration += 1
             p_prev = p
-            pp = np.tile(p, (M, 1)) + np.tile(p, (M, 1)).T
+
+            # p_i = (sum_j alpha_ij) / (sum_j n_ij / (p_i + p_j))
+            # note that if p = [1, 2, 3, 4] and M = 4, then
+            # np.tile(p, (M, 1)).T creates patterns like
+            # [
+            #  [1, 1, 1, 1],
+            #  [2, 2, 2, 2],
+            #  [3, 3, 3, 3],
+            #  [4, 4, 4, 4]
+            #  ]
+            pp = np.tile(p, (M, 1)).T + np.tile(p, (M, 1))
+
             p = np.sum(alpha, axis=1) / np.sum(n / pp, axis=1) # summing over axis=1 marginalizes j
 
             p = p / np.sum(p)
@@ -222,7 +234,12 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
             sys.stdout.flush()
             time.sleep(0.01)
 
-        pp = np.tile(p, (M, 1)) + np.tile(p, (M, 1)).T
+        # lambda_ii = sum_j -alpha_ij / p_i^2 + n_ij / (p_i + p_j)^2
+        # lambda_ij = n_ij / (p_i + p_j)^2, i != j
+        # H = [lambda_ij]
+        # C = [[-H, 1], [1', 0]]^-1 of (M + 1) x (M + 1)
+        # variance of p_i is then diag(C)[i].
+        pp = np.tile(p, (M, 1)).T + np.tile(p, (M, 1))
         lbda_ii = np.sum(-alpha / np.tile(p, (M, 1)).T**2 + n / pp**2, axis=1) # summing over axis=1 marginalizes j
         lbda_ij = n / pp*2
         lbda = lbda_ij + np.diag(lbda_ii)
@@ -242,42 +259,53 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
     """
 
     TYPE = 'THURSTONE_MLE'
-    VERSION = '1.0'
+    # VERSION = '1.0'
+    VERSION = '1.1' # fix sign nllf sign issue
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
 
-        alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
+        # example:
         # alpha = np.array(
         #     [[0, 3, 2, 7],
         #      [1, 0, 6, 3],
         #      [4, 3, 0, 0],
         #      [1, 2, 5, 0]]
         #     )
+        alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
 
         M, M_ = alpha.shape
         assert M == M_
 
-        llf_partial = partial(cls.log_likelihood_function, alpha=alpha, M=M)
+        nllf_partial = partial(cls.neg_log_likelihood_function, alpha=alpha, M=M)
 
         v0 = np.zeros(M)
 
-        ret = minimize(llf_partial, v0, method='SLSQP', jac='2-point', options={'ftol': 1e-8, 'disp': True, 'maxiter':1000})
+        ret = minimize(nllf_partial, v0, method='SLSQP', jac='2-point', options={'ftol': 1e-8, 'disp': True, 'maxiter':1000})
         assert ret.success, "minimization is unsuccessful."
 
         result = {'quality_scores': ret.x, 'quality_scores_std': None}
         return result
 
     @staticmethod
-    def log_likelihood_function(v, alpha, M):
+    def neg_log_likelihood_function(v, alpha, M):
+        # nllf(.) = - sum_i,j log(n_ij / alpha_ij) + alpha_ij * log phi (v_i - v_j) + alpha_ji * log phi (v_j - vi)
+        # note that if p = [1, 2, 3, 4] and M = 4, then
+        # np.tile(p, (M, 1)).T creates patterns like
+        # [
+        #  [1, 1, 1, 1],
+        #  [2, 2, 2, 2],
+        #  [3, 3, 3, 3],
+        #  [4, 4, 4, 4]
+        #  ]
         epsilon = 1e-8 / M
         mtx = alpha * np.log(
             norm.cdf(
-                np.tile(v, (M, 1)) - np.tile(v, (M, 1)).T
+                (np.tile(v, (M, 1)).T - np.tile(v, (M, 1)))
             ) + epsilon
         ) + alpha.T * np.log(
             norm.cdf(
-                np.tile(v, (M, 1)).T - np.tile(v, (M, 1))
+                (np.tile(v, (M, 1)) - np.tile(v, (M, 1)).T)
             ) + epsilon
         )
-        return np.sum(mtx)
+        return - np.sum(mtx)
