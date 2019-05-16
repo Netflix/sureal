@@ -1,5 +1,9 @@
 import numpy as np
-from matplotlib import pyplot as plt
+
+try:
+    from matplotlib import pyplot as plt
+except ImportError:
+    plt = None
 
 from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
 from sureal.tools.misc import import_python_file, import_json_file

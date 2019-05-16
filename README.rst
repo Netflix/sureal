@@ -10,55 +10,65 @@ SUREAL - Subjective quality scores recovery from noisy measurements
     :alt: Build Status
 
 SUREAL is a toolbox developed by Netflix for recovering quality scores from noisy measurements obtained by subjective tests.
-Read [this](resource/doc/dcc17v3.pdf) paper for some background.
-SUREAL is being imported by the [VMAF](https://github.com/Netflix/vmaf) package.
+Read `this <resource/doc/dcc17v3.pdf>`_ paper for some background.
+SUREAL is being imported by the VMAF_ package.
+
+.. _VMAF: https://github.com/Netflix/vmaf
 
 Requirements
 ============
 
 - Python 2.7 or 3
-
-Install through ``pip``
-=======================
-
-SUREAL is now available on [PyPI](https://pypi.org/project/sureal/), and can be installed through::
-
-    pip install sureal
-
-
-To install locally, download the source and run::
-
-    pip install .
-
-
-Prerequisites & Installation
-============================
-
-To use SUREAL from source, a number of packages are required:
-
-  - numpy_ >=1.12.0
-  - scipy_ >=0.17.1
-  - matplotlib_ >=2.0.0
-  - pandas_ >=0.19.2
+- numpy_ >=1.12.0
+- scipy_ >=0.17.1
+- matplotlib_ >=2.0.0
+- pandas_ >=0.19.2
 
 .. _numpy: http://www.numpy.org/
 .. _scipy: http://www.scipy.org/
 .. _matplotlib: http://matplotlib.org/1.3.1/index.html
 .. _pandas: http://pandas.pydata.org/
 
-
 Under Ubuntu, you may also need to install the ``python-tk`` or ``python3-tk`` packages via ``apt``.
 
-First, upgrade ``pip`` to the newest version; then install the required Python packages::
 
-    sudo -H pip install --upgrade pip
-    pip install --user -r requirements.txt
+Install through ``pip``
+=======================
+
+SUREAL is now available on PyPI_, and can be installed through::
+
+    pip install sureal
 
 
-For Python 3, use::
+.. _PyPI: https://pypi.org/project/sureal/
 
-    sudo -H pip3 install --upgrade pip
-    pip3 install --user -r requirements.txt
+
+Building from source
+====================
+
+To build from source, the easiest way is to use tox_.
+
+Convenient way of quickly getting a virtualenv, run: ``tox -e venv``.
+This will get you a self contained virtualenv in ``.venv``.
+
+Example::
+
+    git clone https://github.com/Netflix/sureal.git
+    cd sureal
+    tox -e venv
+
+    # Try it out from .venv:
+    source .venv/bin/activate
+    which sureal
+    sureal --version
+    sureal --help
+    deactivate
+
+
+By default, the .venv will be created using python3,
+change the line ``basepython = python3`` in the ``[venv]`` section of ``tox.ini`` if you'd prefer to use another python version.
+
+.. _tox: https://pypi.org/project/tox/
 
 
 Testing
@@ -72,24 +82,19 @@ The package has thus far been tested on Ubuntu 16.04 LTS and macOS 10.13. After 
 Usage in Command Line
 =====================
 
-If you installed via Pip, run::
+Run::
 
     sureal
 
-
-If you have not installed via pip, under root directory, just run::
-
-    python3 -m sureal
-
-
-to run the module.
 
 This will print usage information::
 
     usage: subjective_model dataset_filepath [--output-dir output_dir] [--print]
 
 
+
 If ``--output-dir`` is given, plots will be written to the output directory.
+
 If ``--print`` is enabled, output statistics will be printed on the command-line and / or the output directory.
 
 Below are two example usages::
@@ -132,7 +137,6 @@ There are two ways to construct a dataset file.
 The first way is only useful when the subjective test is full sampling,
 i.e. every subject views every distorted video. For example::
 
-    ```
     ref_videos = [
         {
           'content_id': 0, 'content_name': 'checkerboard',
@@ -171,20 +175,22 @@ i.e. every subject views every distorted video. For example::
 In this example, ``ref_videos`` is a list of reference videos.
 Each entry is a dictionary, and must have keys ``content_id``, ``content_name`` and ``path`` (the path to the reference video file).
 ``dis_videos`` is a list of distorted videos.
-Each entry is a dictionary, and must have keys ``content_id``
-(the same content ID as the distorted video's corresponding reference video),
+Each entry is a dictionary, and must have keys ``content_id`` (the same content ID as the distorted video's corresponding reference video),
 ``asset_id``, ``os`` (stands for "opinion score"), and ``path`` (the path to the distorted video file).
-The value of `os` is a list of scores, reach voted by a subject, and must have the same length for all distorted videos
+The value of ``os`` is a list of scores, reach voted by a subject, and must have the same length for all distorted videos
 (since it is full sampling).
 ``ref_score`` is the score assigned to a reference video, and is required when differential score is calculated,
 for example, in DMOS.
 
-The second way is more general, and can be used when the test is full sampling or partial sampling (i.e. not every subject views every distorted video). The only difference from the first way is that, the value of `os` is now a dictionary, with the key being a subject ID, and the value being his/her voted score for particular distorted video. For example::
+The second way is more general, and can be used when the test is full sampling or partial sampling
+(i.e. not every subject views every distorted video).
+The only difference from the first way is that, the value of ``os`` is now a dictionary, with the key being a subject ID,
+and the value being his/her voted score for particular distorted video. For example::
 
     'os': {'Alice': 40, 'Bob': 45, 'Charlie': 50, 'David': 55, 'Elvis': 60}
 
 
-Since partial sampling is allowed, it is not required that every subject ID is present in every `os` dictionary.
+Since partial sampling is allowed, it is not required that every subject ID is present in every ``os`` dictionary.
 
 
 Example Script

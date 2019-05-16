@@ -1,6 +1,36 @@
 # Developer Guide
 
-To release a new version:
+## Build and test
+
+- Grab [tox](https://pypi.org/project/tox/)
+- Create a venv:
+```bash
+tox -e venv
+source .venv/bin/activate
+which sureal
+sureal
+deactivate
+```
+- Run the tests:
+```bash
+# Run all the tests, with all python versions
+tox
+
+# Run tests with python 3.7 only
+tox -e py37
+
+# Quickly run just one given test:
+tox -- -k test_btnr_subjective_model
+
+# Same, but with python3.7 only:
+tox -e py37 -- -k test_btnr_subjective_model
+
+# Stop on first test failure:
+tox -e py37 -- -x
+```
+
+
+## Release a new version
 
 - Verify that tests pass locally, run `tox`
 - Add an entry to the `CHANGELOG.md`
