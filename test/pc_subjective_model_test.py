@@ -22,26 +22,26 @@ class PcSubjectiveModelTest(unittest.TestCase):
     def test_btnr_subjective_model(self):
         subjective_model = BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(self.pc_dataset_reader)
         result = subjective_model.run_modeling(zscore_output=True)
-        self.assertAlmostEquals(float(np.sum(result['quality_scores'])), 0, places=4)
-        self.assertAlmostEquals(float(np.var(result['quality_scores'])), 1, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 0, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores'])), 1, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.05721221160408296, places=4)
         self.assertTrue(result['quality_scores_std'] is None)
 
     def test_btmle_subjective_model(self):
         subjective_model = BradleyTerryMlePairedCompSubjectiveModel(self.pc_dataset_reader)
         result = subjective_model.run_modeling()
-        self.assertAlmostEquals(float(np.sum(result['quality_scores'])), -187.18634399309573, places=4)
-        self.assertAlmostEquals(float(np.var(result['quality_scores'])), 3.1442888768417054, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores'])), -187.18634399309573, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores'])), 3.1442888768417054, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), 0.5649254682803901, places=4)
-        self.assertAlmostEquals(float(np.sum(result['quality_scores_std'])), 11.136592174843651, places=4)
-        self.assertAlmostEquals(float(np.var(result['quality_scores_std'])), 0.003890667402965306, places=8)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 11.136592174843651, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores_std'])), 0.003890667402965306, places=8)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores_std']), 1.960577186185537, places=4)
 
     def test_thrustone_mle_subjective_model(self):
         subjective_model = ThurstoneMlePairedCompSubjectiveModel(self.pc_dataset_reader)
         result = subjective_model.run_modeling()
-        self.assertAlmostEquals(float(np.sum(result['quality_scores'])), 0.0003982322159217233, places=4)
-        self.assertAlmostEquals(float(np.var(result['quality_scores'])), 0.8580215948887912, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 0.0003982322159217233, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores'])), 0.8580215948887912, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.3411839039618667, places=4)
         self.assertTrue(result['quality_scores_std'] is None)
 
@@ -58,17 +58,17 @@ class PcSubjectiveModelTestSynthetic(unittest.TestCase):
     def test_btnr_subjective_model(self):
         subjective_model = BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(self.pc_dataset_reader)
         result = subjective_model.run_modeling(zscore_output=True)
-        self.assertAlmostEquals(float(np.sum(result['quality_scores'])), 0, places=4)
-        self.assertAlmostEquals(float(np.var(result['quality_scores'])), 1, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 0, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores'])), 1, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.6783168176396557, places=4)
         self.assertTrue(result['quality_scores_std'] is None)
 
     def test_btmle_subjective_model(self):
         subjective_model = BradleyTerryMlePairedCompSubjectiveModel(self.pc_dataset_reader)
         result = subjective_model.run_modeling()
-        self.assertAlmostEquals(float(np.sum(result['quality_scores'])), -441.51458317430405, places=4)
-        self.assertAlmostEquals(float(np.var(result['quality_scores'])), 4.286932098917939, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores'])), -441.51458317430405, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores'])), 4.286932098917939, places=4)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.6783168176396557, places=4)
-        self.assertAlmostEquals(float(np.sum(result['quality_scores_std'])), 5.278359062068779, places=4)
-        self.assertAlmostEquals(float(np.var(result['quality_scores_std'])), 0.00019082518290164445, places=8)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 5.278359062068779, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores_std'])), 0.00019082518290164445, places=8)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores_std']), 3.579717582250833, places=4)

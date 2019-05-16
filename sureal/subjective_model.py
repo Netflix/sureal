@@ -357,7 +357,6 @@ class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
     VERSION = '0.1'
 
     @classmethod
-    @deprecated
     def _run_modeling(cls, dataset_reader, **kwargs):
 
         def one_or_nan(x):
@@ -710,13 +709,14 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
                 num = - np.tile(a_c_e, (S, 1)).T / vs2_add_ace2 + np.tile(a_c_e, (S, 1)).T * a_es**2 / vs2_add_ace2**2
                 num = pd.DataFrame(num).sum(axis=1) # sum over s
-                num = sum_over_content_id(num, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
+                num = sum_over_content_id(num, dataset_reader.content_id_of_dis_videos, C)  # sum over e:c(e)=c
                 poly_term = np.tile(v_s**4, (E, 1)) \
                       - 3 * np.tile(a_c_e**4, (S, 1)).T \
                       - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
                 den = - vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
                 den = pd.DataFrame(den).sum(axis=1) # sum over s
-                den = sum_over_content_id(den, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
+                den = sum_over_content_id(den, dataset_reader.content_id_of_dis_videos, C)  # sum over e:c(e)=c
+                # check: 'den' is 0 in test/subjective_model_test.py::SubjectiveModelPartialTest::test_observer_content_aware_subjective_model_nocontent
                 a_c_new = a_c - num / den
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
                 # calculate std of a_c
@@ -726,7 +726,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                     ).sum(axis=1),
                     dataset_reader.content_id_of_dis_videos,
                     C
-                ) # sum over e:c(e)=c
+                )  # sum over e:c(e)=c
+                # check: max(0, ...) leads to division by zero
                 a_c_std = 1.0 /np.sqrt(np.maximum(0., -lpp))
 
             elif gradient_method == 'original':
