@@ -12,14 +12,26 @@ script:
 
 
 # The following section deploys to pypi when a version tag is applied to master, see https://docs.travis-ci.com/user/deployment/pypi/
-deploy:
-  - provider: pypi
+credentials:
+  - &pypi
+    provider: pypi
     user: CBampis
     password:
       secure: "to be filled in"
-    distributions: "sdist bdist_wheel --universal"
+
+deploy:
+  - <<: *pypi
     on:
-      branch: master
+      # Publish source tarball and wheel with 3.6
       python: 3.6
       repo: Netflix/sureal
+      branch: master
       tags: true
+    distributions: "sdist bdist_wheel"
+  - <<: *pypi
+    on:
+      # Publish wheel only with all other python versions
+      repo: Netflix/sureal
+      branch: master
+      tags: true
+    distributions: "bdist_wheel"
