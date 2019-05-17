@@ -30,7 +30,8 @@ deploy:
     distributions: "sdist bdist_wheel"
   - <<: *pypi
     on:
-      # Publish wheel only with all other python versions
+      # Publish wheel only with 2.7
+      python: 2.7
       repo: Netflix/sureal
       branch: master
       tags: true
