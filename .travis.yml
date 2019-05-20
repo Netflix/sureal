@@ -17,7 +17,7 @@ credentials:
     provider: pypi
     user: CBampis
     password:
-      secure: "to be filled in"
+      secure: "VWltwDtLglGIzANTRdnc97GCDEzTDgQLBgOSJIWhYTUJ3baE/tYFO9KfhRK5r4QsPjeKcxMuhMvlxR1BXGej9/mAEMT/AC20E4P/nxjc6DV6pAYeqya8MQm69mllXwNHvmjzdbAVGK6glb+OkPsHxtCDNqimOXJ33nEcK3M3/jer7b7McVTQB5jAKAASf9gBEW6t4SURhrMsStM1GVq77TB/S6Hnfv1XqnSD6e5xNJ76ayN1q9IESECf/RtHDSxR+y6BOelbS2G1WbJREj08VmsIgBc52CPRgKNmiqBelM5y/qBRSL+elhpxtQJDJWl8oNqxxUVn6bOTgVUr/CvUZ0tGYciZJ1Ee6uoC/3J8KgX5dW3Rli73msReSyluOZn1zYEm26FYn3OdPyDETUcKg3y8UBmKfnZ5FEF1L37M3cV9drX00+AH3Kz0JqVz4tzY3Dtq3zZIegRGM594vQ76wfp9FrFgph4mwJyxaTDXjVvz2QRQE84Osr2G9pgj+KWTE7yFGJvzxejYJ4vH2uxa41ZAIkCBs8pmSR2ZjAI8FbLSDUrrwLl2cfAJtVqYhQ0x0bzN0wUL+pZ6qMF3J8Cz0/Xm4+hv7L3rCIa4kUrZCrd2wPjT9bMH+IITfiTOU9AGl1MnbiBX5NeKA4jDT9zSzwR0jt49U0uh3xfhbwBo1+g="
 
 deploy:
   - <<: *pypi
