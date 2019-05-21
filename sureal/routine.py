@@ -2,7 +2,10 @@ import numpy as np
 
 try:
     from matplotlib import pyplot as plt
-except ImportError:
+
+except (ImportError, RuntimeError):
+    # This file is sometimes imported too early by __main__.py, before the venv (with matplotlib) is installed
+    # OSX system python comes with an ancient matplotlib that triggers RuntimeError when imported in this way
     plt = None
 
 from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
