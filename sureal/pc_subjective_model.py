@@ -87,7 +87,7 @@ class BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(PairedCompSubjectiveMod
 
         cov = -inv(d2L);
 
-        change=(A) \ dL;
+        change=(A) \\ dL;
         %change = inv(d2L) * dL;
         change(n) = 0;
         gamma = gamma - change;
