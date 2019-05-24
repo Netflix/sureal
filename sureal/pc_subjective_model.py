@@ -283,8 +283,17 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         ret = minimize(nllf_partial, v0, method='SLSQP', jac='2-point', options={'ftol': 1e-8, 'disp': True, 'maxiter':1000})
         assert ret.success, "minimization is unsuccessful."
+        scores = ret.x
 
-        result = {'quality_scores': ret.x, 'quality_scores_std': None}
+        zscore_output = kwargs['zscore_output'] if 'zscore_output' in kwargs and 'zscore_output' is not None else False
+
+        if zscore_output:
+            scores_mean = np.mean(scores)
+            scores_std = np.std(scores)
+            scores = (scores - scores_mean) / scores_std
+            # std = std / scores_std
+
+        result = {'quality_scores': scores, 'quality_scores_std': None}
         return result
 
     @staticmethod
