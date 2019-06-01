@@ -51,7 +51,7 @@ Lastly, install SUREAL by::
 .. _virtualenv: https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
 
 
-Usage in Command Line
+Usage in command line
 =====================
 
 Run::
@@ -95,7 +95,7 @@ Here ``subjective_model`` are the available subjective models offered in the pac
   - ZS_SR_DMOS - Apply z-score transformation, followed by SR, before calculating DMOS
 
 
-Dataset Files
+Dataset files
 -------------
 
 ``dataset_filepath`` is the path to a dataset file.
