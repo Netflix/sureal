@@ -1,5 +1,5 @@
-SUREAL - Subjective Quality Scores Recovery from Noisy Measurements
-===================================================================
+SUREAL - Subjective Recovery Analysis
+=====================================
 
 .. image:: https://img.shields.io/pypi/v/sureal.svg
     :target: https://pypi.org/project/sureal/
@@ -171,7 +171,7 @@ See `here <https://colab.research.google.com/drive/1hG6ARc8-rihyJPxIXZysi-sAe0e7
 For developers
 ==============
 
-SUREAL uses tox_ to manage automatic testing and continuous integration with `Travis CI`_ on Github, and setupmeta_ for new version release, packaging and publishing. Refer to DEVELOPER.md for more details.
+SUREAL uses tox_ to manage automatic testing and continuous integration with `Travis CI`_ on Github, and setupmeta_ for new version release, packaging and publishing. Refer to `DEVELOPER.md <DEVELOPER.md>`_ for more details.
 
 .. _tox: https://tox.readthedocs.io/en/latest/
 .. _Travis CI: https://travis-ci.org/Netflix/sureal
