@@ -45,9 +45,9 @@ The code thus far has been tested on Ubuntu 16.04 LTS and macOS 10.13.
 
 Lastly, install SUREAL by::
 
-    pip install --editable .
+    pip install .
 
-Having ``--editable`` is optional but it allows the changes made in the source code to be picked up immediately without re-running ``pip install .``
+If you want to edit the source, use ``pip install --editable .`` or ``pip install -e .`` instead. Having ``--editable`` allows the changes made in the source to be picked up immediately without re-running ``pip install .``
 
 .. _PyPI: https://pypi.org/project/sureal/
 .. _virtualenv: https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
