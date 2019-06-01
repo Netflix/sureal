@@ -1,4 +1,4 @@
-SUREAL - Subjective quality scores recovery from noisy measurements
+SUREAL - Subjective Quality Scores Recovery from Noisy Measurements
 ===================================================================
 
 .. image:: https://img.shields.io/pypi/v/sureal.svg
@@ -10,73 +10,45 @@ SUREAL - Subjective quality scores recovery from noisy measurements
     :alt: Build Status
 
 SUREAL is a toolbox developed by Netflix for recovering quality scores from noisy measurements obtained by subjective tests.
-Read `this <resource/doc/dcc17v3.pdf>`_ paper for some background.
-SUREAL is being imported by the VMAF_ package.
+Read `this <resource/doc/dcc17v3.pdf>`_ paper for some background. SUREAL is being imported by the VMAF_ package.
+
+Currently, SUREAL supports Python 2.7 and 3.7.
 
 .. _VMAF: https://github.com/Netflix/vmaf
 
-Requirements
+
+Installation
 ============
+SUREAL can be either installed through ``pip`` (available via PyPI_), or locally.
 
-- Python 2.7 or 3
-- numpy_ >=1.12.0
-- scipy_ >=0.17.1
-- matplotlib_ >=2.0.0
-- pandas_ >=0.19.2
+Installation through ``pip``
+----------------------------
 
-.. _numpy: http://www.numpy.org/
-.. _scipy: http://www.scipy.org/
-.. _matplotlib: http://matplotlib.org/1.3.1/index.html
-.. _pandas: http://pandas.pydata.org/
-
-Under Ubuntu, you may also need to install the ``python-tk`` or ``python3-tk`` packages via ``apt``.
-
-
-Install through ``pip``
-=======================
-
-SUREAL is now available on PyPI_, and can be installed through::
+To install SUREAL via ``pip``, run::
 
     pip install sureal
 
+Local installation
+------------------
+
+To install locally, first, download the source. Under the root directory, (perferrably in a virtualenv_), install the requirements::
+
+    pip install -r requirements.txt
+
+Under Ubuntu, you may also need to install the ``python-tk`` (Python 2) or ``python3-tk`` (Python 3) packages via ``apt``.
+
+To test the source code before installing, run::
+
+    python -m unittest discover -s test -p '*_test.py'
+
+The code thus far has been tested on Ubuntu 16.04 LTS and macOS 10.13.
+
+Lastly, install SUREAL by::
+
+    pip install .
 
 .. _PyPI: https://pypi.org/project/sureal/
-
-
-Building from source
-====================
-
-To build from source, the easiest way is to use tox_.
-
-Convenient way of quickly getting a virtualenv, run: ``tox -e venv``.
-This will get you a self contained virtualenv in ``.venv``.
-
-Example::
-
-    git clone https://github.com/Netflix/sureal.git
-    cd sureal
-    tox -e venv
-
-    # Try it out from .venv:
-    source .venv/bin/activate
-    which sureal
-    sureal --version
-    sureal --help
-    deactivate
-
-
-By default, the .venv will be created using python3,
-change the line ``basepython = python3`` in the ``[venv]`` section of ``tox.ini`` if you'd prefer to use another python version.
-
-.. _tox: https://pypi.org/project/tox/
-
-
-Testing
-=======
-
-The package has thus far been tested on Ubuntu 16.04 LTS and macOS 10.13. After installation, run::
-
-    tox
+.. _virtualenv: https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
 
 
 Usage in Command Line
@@ -86,12 +58,9 @@ Run::
 
     sureal
 
-
 This will print usage information::
 
     usage: subjective_model dataset_filepath [--output-dir output_dir] [--print]
-
-
 
 If ``--output-dir`` is given, plots will be written to the output directory.
 
@@ -193,7 +162,17 @@ and the value being his/her voted score for particular distorted video. For exam
 Since partial sampling is allowed, it is not required that every subject ID is present in every ``os`` dictionary.
 
 
-Example Script
-==============
+Usage in Python code
+====================
 
 See `here <https://colab.research.google.com/drive/1hG6ARc8-rihyJPxIXZysi-sAe0e7xxB8#scrollTo=onasQ091O3sn>`_ for an example script to use SUREAL in Google Collab notebook.
+
+
+For developers
+==============
+
+SUREAL uses tox_ to manage automatic testing and continuous integration with `Travis CI`_ on Github, and setupmeta_ for new version release, packaging and publishing. Refer to DEVELOPER.md for more details.
+
+.. _tox: https://tox.readthedocs.io/en/latest/
+.. _Travis CI: https://travis-ci.org/Netflix/sureal
+.. _setupmeta: https://github.com/zsimic/setupmeta
