@@ -65,7 +65,7 @@ After code development:
 - Add an entry to the `CHANGELOG.md`
 - Commit your changes, merge your PR (with travis job succeeding)
 - Once the commits are on `master`, apply a version tag by either:
-    - running `python setup.py version --bump patch` (add `--commit --push` if output looks as expected; use `minor`/`major` instead of `patch` for minor or major version bump)
+    - running `python setup.py version --bump patch --push` (add `--commit` if output looks as expected; use `minor`/`major` instead of `patch` for minor or major version bump)
     - or editing `sureal/__init__.py` and perform a manual `git tag` (see example below)
 - upload to PyPI with:
 ```bash
