@@ -67,12 +67,8 @@ After code development:
 - Once the commits are on `master`, apply a version tag by either:
     - running `python setup.py version --bump patch --push` (add `--commit` if output looks as expected; use `minor`/`major` instead of `patch` for minor or major version bump)
     - or editing `sureal/__init__.py` and perform a manual `git tag` (see example below)
-- upload to PyPI with:
-```bash
-python setup.py sdist bdist_wheel
-python setup.py upload
-```
-
+- upload to PyPI with: `python setup.py sdist bdist_wheel upload`
+- Verify latest version at: https://pypi.org/project/sureal/
 
 Example version bump run:
 
