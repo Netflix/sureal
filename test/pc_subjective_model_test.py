@@ -36,6 +36,8 @@ class PcSubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 11.136592174843651, places=4)
         self.assertAlmostEqual(float(np.var(result['quality_scores_std'])), 0.003890667402965306, places=8)
         self.assertAlmostEqual(st.kurtosis(result['quality_scores_std']), 1.960577186185537, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_exp_std'])), 0.25667807232011897, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_cov'])), 6.488285445421619e-16, places=4)
 
     def test_thrustone_mle_subjective_model(self):
         subjective_model = ThurstoneMlePairedCompSubjectiveModel(self.pc_dataset_reader)
