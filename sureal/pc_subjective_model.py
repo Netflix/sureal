@@ -185,6 +185,22 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
     TYPE = 'BTMLE'
     VERSION = '1.0'
 
+    @classmethod
+    def _run_modeling(cls, dataset_reader, **kwargs):
+
+        alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
+
+        quality_scores, \
+        quality_scores_std, \
+        quality_scores_exp_stdv, \
+        quality_scores_exp_cova = \
+            cls.resolve_model(alpha)
+
+        return {'quality_scores': quality_scores,
+                'quality_scores_std': quality_scores_std,
+                'quality_scores_exp_std': quality_scores_exp_stdv,
+                'quality_scores_cov': quality_scores_exp_cova}
+
     @staticmethod
     def resolve_model(alpha, **more):
 
@@ -256,22 +272,6 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         return list(log_p), list(log_p_stdv), list(stdv), cova[:-1, :-1]
 
-    @classmethod
-    def _run_modeling(cls, dataset_reader, **kwargs):
-
-        alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
-
-        quality_scores, \
-        quality_scores_std, \
-        quality_scores_exp_stdv, \
-        quality_scores_exp_cova = \
-            cls.resolve_model(alpha)
-
-        return {'quality_scores': quality_scores,
-                  'quality_scores_std': quality_scores_std,
-                  'quality_scores_exp_std': quality_scores_exp_stdv,
-                  'quality_scores_cov': quality_scores_exp_cova}
-
 
 class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
     """ Thurstone model based on maximum likelihood estimation, classical version
@@ -293,16 +293,7 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         #     )
         alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
 
-        M, M_ = alpha.shape
-        assert M == M_
-
-        nllf_partial = partial(cls.neg_log_likelihood_function, alpha=alpha, M=M)
-
-        v0 = np.zeros(M)
-
-        ret = minimize(nllf_partial, v0, method='SLSQP', jac='2-point', options={'ftol': 1e-8, 'disp': True, 'maxiter':1000})
-        assert ret.success, "minimization is unsuccessful."
-        scores = ret.x
+        scores = cls.resolve_model(alpha)
 
         zscore_output = kwargs['zscore_output'] if 'zscore_output' in kwargs and 'zscore_output' is not None else False
 
@@ -314,6 +305,18 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         result = {'quality_scores': scores, 'quality_scores_std': None}
         return result
+
+    @classmethod
+    def resolve_model(cls, alpha):
+        M, M_ = alpha.shape
+        assert M == M_
+        nllf_partial = partial(cls.neg_log_likelihood_function, alpha=alpha, M=M)
+        v0 = np.zeros(M)
+        ret = minimize(nllf_partial, v0, method='SLSQP', jac='2-point',
+                       options={'ftol': 1e-8, 'disp': True, 'maxiter': 1000})
+        assert ret.success, "minimization is unsuccessful."
+        scores = ret.x
+        return scores
 
     @staticmethod
     def neg_log_likelihood_function(v, alpha, M):
