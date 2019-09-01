@@ -192,12 +192,14 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         quality_scores, \
         quality_scores_std, \
+        quality_scores_exp, \
         quality_scores_exp_stdv, \
         quality_scores_exp_cova = \
             cls.resolve_model(alpha)
 
         return {'quality_scores': quality_scores,
                 'quality_scores_std': quality_scores_std,
+                'quality_scores_exp': quality_scores_exp,
                 'quality_scores_exp_std': quality_scores_exp_stdv,
                 'quality_scores_cov': quality_scores_exp_cova}
 
@@ -270,7 +272,7 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         log_p = np.log(p)
         log_p_stdv = stdv / p # y = log(x) -> dy = 1/x * dx
 
-        return list(log_p), list(log_p_stdv), list(stdv), cova[:-1, :-1]
+        return list(log_p), list(log_p_stdv), list(p), list(stdv), cova[:-1, :-1]
 
 
 class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
