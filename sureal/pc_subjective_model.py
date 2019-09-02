@@ -312,7 +312,7 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
     def resolve_model(cls, alpha):
         M, M_ = alpha.shape
         assert M == M_
-        nllf_partial = partial(cls.neg_log_likelihood_function, alpha=alpha, M=M)
+        nllf_partial = partial(cls.neg_log_likelihood_function, alpha=alpha)
         v0 = np.zeros(M)
         ret = minimize(nllf_partial, v0, method='SLSQP', jac='2-point',
                        options={'ftol': 1e-8, 'disp': True, 'maxiter': 1000})
@@ -321,7 +321,7 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         return scores
 
     @staticmethod
-    def neg_log_likelihood_function(v, alpha, M):
+    def neg_log_likelihood_function(v, alpha):
         # nllf(.) = - sum_i,j log(n_ij / alpha_ij) + alpha_ij * log phi (v_i - v_j) + alpha_ji * log phi (v_j - vi)
         # note that if p = [1, 2, 3, 4] and M = 4, then
         # np.tile(p, (M, 1)).T creates patterns like
@@ -331,6 +331,7 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         #  [3, 3, 3, 3],
         #  [4, 4, 4, 4]
         #  ]
+        M = alpha.shape[0]
         epsilon = 1e-8 / M
         mtx = alpha * np.log(
             norm.cdf(
