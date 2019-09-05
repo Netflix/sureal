@@ -1,5 +1,7 @@
 import numpy as np
 
+from sureal.perf_metric import PccPerfMetric, SrccPerfMetric
+
 try:
     from matplotlib import pyplot as plt
 
@@ -66,6 +68,35 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         plt.xlabel(r'Impaired Video Encodes ($e$)')
         plt.ylabel(r'Test Subjects ($s$)')
         plt.set_cmap('gray')
+        plt.tight_layout()
+
+    if do_plot == 'all' or 'scatter_with_raw_scores' in do_plot:
+        raw_scores_mtx = dataset_reader.opinion_score_2darray
+        E, S = raw_scores_mtx.shape
+        fig, ax_scatter = plt.subplots(figsize=[6, 6])
+        for subjective_model, result in zip(subjective_models, results):
+            if 'quality_scores' in result:
+                recovered_scores = result['quality_scores']
+                assert len(recovered_scores) == E
+                recovered_scores_mtx = np.tile(recovered_scores, (S, 1)).T
+
+                if 'observer_bias' in result:
+                    observer_bias_scores = result['observer_bias']
+                    assert len(observer_bias_scores) == S
+                    observer_bias_scores_mtx = np.tile(observer_bias_scores, (E, 1))
+                    raw_scores_mtx -= observer_bias_scores_mtx
+
+                recovered_scores = recovered_scores_mtx.ravel()
+                raw_scores = raw_scores_mtx.ravel()
+                pcc = PccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
+                srcc = SrccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
+                ax_scatter.scatter(raw_scores, recovered_scores,
+                                   alpha=0.2,
+                                   label='{} (pcc {:.4f}, srcc {:.4f})'.format(subjective_model.TYPE, pcc, srcc))
+        ax_scatter.set_xlabel('Raw Scores (Subject Bias Corrected)')
+        ax_scatter.set_ylabel('Recovered Scores')
+        ax_scatter.grid()
+        ax_scatter.legend(loc=1, ncol=1, frameon=True)
         plt.tight_layout()
 
     if do_plot == 'all' or 'quality_scores' in do_plot:
