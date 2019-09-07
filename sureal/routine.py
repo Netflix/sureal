@@ -71,10 +71,10 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         plt.tight_layout()
 
     if do_plot == 'all' or 'scatter_with_raw_scores' in do_plot:
-        raw_scores_mtx = dataset_reader.opinion_score_2darray
-        E, S = raw_scores_mtx.shape
         fig, ax_scatter = plt.subplots(figsize=[6, 6])
         for subjective_model, result in zip(subjective_models, results):
+            raw_scores_mtx = dataset_reader.opinion_score_2darray
+            E, S = raw_scores_mtx.shape
             if 'quality_scores' in result:
                 recovered_scores = result['quality_scores']
                 assert len(recovered_scores) == E
