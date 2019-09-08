@@ -48,7 +48,9 @@ class PcSubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(st.kurtosis(result['quality_scores']), -0.3411839039618667, places=4)
         self.assertAlmostEquals(result['quality_scores'][0], 0.3791409047569019, places=4)
         self.assertAlmostEquals(result['quality_scores'][-1], -0.41006265745757303, places=4)
-        self.assertTrue(result['quality_scores_std'] is None)
+        self.assertAlmostEquals(result['quality_scores_std'][0], 0.23077713530138128, places=4)
+        import math
+        self.assertTrue(math.isnan(result['quality_scores_std'][-1]))  # TODO: fix
 
 
 class PcSubjectiveModelTestSynthetic(unittest.TestCase):
