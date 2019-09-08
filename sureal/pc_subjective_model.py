@@ -190,18 +190,13 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
 
-        quality_scores, \
-        quality_scores_std, \
-        quality_scores_exp, \
-        quality_scores_exp_stdv, \
-        quality_scores_exp_cova = \
-            cls.resolve_model(alpha)
+        v, stdv_v, p, stdv_p, cova_p = cls.resolve_model(alpha)
 
-        return {'quality_scores': quality_scores,
-                'quality_scores_std': quality_scores_std,
-                'quality_scores_exp': quality_scores_exp,
-                'quality_scores_exp_std': quality_scores_exp_stdv,
-                'quality_scores_cov': quality_scores_exp_cova}
+        return {'quality_scores': v,
+                'quality_scores_std': stdv_v,
+                'quality_scores_p': p,
+                'quality_scores_p_std': stdv_p,
+                'quality_scores_p_cov': cova_p}
 
     @staticmethod
     def resolve_model(alpha, **more):
@@ -242,9 +237,9 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
             #  ]
             pp = np.tile(p, (M, 1)).T + np.tile(p, (M, 1))
 
-            p = np.sum(alpha, axis=1) / np.sum(n / pp, axis=1) # summing over axis=1 marginalizes j
+            p = np.sum(alpha, axis=1) / np.sum(n / pp, axis=1)  # summing over axis=1 marginalizes j
 
-            p = p / np.sum(p)
+            p = p / np.sum(p)  # re-normalize to force p a prob. distribution
 
             change = linalg.norm(p - p_prev)
 
@@ -261,18 +256,19 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         # variance of p_i is then diag(C)[i].
 
         pp = np.tile(p, (M, 1)).T + np.tile(p, (M, 1))
-        lbda_ii = np.sum(-alpha / np.tile(p, (M, 1)).T**2 + n / pp**2, axis=1) # summing over axis=1 marginalizes j
+        lbda_ii = np.sum(-alpha / np.tile(p, (M, 1)).T**2 + n / pp**2, axis=1)  # summing over axis=1 marginalizes j
         lbda_ij = n / pp*2
         lbda = lbda_ij + np.diag(lbda_ii)
-        cova = np.linalg.pinv(
+        cova_p = np.linalg.pinv(
             np.vstack([np.hstack([-lbda, np.ones([M, 1])]), np.hstack([np.ones([1, M]), np.array([[0]])])]))
-        vari = np.diagonal(cova)[:-1]
-        stdv = np.sqrt(vari)
+        vari_p = np.diagonal(cova_p)[:-1]
+        stdv_p = np.sqrt(vari_p)
+        cova_p = cova_p[:-1, :-1]
 
-        log_p = np.log(p)
-        log_p_stdv = stdv / p # y = log(x) -> dy = 1/x * dx
+        v = np.log(p)
+        stdv_v = stdv_p / p  # y = log(x) -> dy = 1/x * dx
 
-        return list(log_p), list(log_p_stdv), list(p), list(stdv), cova[:-1, :-1]
+        return list(v), list(stdv_v), list(p), list(stdv_p), cova_p
 
 
 class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
@@ -295,7 +291,7 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         #     )
         alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
 
-        scores = cls.resolve_model(alpha)
+        scores, std, cov = cls.resolve_model(alpha)
 
         zscore_output = kwargs['zscore_output'] if 'zscore_output' in kwargs and 'zscore_output' is not None else False
 
@@ -303,9 +299,9 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
             scores_mean = np.mean(scores)
             scores_std = np.std(scores)
             scores = (scores - scores_mean) / scores_std
-            # std = std / scores_std
+            std = std / scores_std
 
-        result = {'quality_scores': scores, 'quality_scores_std': None}
+        result = {'quality_scores': scores, 'quality_scores_std': std}
         return result
 
     @classmethod
@@ -317,8 +313,33 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         ret = minimize(nllf_partial, v0, method='SLSQP', jac='2-point',
                        options={'ftol': 1e-8, 'disp': True, 'maxiter': 1000})
         assert ret.success, "minimization is unsuccessful."
-        scores = ret.x
-        return scores
+        v = ret.x
+
+        vi_m_vj = np.tile(v, (M, 1)).T - np.tile(v, (M, 1))
+        phi_vi_m_vj = norm.cdf(vi_m_vj)
+        f_vi_m_vj   = norm.pdf(vi_m_vj)
+        d_vi_m_vj   = - vi_m_vj * norm.pdf(vi_m_vj)
+        phi_vj_m_vi = - phi_vi_m_vj
+        f_vj_m_vi   =   f_vi_m_vj
+        d_vj_m_vi   = - d_vi_m_vj
+        lbda_ii = np.sum(
+            alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 -
+            alpha.T * (phi_vj_m_vi * d_vj_m_vi - f_vj_m_vi ** 2) / phi_vj_m_vi ** 2
+        , axis=1)  # summing over axis=1 marginalizes j
+
+        lbda_ij = -(
+            alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 -
+            alpha.T * (phi_vj_m_vi * d_vj_m_vi - f_vj_m_vi ** 2) / phi_vj_m_vi ** 2
+        )
+
+        lbda = lbda_ij + np.diag(lbda_ii)
+        cova = np.linalg.pinv(
+            np.vstack([np.hstack([-lbda, np.ones([M, 1])]), np.hstack([np.ones([1, M]), np.array([[0]])])]))
+        vari = np.diagonal(cova)[:-1]
+        stdv = np.sqrt(vari)
+        cova = cova[:-1, :-1]
+
+        return v, stdv, cova
 
     @staticmethod
     def neg_log_likelihood_function(v, alpha):
