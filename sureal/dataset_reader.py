@@ -287,6 +287,7 @@ class RawDatasetReader(DatasetReader):
         randomness_level = kwargs['randomness_level'] if 'randomness_level' in kwargs and kwargs['randomness_level'] is not None else None
         sampling_rate = kwargs['sampling_rate'] if 'sampling_rate' in kwargs and kwargs['sampling_rate'] is not None else None
         per_asset_sampling_rates = kwargs['per_asset_sampling_rates'] if 'per_asset_sampling_rates' in kwargs and kwargs['per_asset_sampling_rates'] is not None else None
+        sampling_seed = kwargs['sampling_seed'] if 'sampling_seed' in kwargs and kwargs['sampling_seed'] is not None else None
 
         assert pc_type == 'within_subject_and_content' or pc_type == 'within_subject'
         assert tiebreak_method == 'even_split' or tiebreak_method == 'coin_toss'
@@ -326,6 +327,10 @@ class RawDatasetReader(DatasetReader):
         for i_dis_video, dis_video in enumerate(new_dis_videos):
             dis_video['os'] = dict()
             d_assetid_disvideoidx[dis_video['asset_id']] = i_dis_video
+
+        # set seed
+        if sampling_seed is not None:
+            random.seed(sampling_seed)
 
         # iterate through subj, compare asset_id pairs (upper triangle only), put pc results into new
         for subj in d_subj_assetid:
