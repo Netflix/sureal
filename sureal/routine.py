@@ -140,7 +140,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_quality.set_xlim([min(xs), max(xs)+1])
                 shift_count += 1
         ax_quality.grid()
-        ax_quality.legend(loc=1, ncol=2, frameon=True)
+        # ax_quality.legend(loc=1, ncol=2, frameon=True)
+        ax_quality.legend(ncol=2, frameon=True)
         plt.tight_layout()
 
     if do_plot == 'all' or 'subject_scores' in do_plot:
@@ -212,8 +213,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     raise AssertionError("Unknown plot_type: {}".format(plot_type))
 
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
-                ax_inconsty.set_title(r'Subject Inconsisency ($v_s$)')
-                ax_inconsty.legend(loc=2, ncol=2, frameon=True)
+                ax_inconsty.set_title(r'Subject Inconsistency ($v_s$)')
+                # ax_inconsty.legend(loc=2, ncol=2, frameon=True)
+                ax_inconsty.legend(ncol=2, frameon=True)
                 ax_inconsty.grid()
 
             if 'observer_bias' in result:
@@ -265,7 +267,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             # rotation = 75
             rotation = 90
             plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=rotation)
-        ax_ambgty.legend(loc=1, ncol=2, frameon=True)
+        # ax_ambgty.legend(loc=1, ncol=2, frameon=True)
+        ax_ambgty.legend(ncol=2, frameon=True)
         plt.tight_layout()
 
     return dataset, subjective_models, results
