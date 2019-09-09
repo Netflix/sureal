@@ -99,7 +99,7 @@ class BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(PairedCompSubjectiveMod
 
     """
 
-    TYPE = 'BTNR'
+    TYPE = 'BT_NR'
     VERSION = '1.0'
 
     @classmethod
@@ -182,7 +182,7 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
     """ Bradley-Terry model based on maximum likelihood estimation, classical version.
     """
 
-    TYPE = 'BTMLE'
+    TYPE = 'BT_MLE'
     VERSION = '1.0'
 
     @classmethod
@@ -277,7 +277,8 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
     TYPE = 'THURSTONE_MLE'
     # VERSION = '1.0'
-    VERSION = '1.1' # fix sign nllf sign issue
+    # VERSION = '1.1'  # fix sign nllf sign issue
+    VERSION = '1.2'  # add confidence interval
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
@@ -323,12 +324,12 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         f_vj_m_vi   =   f_vi_m_vj
         d_vj_m_vi   = - d_vi_m_vj
         lbda_ii = np.sum(
-            alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 -
+            alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 +
             alpha.T * (phi_vj_m_vi * d_vj_m_vi - f_vj_m_vi ** 2) / phi_vj_m_vi ** 2
         , axis=1)  # summing over axis=1 marginalizes j
 
         lbda_ij = -(
-            alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 -
+            alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 +
             alpha.T * (phi_vj_m_vi * d_vj_m_vi - f_vj_m_vi ** 2) / phi_vj_m_vi ** 2
         )
 
