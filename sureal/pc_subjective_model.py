@@ -190,7 +190,7 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
 
-        v, stdv_v, p, stdv_p, cova_p = cls.resolve_model(alpha)
+        v, stdv_v, p, stdv_p, cova_p = cls.resolve_model(alpha, **kwargs)
 
         return {'quality_scores': v,
                 'quality_scores_std': stdv_v,
@@ -292,7 +292,7 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         #     )
         alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
 
-        scores, std, cov = cls.resolve_model(alpha)
+        scores, std, cov = cls.resolve_model(alpha, **kwargs)
 
         zscore_output = kwargs['zscore_output'] if 'zscore_output' in kwargs and 'zscore_output' is not None else False
 
@@ -306,7 +306,11 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         return result
 
     @classmethod
-    def resolve_model(cls, alpha):
+    def resolve_model(cls, alpha, **more):
+
+        use_simplified_lbda = more['use_simplified_lbda'] if 'use_simplified_lbda' in more else True
+        assert isinstance(use_simplified_lbda, bool)
+
         M, M_ = alpha.shape
         assert M == M_
         nllf_partial = partial(cls.neg_log_likelihood_function, alpha=alpha)
@@ -316,22 +320,33 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         assert ret.success, "minimization is unsuccessful."
         v = ret.x
 
-        vi_m_vj = np.tile(v, (M, 1)).T - np.tile(v, (M, 1))
-        phi_vi_m_vj = norm.cdf(vi_m_vj)
-        f_vi_m_vj   = norm.pdf(vi_m_vj)
-        d_vi_m_vj   = - vi_m_vj * norm.pdf(vi_m_vj)
-        phi_vj_m_vi = - phi_vi_m_vj
-        f_vj_m_vi   =   f_vi_m_vj
-        d_vj_m_vi   = - d_vi_m_vj
-        lbda_ii = np.sum(
-            alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 +
-            alpha.T * (phi_vj_m_vi * d_vj_m_vi - f_vj_m_vi ** 2) / phi_vj_m_vi ** 2
-        , axis=1)  # summing over axis=1 marginalizes j
+        if use_simplified_lbda:
+            vi_m_vj = np.tile(v, (M, 1)).T - np.tile(v, (M, 1))
+            phi_vi_m_vj = norm.cdf(vi_m_vj)
+            f_vi_m_vj = norm.pdf(vi_m_vj)
+            lbda_ii = np.sum(
+                (alpha + alpha.T) * (-vi_m_vj * phi_vi_m_vj * f_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2
+                , axis=1)  # summing over axis=1 marginalizes j
+            lbda_ij = -(
+                (alpha + alpha.T) * (-vi_m_vj * phi_vi_m_vj * f_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2
+            )
+        else:
+            vi_m_vj = np.tile(v, (M, 1)).T - np.tile(v, (M, 1))
+            phi_vi_m_vj = norm.cdf(vi_m_vj)
+            f_vi_m_vj   = norm.pdf(vi_m_vj)
+            d_vi_m_vj   = - vi_m_vj * norm.pdf(vi_m_vj)
+            phi_vj_m_vi = - phi_vi_m_vj
+            f_vj_m_vi   =   f_vi_m_vj
+            d_vj_m_vi   = - d_vi_m_vj
+            lbda_ii = np.sum(
+                alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 +
+                alpha.T * (phi_vj_m_vi * d_vj_m_vi - f_vj_m_vi ** 2) / phi_vj_m_vi ** 2
+            , axis=1)  # summing over axis=1 marginalizes j
 
-        lbda_ij = -(
-            alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 +
-            alpha.T * (phi_vj_m_vi * d_vj_m_vi - f_vj_m_vi ** 2) / phi_vj_m_vi ** 2
-        )
+            lbda_ij = -(
+                alpha   * (phi_vi_m_vj * d_vi_m_vj - f_vi_m_vj ** 2) / phi_vi_m_vj ** 2 +
+                alpha.T * (phi_vj_m_vi * d_vj_m_vi - f_vj_m_vi ** 2) / phi_vj_m_vi ** 2
+            )
 
         lbda = lbda_ij + np.diag(lbda_ii)
         cova = np.linalg.pinv(
