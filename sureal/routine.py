@@ -70,7 +70,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         plt.set_cmap('gray')
         plt.tight_layout()
 
-    if do_plot == 'all' or 'scatter_with_raw_scores' in do_plot:
+    if do_plot == 'all' or 'bias_corrected_opinion_scores' in do_plot:
         fig, ax_scatter = plt.subplots(figsize=[6, 6])
         for subjective_model, result in zip(subjective_models, results):
             raw_scores_mtx = dataset_reader.opinion_score_2darray
@@ -93,8 +93,27 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_scatter.scatter(raw_scores, recovered_scores,
                                    alpha=0.2,
                                    label='{} (pcc {:.4f}, srcc {:.4f})'.format(subjective_model.TYPE, pcc, srcc))
-        ax_scatter.set_xlabel('Raw Scores (Subject Bias Corrected)')
-        ax_scatter.set_ylabel('Recovered Scores')
+        ax_scatter.set_xlabel('Raw Opinion Scores (Subject Bias Corrected)')
+        ax_scatter.set_ylabel('Recovered Quality Scores')
+        ax_scatter.grid()
+        ax_scatter.legend(loc=1, ncol=1, frameon=True)
+        plt.tight_layout()
+
+    if do_plot == 'all' or 'reconstructed_opinion_scores' in do_plot:
+        fig, ax_scatter = plt.subplots(figsize=[6, 6])
+        for subjective_model, result in zip(subjective_models, results):
+            opinion_score_2darray = dataset_reader.opinion_score_2darray
+            if 'reconstructed_opinion_scores' in result:
+                reconstructed_opinion_score_2darray = result['reconstructed_opinion_scores']
+                recovered_scores = reconstructed_opinion_score_2darray.ravel()
+                raw_scores = opinion_score_2darray.ravel()
+                pcc = PccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
+                srcc = SrccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
+                ax_scatter.scatter(raw_scores, recovered_scores,
+                                   alpha=0.2,
+                                   label='{} (pcc {:.4f}, srcc {:.4f})'.format(subjective_model.TYPE, pcc, srcc))
+        ax_scatter.set_xlabel('Raw Opinion Scores')
+        ax_scatter.set_ylabel('Reconstructed Opinion Scores')
         ax_scatter.grid()
         ax_scatter.legend(loc=1, ncol=1, frameon=True)
         plt.tight_layout()
@@ -181,13 +200,13 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
                 ax_bias.set_title(r'Subject Bias ($b_s$)')
-                ax_bias.grid()
 
                 if 'observers' in result:
                     observers = result['observers']
                     assert len(bias) == len(observers)
                     my_xticks = observers
                     plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
+
 
             if 'observer_inconsistency' in result:
                 inconsty = result['observer_inconsistency']
@@ -216,7 +235,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_inconsty.set_title(r'Subject Inconsistency ($v_s$)')
                 # ax_inconsty.legend(loc=2, ncol=2, frameon=True)
                 ax_inconsty.legend(ncol=2, frameon=True)
-                ax_inconsty.grid()
 
             if 'observer_bias' in result:
                 shift_count += 1
@@ -224,6 +242,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         if xs and my_xticks is None:
             my_xticks = map(lambda x: "#{}".format(x+1), xs)
             plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
+
+        ax_bias.grid()
+        ax_inconsty.grid()
         plt.tight_layout()
 
     if do_plot == 'all' or 'content_scores' in do_plot:
