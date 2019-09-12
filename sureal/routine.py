@@ -86,8 +86,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     observer_bias_scores_mtx = np.tile(observer_bias_scores, (E, 1))
                     raw_scores_mtx -= observer_bias_scores_mtx
 
-                recovered_scores = recovered_scores_mtx.ravel()
-                raw_scores = raw_scores_mtx.ravel()
+                recovered_scores = recovered_scores_mtx[~np.isnan(raw_scores_mtx)]
+                raw_scores = raw_scores_mtx[~np.isnan(raw_scores_mtx)]
                 pcc = PccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
                 srcc = SrccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
                 ax_scatter.scatter(raw_scores, recovered_scores,
@@ -105,8 +105,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             opinion_score_2darray = dataset_reader.opinion_score_2darray
             if 'reconstructed_opinion_scores' in result:
                 reconstructed_opinion_score_2darray = result['reconstructed_opinion_scores']
-                recovered_scores = reconstructed_opinion_score_2darray.ravel()
-                raw_scores = opinion_score_2darray.ravel()
+                recovered_scores = reconstructed_opinion_score_2darray[~np.isnan(opinion_score_2darray)]
+                raw_scores = opinion_score_2darray[~np.isnan(opinion_score_2darray)]
                 pcc = PccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
                 srcc = SrccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
                 ax_scatter.scatter(raw_scores, recovered_scores,
