@@ -1,6 +1,8 @@
 import numpy as np
+from scipy import stats
 
-from sureal.perf_metric import PccPerfMetric, SrccPerfMetric
+from sureal.perf_metric import PccPerfMetric, SrccPerfMetric, RmsePerfMetric
+from sureal.tools.stats import get_pdf
 
 try:
     from matplotlib import pyplot as plt
@@ -68,54 +70,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         plt.xlabel(r'Impaired Video Encodes ($e$)')
         plt.ylabel(r'Test Subjects ($s$)')
         plt.set_cmap('gray')
-        plt.tight_layout()
-
-    if do_plot == 'all' or 'bias_corrected_opinion_scores' in do_plot:
-        fig, ax_scatter = plt.subplots(figsize=[6, 6])
-        for subjective_model, result in zip(subjective_models, results):
-            raw_scores_mtx = dataset_reader.opinion_score_2darray
-            E, S = raw_scores_mtx.shape
-            if 'quality_scores' in result:
-                recovered_scores = result['quality_scores']
-                assert len(recovered_scores) == E
-                recovered_scores_mtx = np.tile(recovered_scores, (S, 1)).T
-
-                if 'observer_bias' in result:
-                    observer_bias_scores = result['observer_bias']
-                    assert len(observer_bias_scores) == S
-                    observer_bias_scores_mtx = np.tile(observer_bias_scores, (E, 1))
-                    raw_scores_mtx -= observer_bias_scores_mtx
-
-                recovered_scores = recovered_scores_mtx[~np.isnan(raw_scores_mtx)]
-                raw_scores = raw_scores_mtx[~np.isnan(raw_scores_mtx)]
-                pcc = PccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
-                srcc = SrccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
-                ax_scatter.scatter(raw_scores, recovered_scores,
-                                   alpha=0.2,
-                                   label='{} (pcc {:.4f}, srcc {:.4f})'.format(subjective_model.TYPE, pcc, srcc))
-        ax_scatter.set_xlabel('Raw Opinion Scores (Subject Bias Corrected)')
-        ax_scatter.set_ylabel('Recovered Quality Scores')
-        ax_scatter.grid()
-        ax_scatter.legend(loc=1, ncol=1, frameon=True)
-        plt.tight_layout()
-
-    if do_plot == 'all' or 'reconstructed_opinion_scores' in do_plot:
-        fig, ax_scatter = plt.subplots(figsize=[6, 6])
-        for subjective_model, result in zip(subjective_models, results):
-            opinion_score_2darray = dataset_reader.opinion_score_2darray
-            if 'reconstructed_opinion_scores' in result:
-                reconstructed_opinion_score_2darray = result['reconstructed_opinion_scores']
-                recovered_scores = reconstructed_opinion_score_2darray[~np.isnan(opinion_score_2darray)]
-                raw_scores = opinion_score_2darray[~np.isnan(opinion_score_2darray)]
-                pcc = PccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
-                srcc = SrccPerfMetric(raw_scores, recovered_scores).evaluate(enable_mapping=True)['score']
-                ax_scatter.scatter(raw_scores, recovered_scores,
-                                   alpha=0.2,
-                                   label='{} (pcc {:.4f}, srcc {:.4f})'.format(subjective_model.TYPE, pcc, srcc))
-        ax_scatter.set_xlabel('Raw Opinion Scores')
-        ax_scatter.set_ylabel('Reconstructed Opinion Scores')
-        ax_scatter.grid()
-        ax_scatter.legend(loc=1, ncol=1, frameon=True)
         plt.tight_layout()
 
     if do_plot == 'all' or 'quality_scores' in do_plot:
@@ -290,6 +244,66 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=rotation)
         # ax_ambgty.legend(loc=1, ncol=2, frameon=True)
         ax_ambgty.legend(ncol=2, frameon=True)
+        plt.tight_layout()
+
+    if do_plot == 'all' or 'data_fitness' in do_plot:
+        n_sigmas = 5
+        metric_keys = [
+            # 'CC',
+            # 'SROCC',
+            'RMSE',
+            # '%(std>$2\sigma)$',
+            # '%(pval<0.05)',
+            'std(std)',
+            'dof',
+        ]
+        fig, ax = plt.subplots(figsize=[12, 4])
+        for subjective_model, result in zip(subjective_models, results):
+            if 'multiple_of_stds' in result:
+                n_stds = result['multiple_of_stds']
+                n_stds = n_stds[~np.isnan(n_stds)]
+                ys, xs = get_pdf(n_stds, bins=range(n_sigmas + 1), density=False)
+                ys = np.array(ys) / float(len(n_stds)) * 100.0
+
+                assert 'reconstructions' in result
+                assert 'raw_scores' in result
+                rec_scores = result['reconstructions']
+                rec_scores = rec_scores[~np.isnan(rec_scores)]
+                raw_scores = result['raw_scores']
+                raw_scores = raw_scores[~np.isnan(raw_scores)]
+                rmse = RmsePerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
+                cc = PccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
+                srocc = SrccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
+
+                perc_above_2sigma = 100.0 - stats.percentileofscore(n_stds, 2.0)
+                std_of_std = np.std(n_stds)
+
+                assert 'p_values' in result
+                p_values = result['p_values']
+                p_values = p_values[~np.isnan(p_values)]
+                perc_below_pval005 = stats.percentileofscore(p_values, (1 - 0.9545))
+
+                assert 'dof' in result
+                dof = result['dof']
+
+                metrics = {
+                    'CC': '{:.3f}'.format(cc),
+                    'SROCC': '{:.3f}'.format(srocc),
+                    'RMSE': '{:.3f}'.format(rmse),
+                    '%(std>$2\sigma)$': '{:.1f}%'.format(perc_above_2sigma),
+                    '%(pval<0.05)': '{:.1f}%)'.format(perc_below_pval005),
+                    'std(std)': '{:.3f}'.format(std_of_std),
+                    'dof': dof
+                }
+
+                label = '{} ({})'.format(subjective_model.TYPE, ', '.join(map(lambda key: '{} {}'.format(key, metrics[key]), metric_keys)))
+
+                ax.bar(map(lambda x: '${}\sigma$'.format(x), range(1, n_sigmas + 1)), ys,
+                       label=label,
+                       alpha=0.4)
+        ax.set_xlabel('Number of $\sigma$')
+        ax.set_ylabel('Percentage (%)')
+        ax.legend()
         plt.tight_layout()
 
     return dataset, subjective_models, results

@@ -175,3 +175,18 @@ class ConvolveTwoPdf(object):
         return np.interp(x, self.model['grid'], self.model['pdf'],
                          left=self.f_truncation*self.g_truncation,
                          right=self.f_truncation*self.g_truncation)
+
+
+def get_cdf(x, bins=100):
+    x = np.array(x)
+    counts, bin_edges = np.histogram(x, bins=bins)
+    cdf = np.cumsum(counts)
+    cdf = cdf / float(cdf[-1]) # normalize
+    bin_edges = bin_edges[1:] # make size
+    return cdf, bin_edges
+
+
+def get_pdf(data, bins=20, density=True):
+    pdf, bin_edges = np.histogram(data, density=density, bins=bins)
+    bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
+    return pdf, bin_centres

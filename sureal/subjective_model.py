@@ -1,11 +1,12 @@
 from abc import ABCMeta, abstractmethod
 import sys
+import time
 
 import numpy as np
 from scipy import linalg
 from scipy import stats
 import pandas as pd
-import time
+from scipy.stats import norm
 
 from sureal.core.mixin import TypeVersionEnabled
 from sureal.tools.decorator import deprecated
@@ -228,10 +229,33 @@ class MosModel(SubjectiveModel):
         os_2darray = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         mos = pd.DataFrame(os_2darray).mean(axis=1) # mean along s, ignore NaN
         mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(pd.DataFrame(os_2darray / os_2darray).sum(axis=1)) # std / sqrt(N), ignoring NaN
+        std = pd.DataFrame(os_2darray).std(axis=1)
+
+        stats = cls.get_stats(os_2darray, mos, std)
+
         result = {'quality_scores': mos,
                   'quality_scores_std': mos_std,
+                  'raw_scores': os_2darray,
                   }
+
+        result.update(stats)
+
         return result
+
+    @classmethod
+    def get_stats(cls, x_es, x_e, std_e):
+        E, S = x_es.shape
+        x_es_hat = np.tile(x_e, (S, 1)).T
+        std_es = np.tile(std_e, (S, 1)).T
+        n_stds = np.abs(x_es - x_es_hat) / (std_es + 1e-18)
+        p_values = (1.0 - norm.cdf(np.abs(x_es - x_es_hat), scale=std_es)) * 2
+        dof = E * 2
+        return {
+            'p_values': p_values,
+            'multiple_of_stds': n_stds,
+            'reconstructions': x_es_hat,
+            'dof': dof,
+        }
 
 
 class DmosModel(MosModel):
