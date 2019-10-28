@@ -9,7 +9,6 @@ import pandas as pd
 from scipy.stats import norm
 
 from sureal.core.mixin import TypeVersionEnabled
-from sureal.tools.decorator import deprecated
 from sureal.tools.misc import import_python_file, indices
 from sureal.dataset_reader import RawDatasetReader
 from sureal.tools.stats import vectorized_gaussian, vectorized_convolution_of_two_logistics, \
@@ -270,7 +269,7 @@ class DmosModel(MosModel):
     def run_modeling(self, **kwargs):
         # override SubjectiveModel._run_modeling
         if 'dscore_mode' in kwargs and kwargs['dscore_mode'] is True:
-            assert False, 'DmosModel is already doing dscoring, no need to repeat.'
+            assert False, '{} is already doing dscoring, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['dscore_mode'] = True
         return super(DmosModel, self).run_modeling(**kwargs2)
@@ -295,10 +294,10 @@ class LiveDmosModel(SubjectiveModel):
     def _run_modeling(cls, dataset_reader, **kwargs):
 
         if 'dscore_mode' in kwargs and kwargs['dscore_mode'] is True:
-            assert False, 'LiveDmosModel is already doing dscoring, no need to repeat.'
+            assert False, '{} is already doing dscoring, no need to repeat.'.format(cls.__class__.__name__)
 
         if 'zscore_mode' in kwargs and kwargs['zscore_mode'] is True:
-            assert False, 'LiveDmosModel is already doing zscoring, no need to repeat.'
+            assert False, '{} is already doing zscoring, no need to repeat.'.format(cls.__class__.__name__)
 
         kwargs2 = kwargs.copy()
         kwargs2['dscore_mode'] = True
@@ -914,30 +913,10 @@ class SubjrejMosModel(MosModel):
     def run_modeling(self, **kwargs):
         # override SubjectiveModel._run_modeling
         if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
-            assert False, 'SubjrejMosModel is ' \
-                          'already doing subject rejection, no need to repeat.'
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['subject_rejection'] = True
         return super(SubjrejMosModel, self).run_modeling(**kwargs2)
-
-
-class ZscoringSubjrejMosModel(MosModel):
-
-    TYPE = 'ZS_SR_MOS'
-    VERSION = '0.1'
-
-    def run_modeling(self, **kwargs):
-        # override SubjectiveModel._run_modeling
-        if 'zscore_mode' in kwargs and kwargs['zscore_mode'] is True:
-            assert False, 'ZscoringSubjrejMosModel is ' \
-                          'already doing zscoring, no need to repeat.'
-        if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
-            assert False, 'ZscoringSubjrejMosModel is ' \
-                          'already doing subject rejection, no need to repeat.'
-        kwargs2 = kwargs.copy()
-        kwargs2['zscore_mode'] = True
-        kwargs2['subject_rejection'] = True
-        return super(ZscoringSubjrejMosModel, self).run_modeling(**kwargs2)
 
 
 class ZscoringMosModel(MosModel):
@@ -948,11 +927,41 @@ class ZscoringMosModel(MosModel):
     def run_modeling(self, **kwargs):
         # override SubjectiveModel._run_modeling
         if 'zscore_mode' in kwargs and kwargs['zscore_mode'] is True:
-            assert False, 'ZscoringSubjrejMosModel is ' \
-                          'already doing zscoring, no need to repeat.'
+            assert False, '{} is already doing zscoring, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['zscore_mode'] = True
         return super(ZscoringMosModel, self).run_modeling(**kwargs2)
+
+
+class ZscoringSubjrejMosModel(MosModel):
+
+    TYPE = 'ZS_SR_MOS'
+    VERSION = '0.1'
+
+    def run_modeling(self, **kwargs):
+        # override SubjectiveModel._run_modeling
+        if 'zscore_mode' in kwargs and kwargs['zscore_mode'] is True:
+            assert False, '{} is already doing zscoring, no need to repeat.'.format(self.__class__.__name__)
+        if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
+        kwargs2 = kwargs.copy()
+        kwargs2['zscore_mode'] = True
+        kwargs2['subject_rejection'] = True
+        return super(ZscoringSubjrejMosModel, self).run_modeling(**kwargs2)
+
+
+# class BiasOffsetMosModel(MosModel):
+#
+#     TYPE = 'BO_MOS'
+#     VERSION = '1.0'
+#
+#     def run_modeling(self, **kwargs):
+#         # override SubjectiveModel._run_modeling
+#         if 'bias_offset' in kwargs and kwargs['bias_offset'] is True:
+#             assert False, '{} is already doing bias offsetting, no need to repeat.'.format(self.__class__.__name__)
+#         kwargs2 = kwargs.copy()
+#         kwargs2['bias_offset'] = True
+#         return super(BiasOffsetMosModel, self).run_modeling(**kwargs2)
 
 
 class MaximumLikelihoodEstimationDmosModel(MaximumLikelihoodEstimationModel):
@@ -963,7 +972,7 @@ class MaximumLikelihoodEstimationDmosModel(MaximumLikelihoodEstimationModel):
     def run_modeling(self, **kwargs):
         # override SubjectiveModel._run_modeling
         if 'dscore_mode' in kwargs and kwargs['dscore_mode'] is True:
-            assert False, '{cls} is already doing dscoring, no need to repeat.'.format(cls=self.__class__.__name__)
+            assert False, '{} is already doing dscoring, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['dscore_mode'] = True
         return super(MaximumLikelihoodEstimationDmosModel, self).run_modeling(**kwargs2)
@@ -977,7 +986,7 @@ class MaximumLikelihoodEstimationDmosModelContentOblivious(MaximumLikelihoodEsti
     def run_modeling(self, **kwargs):
         # override SubjectiveModel._run_modeling
         if 'dscore_mode' in kwargs and kwargs['dscore_mode'] is True:
-            assert False, '{cls} is already doing dscoring, no need to repeat.'.format(cls=self.__class__.__name__)
+            assert False, '{} is already doing dscoring, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['dscore_mode'] = True
         return super(MaximumLikelihoodEstimationDmosModelContentOblivious, self).run_modeling(**kwargs2)
@@ -991,11 +1000,9 @@ class SubjrejDmosModel(MosModel):
     def run_modeling(self, **kwargs):
         # override SubjectiveModel._run_modeling
         if 'dscore_mode' in kwargs and kwargs['dscore_mode'] is True:
-            assert False, 'SubjrejDmosModel is ' \
-                          'already doing dscoring, no need to repeat.'
+            assert False, '{} is already doing dscoring, no need to repeat.'.format(self.__class__.__name__)
         if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
-            assert False, 'SubjrejDmosModel is ' \
-                          'already doing subject rejection, no need to repeat.'
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['dscore_mode'] = True
         kwargs2['subject_rejection'] = True
@@ -1010,14 +1017,11 @@ class ZscoringSubjrejDmosModel(MosModel):
     def run_modeling(self, **kwargs):
         # override SubjectiveModel._run_modeling
         if 'dscore_mode' in kwargs and kwargs['dscore_mode'] is True:
-            assert False, 'ZscoringSubjrejDmosModel is ' \
-                          'already doing dscoring, no need to repeat.'
+            assert False, '{} is already doing dscoring, no need to repeat.'.format(self.__class__.__name__)
         if 'zscore_mode' in kwargs and kwargs['zscore_mode'] is True:
-            assert False, 'ZscoringSubjrejDmosModel is ' \
-                          'already doing zscoring, no need to repeat.'
+            assert False, '{} is already doing zscoring, no need to repeat.'.format(self.__class__.__name__)
         if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
-            assert False, 'ZscoringSubjrejDmosModel is ' \
-                          'already doing subject rejection, no need to repeat.'
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['dscore_mode'] = True
         kwargs2['zscore_mode'] = True
