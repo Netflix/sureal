@@ -940,6 +940,21 @@ class ZscoringSubjrejMosModel(MosModel):
         return super(ZscoringSubjrejMosModel, self).run_modeling(**kwargs2)
 
 
+class ZscoringMosModel(MosModel):
+
+    TYPE = 'ZS_MOS'
+    VERSION = '0.1'
+
+    def run_modeling(self, **kwargs):
+        # override SubjectiveModel._run_modeling
+        if 'zscore_mode' in kwargs and kwargs['zscore_mode'] is True:
+            assert False, 'ZscoringSubjrejMosModel is ' \
+                          'already doing zscoring, no need to repeat.'
+        kwargs2 = kwargs.copy()
+        kwargs2['zscore_mode'] = True
+        return super(ZscoringMosModel, self).run_modeling(**kwargs2)
+
+
 class MaximumLikelihoodEstimationDmosModel(MaximumLikelihoodEstimationModel):
 
     TYPE = 'DMOS_MLE'
