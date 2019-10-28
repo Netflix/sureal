@@ -111,6 +111,8 @@ class SubjectiveModel(TypeVersionEnabled):
 
         s_es = dataset_reader.opinion_score_2darray
 
+        ret = dict()
+
         # dscore_mode: True - do differential-scoring
         #              False - don't do differential-scoring
         dscore_mode = kwargs['dscore_mode'] if 'dscore_mode' in kwargs else False
@@ -119,9 +121,15 @@ class SubjectiveModel(TypeVersionEnabled):
         #              False - don't do z-scoring
         zscore_mode = kwargs['zscore_mode'] if 'zscore_mode' in kwargs else False
 
+        # bias_offset: True - do bias offset according to ITU-T P.913
+        #              False - don't do bias offset
+        bias_offset = kwargs['bias_offset'] if 'bias_offset' in kwargs else False
+
         # subject_rejection: True - do subject rejection
         #              False - don't do subject rejection
         subject_rejection = kwargs['subject_rejection'] if 'subject_rejection' in kwargs else False
+
+        assert not (zscore_mode is True and bias_offset is True)
 
         if dscore_mode is True:
 
@@ -139,6 +147,14 @@ class SubjectiveModel(TypeVersionEnabled):
             mu_s = pd.DataFrame(s_es).mean(axis=0) # mean along e
             simga_s = pd.DataFrame(s_es).std(ddof=1, axis=0) # std along e
             s_es = (s_es - np.tile(mu_s, (E, 1))) / np.tile(simga_s, (E, 1))
+
+        if bias_offset is True:
+            E, S = s_es.shape
+            s_e = pd.DataFrame(s_es).mean(axis=1) # mean along s
+            delta_s = pd.DataFrame(s_es - np.tile(s_e, (S, 1)).T).mean(axis=0)  # mean along e
+            s_es = s_es - np.tile(delta_s, (E, 1))
+
+            ret['bias_offset_estimate'] = delta_s
 
         if subject_rejection is True:
             E, S = s_es.shape
@@ -176,7 +192,9 @@ class SubjectiveModel(TypeVersionEnabled):
 
             s_es = s_es[:, acceptions]
 
-        return s_es
+        ret['opinion_score_2darray'] = s_es
+
+        return ret
 
     @staticmethod
     def _postprocess_model_result(result, **kwargs):
@@ -225,7 +243,9 @@ class MosModel(SubjectiveModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
-        os_2darray = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        os_2darray = ret['opinion_score_2darray']
+
         mos = pd.DataFrame(os_2darray).mean(axis=1) # mean along s, ignore NaN
         mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(pd.DataFrame(os_2darray / os_2darray).sum(axis=1)) # std / sqrt(N), ignoring NaN
         std = pd.DataFrame(os_2darray).std(axis=1)
@@ -303,7 +323,8 @@ class LiveDmosModel(SubjectiveModel):
         kwargs2['dscore_mode'] = True
         kwargs2['zscore_mode'] = True
 
-        s_es = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs2)
+        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs2)
+        s_es = ret['opinion_score_2darray']
 
         s_es = (s_es + 3.0) * 100.0 / 6.0
 
@@ -331,7 +352,8 @@ class LeastSquaresModel(SubjectiveModel):
             assert False, 'SubjectAwareGenerativeModel must not and need not ' \
                           'apply subject rejection.'
 
-        score_mtx = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        score_mtx = ret['opinion_score_2darray']
 
         num_video, num_subject = score_mtx.shape
 
@@ -391,7 +413,9 @@ class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
             assert False, 'SubjectAwareGenerativeModel must not and need not ' \
                           'apply subject rejection.'
 
-        x_es = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        x_es = ret['opinion_score_2darray']
+
         E, S = x_es.shape
 
         use_log = kwargs['use_log'] if 'use_log' in kwargs else False
@@ -584,7 +608,9 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             y[np.isnan(x)] = float('nan')
             return y
 
-        x_es = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        x_es = ret['opinion_score_2darray']
+
         E, S = x_es.shape
         C = dataset_reader.max_content_id_of_ref_videos + 1
 
@@ -950,20 +976,6 @@ class ZscoringSubjrejMosModel(MosModel):
         return super(ZscoringSubjrejMosModel, self).run_modeling(**kwargs2)
 
 
-# class BiasOffsetMosModel(MosModel):
-#
-#     TYPE = 'BO_MOS'
-#     VERSION = '1.0'
-#
-#     def run_modeling(self, **kwargs):
-#         # override SubjectiveModel._run_modeling
-#         if 'bias_offset' in kwargs and kwargs['bias_offset'] is True:
-#             assert False, '{} is already doing bias offsetting, no need to repeat.'.format(self.__class__.__name__)
-#         kwargs2 = kwargs.copy()
-#         kwargs2['bias_offset'] = True
-#         return super(BiasOffsetMosModel, self).run_modeling(**kwargs2)
-
-
 class MaximumLikelihoodEstimationDmosModel(MaximumLikelihoodEstimationModel):
 
     TYPE = 'DMOS_MLE'
@@ -1039,7 +1051,9 @@ class PerSubjectModel(SubjectiveModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
-        os_2darray = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        os_2darray = ret['opinion_score_2darray']
+
         result = {'quality_scores': os_2darray}
         return result
 
@@ -1050,3 +1064,17 @@ class PerSubjectModel(SubjectiveModel):
     def to_aggregated_dataset_file(self, dataset_filepath, **kwargs):
         self._assert_modeled()
         self.dataset_reader.to_persubject_dataset_file(dataset_filepath, self.model_result['quality_scores'], **kwargs)
+
+
+class BiasOffsetMosModel(MosModel):
+
+    TYPE = 'BO_MOS'
+    VERSION = '1.0'
+
+    def run_modeling(self, **kwargs):
+        # override SubjectiveModel._run_modeling
+        if 'bias_offset' in kwargs and kwargs['bias_offset'] is True:
+            assert False, '{} is already doing bias offsetting, no need to repeat.'.format(self.__class__.__name__)
+        kwargs2 = kwargs.copy()
+        kwargs2['bias_offset'] = True
+        return super(BiasOffsetMosModel, self).run_modeling(**kwargs2)

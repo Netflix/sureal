@@ -10,7 +10,7 @@ from sureal.subjective_model import MosModel, DmosModel, \
     SubjrejMosModel, ZscoringSubjrejMosModel, SubjrejDmosModel, \
     ZscoringSubjrejDmosModel, PerSubjectModel, \
     MaximumLikelihoodEstimationModelContentOblivious, \
-    MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel
+    MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel, BiasOffsetMosModel
 from sureal.tools.misc import import_python_file
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -579,6 +579,20 @@ class SubjectiveModelTest(unittest.TestCase):
 
         self.assertAlmostEqual(np.mean(scores), 0.0, places=4)
         self.assertAlmostEqual(np.var(scores), 0.5405866214633748, places=4) # 1.4012220200639218
+
+    def test_biasoffsetmos_subjective_model_corruptdata_subjreject(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = BiasOffsetMosModel(dataset_reader)
+        result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+
+        self.assertAlmostEqual(np.mean(scores), 3.5447906523855885, places=4)
+        self.assertAlmostEqual(np.var(scores), 0.9589330529453537, places=4) # 1.4012220200639218
 
     def test_zscoresubjrejmos_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)
