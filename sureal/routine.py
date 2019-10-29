@@ -66,9 +66,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         # xs = np.array(range(S)) + 1
         # my_xticks = map(lambda x: "#{}".format(x), xs)
         # plt.yticks(np.array(xs), my_xticks, rotation=0)
-        plt.title(r'Raw Opinion Scores ($x_{es}$)')
-        plt.xlabel(r'Impaired Video Encodes ($e$)')
-        plt.ylabel(r'Test Subjects ($s$)')
+        plt.title(r'Raw Opinion Scores ($u_{ij}$)')
+        plt.xlabel(r'Video Stimuli ($j$)')
+        plt.ylabel(r'Test Subjects ($i$)')
         plt.set_cmap('gray')
         plt.tight_layout()
 
@@ -108,8 +108,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 else:
                     raise AssertionError("Unknown plot_type: {}".format(plot_type))
 
-                ax_quality.set_xlabel(r'Impaired Video Encodes ($e$)')
-                ax_quality.set_title(r'Recovered Quality Score ($x_e$)')
+                ax_quality.set_xlabel(r'Video Stimuli ($j$)')
+                ax_quality.set_title(r'Recovered Quality Score ($\psi_j$)')
                 ax_quality.set_xlim([min(xs), max(xs)+1])
                 shift_count += 1
         ax_quality.grid()
@@ -153,7 +153,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     raise AssertionError("Unknown plot_type: {}".format(plot_type))
 
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
-                ax_bias.set_title(r'Subject Bias ($b_s$)')
+                ax_bias.set_title(r'Subject Bias ($\Delta_i$)')
                 ax_bias.legend(ncol=2, frameon=True)
 
                 if 'observers' in result:
@@ -161,7 +161,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     assert len(bias) == len(observers)
                     my_xticks = observers
                     plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
-
 
             if 'observer_inconsistency' in result:
                 inconsty = result['observer_inconsistency']
@@ -187,7 +186,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     raise AssertionError("Unknown plot_type: {}".format(plot_type))
 
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
-                ax_inconsty.set_title(r'Subject Inconsistency ($v_s$)')
+                ax_inconsty.set_title(r'Subject Inconsistency ($\upsilon_i$)')
                 # ax_inconsty.legend(loc=2, ncol=2, frameon=True)
                 ax_inconsty.legend(ncol=2, frameon=True)
 
@@ -234,7 +233,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     raise AssertionError("Unknown plot_type: {}".format(plot_type))
 
                 shift_count += 1
-                ax_ambgty.set_title(r'Content Ambiguity ($a_c$)')
+                ax_ambgty.set_title(r'Content Ambiguity ($\rho_k$)')
                 ax_ambgty.grid()
         if xs:
             my_xticks = ['' for _ in range(len(xs))]
@@ -323,8 +322,8 @@ def visualize_pc_dataset(dataset_filepath):
                      np.nansum(tensor_pvs_pvs_subject, axis=2).transpose())
     plt.imshow(mtx_pvs_pvs, interpolation='nearest')
     plt.title(r'Paired Comparison Winning Rate')
-    plt.ylabel(r'PVS ($e$)')
-    plt.xlabel(r'PVS ($f$) [Compared Against]')
+    plt.ylabel(r'PVS ($j$)')
+    plt.xlabel(r'PVS ($j\'$) [Compared Against]')
     plt.set_cmap('jet')
     plt.colorbar()
     plt.tight_layout()
