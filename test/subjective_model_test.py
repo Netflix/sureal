@@ -10,7 +10,7 @@ from sureal.subjective_model import MosModel, DmosModel, \
     SubjrejMosModel, ZscoringSubjrejMosModel, SubjrejDmosModel, \
     ZscoringSubjrejDmosModel, PerSubjectModel, \
     MaximumLikelihoodEstimationModelContentOblivious, \
-    MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel, BiasOffsetMosModel
+    MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel, BiasOffsetMosModel, BiasOffsetSubjrejMosModel
 from sureal.tools.misc import import_python_file
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -590,9 +590,29 @@ class SubjectiveModelTest(unittest.TestCase):
         subjective_model = BiasOffsetMosModel(dataset_reader)
         result = subjective_model.run_modeling()
         scores = result['quality_scores']
+        bias = result['observer_bias']
 
-        self.assertAlmostEqual(np.mean(scores), 3.5447906523855885, places=4)
-        self.assertAlmostEqual(np.var(scores), 0.9589330529453537, places=4) # 1.4012220200639218
+        self.assertAlmostEqual(np.mean(scores), 3.5447906523855885, places=8)
+        self.assertAlmostEqual(np.var(scores), 0.9589330529453537, places=8)
+        self.assertAlmostEqual(np.mean(bias), 0.0, places=8)
+        self.assertAlmostEqual(np.var(bias), 0.08903258562151982, places=8)
+
+    def test_biasoffsetsubjrejmos_subjective_model_corruptdata_subjreject(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = BiasOffsetSubjrejMosModel(dataset_reader)
+        result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+        bias = result['observer_bias']
+
+        self.assertAlmostEqual(np.mean(scores), 3.5447906523855885, places=8)
+        self.assertAlmostEqual(np.var(scores), 1.09500013352561, places=8)
+        self.assertAlmostEqual(np.mean(bias), 0.0, places=8)
+        self.assertAlmostEqual(np.var(bias), 0.08903258562151982, places=8)
 
     def test_zscoresubjrejmos_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)

@@ -245,24 +245,25 @@ class MosModel(SubjectiveModel):
     def _run_modeling(cls, dataset_reader, **kwargs):
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         os_2darray = ret['opinion_score_2darray']
+        result = cls._get_mos_and_stats(os_2darray)
+        return result
 
-        mos = pd.DataFrame(os_2darray).mean(axis=1) # mean along s, ignore NaN
-        mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(pd.DataFrame(os_2darray / os_2darray).sum(axis=1)) # std / sqrt(N), ignoring NaN
-        std = pd.DataFrame(os_2darray).std(axis=1)
-
-        stats = cls.get_stats(os_2darray, mos, std)
-
+    @classmethod
+    def _get_mos_and_stats(cls, os_2darray):
+        mos = pd.DataFrame(os_2darray).mean(axis=1)  # mean along s, ignore NaN
+        mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(
+            pd.DataFrame(os_2darray / os_2darray).sum(axis=1))  # std / sqrt(N), ignoring NaN
         result = {'quality_scores': mos,
                   'quality_scores_std': mos_std,
                   'raw_scores': os_2darray,
                   }
-
+        std = pd.DataFrame(os_2darray).std(axis=1)
+        stats = cls._get_stats(os_2darray, mos, std)
         result.update(stats)
-
         return result
 
     @classmethod
-    def get_stats(cls, x_es, x_e, std_e):
+    def _get_stats(cls, x_es, x_e, std_e):
         E, S = x_es.shape
         x_es_hat = np.tile(x_e, (S, 1)).T
         std_es = np.tile(std_e, (S, 1)).T
@@ -1077,4 +1078,28 @@ class BiasOffsetMosModel(MosModel):
             assert False, '{} is already doing bias offsetting, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['bias_offset'] = True
+        return super(BiasOffsetMosModel, self).run_modeling(**kwargs2)
+
+    @classmethod
+    def _run_modeling(cls, dataset_reader, **kwargs):
+        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        result = cls._get_mos_and_stats(ret['opinion_score_2darray'])
+        result['observer_bias'] = ret['bias_offset_estimate']
+        return result
+
+
+class BiasOffsetSubjrejMosModel(BiasOffsetMosModel):
+
+    TYPE = 'BO_SR_MOS'
+    VERSION = '1.0'
+
+    def run_modeling(self, **kwargs):
+        # override SubjectiveModel._run_modeling
+        if 'bias_offset' in kwargs and kwargs['bias_offset'] is True:
+            assert False, '{} is already doing bias offsetting, no need to repeat.'.format(self.__class__.__name__)
+        if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
+        kwargs2 = kwargs.copy()
+        kwargs2['bias_offset'] = True
+        kwargs2['subject_rejection'] = True
         return super(BiasOffsetMosModel, self).run_modeling(**kwargs2)

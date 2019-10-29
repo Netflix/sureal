@@ -154,6 +154,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
                 ax_bias.set_title(r'Subject Bias ($b_s$)')
+                ax_bias.legend(ncol=2, frameon=True)
 
                 if 'observers' in result:
                     observers = result['observers']
