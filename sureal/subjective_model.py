@@ -1067,9 +1067,9 @@ class PerSubjectModel(SubjectiveModel):
         self.dataset_reader.to_persubject_dataset_file(dataset_filepath, self.model_result['quality_scores'], **kwargs)
 
 
-class BiasOffsetMosModel(MosModel):
+class BiasremvMosModel(MosModel):
 
-    TYPE = 'BO_MOS'
+    TYPE = 'BR_MOS'
     VERSION = '1.0'
 
     def run_modeling(self, **kwargs):
@@ -1078,7 +1078,7 @@ class BiasOffsetMosModel(MosModel):
             assert False, '{} is already doing bias offsetting, no need to repeat.'.format(self.__class__.__name__)
         kwargs2 = kwargs.copy()
         kwargs2['bias_offset'] = True
-        return super(BiasOffsetMosModel, self).run_modeling(**kwargs2)
+        return super(BiasremvMosModel, self).run_modeling(**kwargs2)
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
@@ -1088,9 +1088,9 @@ class BiasOffsetMosModel(MosModel):
         return result
 
 
-class BiasOffsetSubjrejMosModel(BiasOffsetMosModel):
+class BiasremvSubjrejMosModel(BiasremvMosModel):
 
-    TYPE = 'BO_SR_MOS'
+    TYPE = 'BR_SR_MOS'
     VERSION = '1.0'
 
     def run_modeling(self, **kwargs):
@@ -1102,4 +1102,4 @@ class BiasOffsetSubjrejMosModel(BiasOffsetMosModel):
         kwargs2 = kwargs.copy()
         kwargs2['bias_offset'] = True
         kwargs2['subject_rejection'] = True
-        return super(BiasOffsetMosModel, self).run_modeling(**kwargs2)
+        return super(BiasremvMosModel, self).run_modeling(**kwargs2)
