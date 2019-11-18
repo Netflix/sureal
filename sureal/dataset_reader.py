@@ -285,6 +285,7 @@ class RawDatasetReader(DatasetReader):
         pc_type = kwargs['pc_type'] if 'pc_type' in kwargs and kwargs['pc_type'] is not None else 'within_subject_and_content'
         tiebreak_method = kwargs['tiebreak_method'] if 'tiebreak_method' in kwargs and kwargs['tiebreak_method'] is not None else 'even_split'
         randomness_level = kwargs['randomness_level'] if 'randomness_level' in kwargs and kwargs['randomness_level'] is not None else None
+        per_asset_randomness_levels = kwargs['per_asset_randomness_levels'] if 'per_asset_randomness_levels' in kwargs and kwargs['per_asset_randomness_levels'] is not None else None
         sampling_rate = kwargs['sampling_rate'] if 'sampling_rate' in kwargs and kwargs['sampling_rate'] is not None else None
         per_asset_sampling_rates = kwargs['per_asset_sampling_rates'] if 'per_asset_sampling_rates' in kwargs and kwargs['per_asset_sampling_rates'] is not None else None
         sampling_seed = kwargs['sampling_seed'] if 'sampling_seed' in kwargs and kwargs['sampling_seed'] is not None else None
@@ -350,31 +351,35 @@ class RawDatasetReader(DatasetReader):
                     else:
                         assert False, "unknown pc_type: {}".format(pc_type)
 
-                    if sampling_rate is not None:
-                        if random.random() > sampling_rate:
-                            continue
-
-                    if per_asset_sampling_rates is not None:
-                        # the true sampling rate of a pair is the mean of the sampling rate of the two assets:
-                        true_sampling_rate = (per_asset_sampling_rates[idx] + per_asset_sampling_rates[idx2]) / 2.0
+                    if sampling_rate is not None or per_asset_sampling_rates is not None:
+                        if sampling_rate is not None:
+                            true_sampling_rate = sampling_rate
+                        elif per_asset_sampling_rates is not None:
+                            # the true sampling rate of a pair is the mean of the sampling rate of the two assets:
+                            true_sampling_rate = (per_asset_sampling_rates[idx] + per_asset_sampling_rates[idx2]) / 2.0
+                        else:
+                            assert False
                         if random.random() > true_sampling_rate:
                             continue
 
-                    if randomness_level is not None and random.random() < randomness_level:
+                    if randomness_level is not None:
+                        true_randomness_level = randomness_level
+                    elif per_asset_randomness_levels is not None:
+                        true_randomness_level = (per_asset_randomness_levels[idx] + per_asset_randomness_levels[idx2]) / 2.0
+                    else:
+                        true_randomness_level = None
+
+                    if true_randomness_level is not None and random.random() < true_randomness_level:
                         if random.random() > 0.5:
                             new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
-                            # new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0 # redundant
                         else:
-                            # new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0 # redundant
                             new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                     else:
                         score = d_subj_assetid[subj][assetid]['score']
                         score2 = d_subj_assetid[subj][assetid2]['score']
                         if score > score2:
                             new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
-                            # new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0 # redundant
                         elif score < score2:
-                            # new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0 # redundant
                             new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                         else:
                             if tiebreak_method == 'even_split':
@@ -384,9 +389,7 @@ class RawDatasetReader(DatasetReader):
                             elif tiebreak_method == 'coin_toss':
                                 if random.random() > 0.5:
                                     new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
-                                    # new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0 # redundant
                                 else:
-                                    # new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0 # redundant
                                     new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                             else:
                                 assert False, "unknown tiebreak_method: {}".format(tiebreak_method)
