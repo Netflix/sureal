@@ -57,6 +57,22 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(dis_video['groundtruth'], 4.884615384615385, places=4)
         self.assertAlmostEqual(dis_video['groundtruth_std'], 0.08461538461538462, places=4)
 
+    def test_mos_subjective_model_output_os_is_dict_style(self):
+        dataset = import_python_file(SurealConfig.test_resource_path('test_dataset_os_as_dict.py'))
+        dataset_reader = RawDatasetReader(dataset)
+        subjective_model = MosModel(dataset_reader)
+        subjective_model.run_modeling()
+        subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath)
+        self.assertTrue(os.path.exists(self.output_dataset_filepath))
+        dataset2 = import_python_file(self.output_dataset_filepath)
+        dis_video = dataset2.dis_videos[0]
+        print(dataset2.dis_videos)
+        self.assertTrue('groundtruth' in dis_video)
+        self.assertTrue('groundtruth_std' in dis_video)
+        self.assertTrue('os' not in dis_video)
+        self.assertAlmostEqual(dis_video['groundtruth'], 2.6666666666666665, places=4)
+        self.assertAlmostEqual(dis_video['groundtruth_std'], 0.881917103688197, places=4)
+
     def test_mos_subjective_model_output_custom_resampling(self):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)

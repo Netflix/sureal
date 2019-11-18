@@ -257,7 +257,7 @@ class RawDatasetReader(DatasetReader):
             # new style: opinion is specified as a dict: user -> score. In this
             # case, quality_score may contain nan. In this case: filter them out
             if isinstance(dis_video['os'], dict):
-                quality_score = filter(lambda x: not math.isnan(x), quality_score)
+                quality_score = list(filter(lambda x: not math.isnan(x), quality_score))
 
             assert len(dis_video['os']) == len(quality_score)
 
