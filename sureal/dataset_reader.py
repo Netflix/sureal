@@ -284,15 +284,20 @@ class RawDatasetReader(DatasetReader):
 
         pc_type = kwargs['pc_type'] if 'pc_type' in kwargs and kwargs['pc_type'] is not None else 'within_subject_and_content'
         tiebreak_method = kwargs['tiebreak_method'] if 'tiebreak_method' in kwargs and kwargs['tiebreak_method'] is not None else 'even_split'
-        randomness_level = kwargs['randomness_level'] if 'randomness_level' in kwargs and kwargs['randomness_level'] is not None else None
-        per_asset_randomness_levels = kwargs['per_asset_randomness_levels'] if 'per_asset_randomness_levels' in kwargs and kwargs['per_asset_randomness_levels'] is not None else None
+
+        sampling_seed = kwargs['sampling_seed'] if 'sampling_seed' in kwargs and kwargs['sampling_seed'] is not None else None
+
         sampling_rate = kwargs['sampling_rate'] if 'sampling_rate' in kwargs and kwargs['sampling_rate'] is not None else None
         per_asset_sampling_rates = kwargs['per_asset_sampling_rates'] if 'per_asset_sampling_rates' in kwargs and kwargs['per_asset_sampling_rates'] is not None else None
-        sampling_seed = kwargs['sampling_seed'] if 'sampling_seed' in kwargs and kwargs['sampling_seed'] is not None else None
+
+        randomness_level = kwargs['randomness_level'] if 'randomness_level' in kwargs and kwargs['randomness_level'] is not None else None
+        per_asset_randomness_levels = kwargs['per_asset_randomness_levels'] if 'per_asset_randomness_levels' in kwargs and kwargs['per_asset_randomness_levels'] is not None else None
+
+        noise_level = kwargs['noise_level'] if 'noise_level' in kwargs and kwargs['noise_level'] is not None else None
+        per_asset_noise_levels = kwargs['per_asset_noise_levels'] if 'per_asset_noise_levels' in kwargs and kwargs['per_asset_noise_levels'] is not None else None
 
         assert pc_type == 'within_subject_and_content' or pc_type == 'within_subject'
         assert tiebreak_method == 'even_split' or tiebreak_method == 'coin_toss'
-        assert randomness_level is None or np.isscalar(randomness_level) and 0.0 <= randomness_level <= 1.0
 
         assert not (sampling_rate is not None and per_asset_sampling_rates is not None)
         if sampling_rate is not None:
@@ -301,6 +306,20 @@ class RawDatasetReader(DatasetReader):
             assert len(per_asset_sampling_rates) == len(self.dataset.dis_videos)
             for per_asset_sampling_rate in per_asset_sampling_rates:
                 assert np.isscalar(per_asset_sampling_rate) and 0.0 <= per_asset_sampling_rate <= 1.0
+
+        assert not (randomness_level is not None and per_asset_randomness_levels is not None)
+        if randomness_level is not None:
+            assert np.isscalar(randomness_level) and 0.0 <= randomness_level <= 1.0
+        if per_asset_randomness_levels is not None:
+            for randomness_level_ in per_asset_randomness_levels:
+                assert np.isscalar(randomness_level_) and 0.0 <= randomness_level_ <= 1.0
+
+        assert not (noise_level is not None and per_asset_noise_levels is not None)
+        if noise_level is not None:
+            assert np.isscalar(noise_level) and 0.0 <= noise_level
+        if per_asset_noise_levels is not None:
+            for noise_level_ in per_asset_noise_levels:
+                assert np.isscalar(noise_level_) and 0.0 <= noise_level_
 
         dis_videos = self.dataset.dis_videos
         if isinstance(dis_videos[0]['os'], dict):
@@ -375,8 +394,17 @@ class RawDatasetReader(DatasetReader):
                         else:
                             new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                     else:
-                        score = d_subj_assetid[subj][assetid]['score']
-                        score2 = d_subj_assetid[subj][assetid2]['score']
+
+                        if noise_level is not None:
+                            score = d_subj_assetid[subj][assetid]['score'] + random.gauss(0, noise_level)
+                            score2 = d_subj_assetid[subj][assetid2]['score'] + random.gauss(0, noise_level)
+                        elif per_asset_noise_levels is not None:
+                            score = d_subj_assetid[subj][assetid]['score'] + random.gauss(0, per_asset_noise_levels[idx])
+                            score2 = d_subj_assetid[subj][assetid2]['score'] + random.gauss(0, per_asset_noise_levels[idx2])
+                        else:
+                            score = d_subj_assetid[subj][assetid]['score']
+                            score2 = d_subj_assetid[subj][assetid2]['score']
+
                         if score > score2:
                             new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
                         elif score < score2:
@@ -393,6 +421,7 @@ class RawDatasetReader(DatasetReader):
                                     new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                             else:
                                 assert False, "unknown tiebreak_method: {}".format(tiebreak_method)
+
         newone.dis_videos = new_dis_videos
 
         return newone
