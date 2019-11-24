@@ -38,9 +38,11 @@ class SubjectiveModelTest(unittest.TestCase):
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 4.884615384615385, places=4)
         self.assertAlmostEqual(scores[10], 2.0769230769230771, places=4)
-        self.assertAlmostEqual(np.mean(scores), 3.544790652385589, places=4)
+        self.assertAlmostEqual(float(np.mean(scores)), 3.544790652385589, places=4)
         scores_std = result['quality_scores_std']
-        self.assertAlmostEqual(np.mean(scores_std), 0.12986637295658307, places=4)
+        self.assertAlmostEqual(float(np.mean(scores_std)), 0.12986637295658307, places=4)
+        stimulus_ambiguity = result['stimulus_ambiguity']
+        self.assertAlmostEqual(float(np.mean(stimulus_ambiguity)), 0.6621911698651353, places=4)
 
     def test_mos_subjective_model_output(self):
         dataset = import_python_file(self.dataset_filepath)

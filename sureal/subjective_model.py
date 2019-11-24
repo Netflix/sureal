@@ -253,8 +253,10 @@ class MosModel(SubjectiveModel):
         mos = pd.DataFrame(os_2darray).mean(axis=1)  # mean along s, ignore NaN
         mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(
             pd.DataFrame(os_2darray / os_2darray).sum(axis=1))  # std / sqrt(N), ignoring NaN
+        std = pd.DataFrame(os_2darray).std(axis=1)
         result = {'quality_scores': mos,
                   'quality_scores_std': mos_std,
+                  'stimulus_ambiguity': std,
                   'raw_scores': os_2darray,
                   }
         std = pd.DataFrame(os_2darray).std(axis=1)
