@@ -44,7 +44,7 @@ def persist_to_dir(dir_name):
     def decorator(original_func):
 
         def new_func(*args):
-            h = hashlib.sha1(str(original_func.__name__) + str(args)).hexdigest()
+            h = hashlib.sha1((str(original_func.__name__) + str(args)).encode('utf-8')).hexdigest()
             file_name = os.path.join(dir_name, h)
             if not os.path.exists(file_name):
                 if not os.path.exists(dir_name):

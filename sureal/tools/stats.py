@@ -190,3 +190,9 @@ def get_pdf(data, bins=20, density=True):
     pdf, bin_edges = np.histogram(data, density=density, bins=bins)
     bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
     return pdf, bin_centres
+
+
+def rmse(x, y):
+    return np.sqrt(np.mean(np.power(np.array(x) - np.array(y), 2.0)))
+
+
