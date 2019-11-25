@@ -355,7 +355,7 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 844)
-        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.8107588856868396, delta=0.01)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.8107588856868396, delta=0.1)
         self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
