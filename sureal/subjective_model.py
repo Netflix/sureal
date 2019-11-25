@@ -256,7 +256,7 @@ class MosModel(SubjectiveModel):
         std = pd.DataFrame(os_2darray).std(axis=1)
         result = {'quality_scores': mos,
                   'quality_scores_std': mos_std,
-                  'stimulus_ambiguity': std,
+                  'quality_ambiguity': std,
                   'raw_scores': os_2darray,
                   }
         std = pd.DataFrame(os_2darray).std(axis=1)

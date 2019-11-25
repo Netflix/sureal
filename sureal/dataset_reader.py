@@ -524,8 +524,8 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
 
         z_es = q_es + x_es + y_es
 
-        if 'stimulus_ambiguity' in self.input_dict:
-            phi_e = np.array(self.input_dict['stimulus_ambiguity'])
+        if 'quality_ambiguity' in self.input_dict:
+            phi_e = np.array(self.input_dict['quality_ambiguity'])
             assert len(phi_e) == E
             z_es += np.random.normal(0, 1, [E, S]) * np.tile(phi_e, (S, 1)).T
 
@@ -560,7 +560,7 @@ class SyntheticLogisticRawDatasetReader(SyntheticRawDatasetReader):
 
         z_es = q_es + x_es + y_es
 
-        assert 'stimulus_ambiguity' not in self.input_dict
+        assert 'quality_ambiguity' not in self.input_dict
 
         return z_es
 
