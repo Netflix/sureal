@@ -303,11 +303,11 @@ class RawDatasetReader(DatasetReader):
 
         assert not (sampling_rate is not None and per_asset_sampling_rates is not None)
         if sampling_rate is not None:
-            assert np.isscalar(sampling_rate) and 0.0 <= sampling_rate <= 1.0
+            assert np.isscalar(sampling_rate) and 0.0 <= sampling_rate
         if per_asset_sampling_rates is not None:
             assert len(per_asset_sampling_rates) == len(self.dataset.dis_videos)
             for per_asset_sampling_rate in per_asset_sampling_rates:
-                assert np.isscalar(per_asset_sampling_rate) and 0.0 <= per_asset_sampling_rate <= 1.0
+                assert np.isscalar(per_asset_sampling_rate) and 0.0 <= per_asset_sampling_rate
 
         assert not (cointoss_rate is not None and per_asset_cointoss_rates is not None)
         if cointoss_rate is not None:
@@ -387,56 +387,69 @@ class RawDatasetReader(DatasetReader):
                             true_sampling_rate = (per_asset_sampling_rates[idx] + per_asset_sampling_rates[idx2]) / 2.0
                         else:
                             assert False
-                        if random.random() > true_sampling_rate:
-                            continue
-
-                    if cointoss_rate is not None:
-                        true_cointoss_rate = cointoss_rate
-                    elif per_asset_cointoss_rates is not None:
-                        true_cointoss_rate = (per_asset_cointoss_rates[idx] + per_asset_cointoss_rates[idx2]) / 2.0
                     else:
-                        true_cointoss_rate = None
+                        true_sampling_rate = 1.0
 
-                    if true_cointoss_rate is not None and random.random() < true_cointoss_rate:
-                        if random.random() > 0.5:
-                            new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
-                        else:
-                            new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
-                    else:
+                    while true_sampling_rate > 0.0:
 
-                        if per_asset_mean_scores is not None:
-                            mscore = per_asset_mean_scores[assetid]
-                            mscore2 = per_asset_mean_scores[assetid2]
-                        else:
-                            mscore = d_subj_assetid[subj][assetid]['score']
-                            mscore2 = d_subj_assetid[subj][assetid2]['score']
+                        if true_sampling_rate >= 1.0:
+                            true_sampling_rate -= 1.0
+                            pass
+                        elif true_sampling_rate > 0.0:  # true_sampling_rate is within (0.0, 1.0)
+                            if random.random() > true_sampling_rate:
+                                true_sampling_rate = 0.0
+                                continue
+                            true_sampling_rate = 0.0
+                        else:  # true_sampling_rate is 0.0
+                            break
 
-                        if noise_level is not None:
-                            score = mscore + random.gauss(0, noise_level)
-                            score2 = mscore2 + random.gauss(0, noise_level)
-                        elif per_asset_noise_levels is not None:
-                            score = mscore + random.gauss(0, per_asset_noise_levels[idx])
-                            score2 = mscore2 + random.gauss(0, per_asset_noise_levels[idx2])
+                        if cointoss_rate is not None:
+                            true_cointoss_rate = cointoss_rate
+                        elif per_asset_cointoss_rates is not None:
+                            true_cointoss_rate = (per_asset_cointoss_rates[idx] + per_asset_cointoss_rates[idx2]) / 2.0
                         else:
-                            score = mscore
-                            score2 = mscore2
+                            true_cointoss_rate = None
 
-                        if score > score2:
-                            new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
-                        elif score < score2:
-                            new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
-                        else:
-                            if tiebreak_method == 'even_split':
-                                # each one gets fair share
-                                new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0.5
-                                new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0.5
-                            elif tiebreak_method == 'coin_toss':
-                                if random.random() > 0.5:
-                                    new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
-                                else:
-                                    new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
+                        if true_cointoss_rate is not None and random.random() < true_cointoss_rate:
+                            if random.random() > 0.5:
+                                new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
                             else:
-                                assert False, "unknown tiebreak_method: {}".format(tiebreak_method)
+                                new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
+                        else:
+
+                            if per_asset_mean_scores is not None:
+                                mscore = per_asset_mean_scores[assetid]
+                                mscore2 = per_asset_mean_scores[assetid2]
+                            else:
+                                mscore = d_subj_assetid[subj][assetid]['score']
+                                mscore2 = d_subj_assetid[subj][assetid2]['score']
+
+                            if noise_level is not None:
+                                score = mscore + random.gauss(0, noise_level)
+                                score2 = mscore2 + random.gauss(0, noise_level)
+                            elif per_asset_noise_levels is not None:
+                                score = mscore + random.gauss(0, per_asset_noise_levels[idx])
+                                score2 = mscore2 + random.gauss(0, per_asset_noise_levels[idx2])
+                            else:
+                                score = mscore
+                                score2 = mscore2
+
+                            if score > score2:
+                                new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
+                            elif score < score2:
+                                new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
+                            else:
+                                if tiebreak_method == 'even_split':
+                                    # each one gets fair share
+                                    new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 0.5
+                                    new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 0.5
+                                elif tiebreak_method == 'coin_toss':
+                                    if random.random() > 0.5:
+                                        new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
+                                    else:
+                                        new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
+                                else:
+                                    assert False, "unknown tiebreak_method: {}".format(tiebreak_method)
 
         newone.dis_videos = new_dis_videos
 

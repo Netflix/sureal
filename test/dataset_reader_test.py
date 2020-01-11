@@ -355,7 +355,18 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 844)
-        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.8107588856868396, delta=0.1)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.8107588856868396, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
+
+    def test_dataset_to_pc_dataset_sampling_rate_greater_than_1(self):
+        import random
+        random.seed(0)
+        pc_dataset = self.dataset_reader.to_pc_dataset(sampling_rate=2.1)
+        pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
+        opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
+        self.assertEqual(np.nansum(opinion_score_3darray), 8242)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.816039603960396, delta=0.0001)
         self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
@@ -365,7 +376,7 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset = self.dataset_reader.to_pc_dataset(per_asset_sampling_rates=np.hstack([np.ones(39), np.ones(40) * 0.1]))
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
-        self.assertEqual(np.nansum(opinion_score_3darray), 4550)
+        self.assertEqual(np.nansum(opinion_score_3darray), 4546)
         self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.8116303960042811, delta=0.01)
         self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
