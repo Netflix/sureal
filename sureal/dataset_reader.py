@@ -290,8 +290,8 @@ class RawDatasetReader(DatasetReader):
         sampling_rate = kwargs['sampling_rate'] if 'sampling_rate' in kwargs and kwargs['sampling_rate'] is not None else None
         per_asset_sampling_rates = kwargs['per_asset_sampling_rates'] if 'per_asset_sampling_rates' in kwargs and kwargs['per_asset_sampling_rates'] is not None else None
 
-        randomness_level = kwargs['randomness_level'] if 'randomness_level' in kwargs and kwargs['randomness_level'] is not None else None
-        per_asset_randomness_levels = kwargs['per_asset_randomness_levels'] if 'per_asset_randomness_levels' in kwargs and kwargs['per_asset_randomness_levels'] is not None else None
+        cointoss_rate = kwargs['cointoss_rate'] if 'cointoss_rate' in kwargs and kwargs['cointoss_rate'] is not None else None
+        per_asset_cointoss_rates = kwargs['per_asset_cointoss_rates'] if 'per_asset_cointoss_rates' in kwargs and kwargs['per_asset_cointoss_rates'] is not None else None
 
         noise_level = kwargs['noise_level'] if 'noise_level' in kwargs and kwargs['noise_level'] is not None else None
         per_asset_noise_levels = kwargs['per_asset_noise_levels'] if 'per_asset_noise_levels' in kwargs and kwargs['per_asset_noise_levels'] is not None else None
@@ -307,12 +307,12 @@ class RawDatasetReader(DatasetReader):
             for per_asset_sampling_rate in per_asset_sampling_rates:
                 assert np.isscalar(per_asset_sampling_rate) and 0.0 <= per_asset_sampling_rate <= 1.0
 
-        assert not (randomness_level is not None and per_asset_randomness_levels is not None)
-        if randomness_level is not None:
-            assert np.isscalar(randomness_level) and 0.0 <= randomness_level <= 1.0
-        if per_asset_randomness_levels is not None:
-            for randomness_level_ in per_asset_randomness_levels:
-                assert np.isscalar(randomness_level_) and 0.0 <= randomness_level_ <= 1.0
+        assert not (cointoss_rate is not None and per_asset_cointoss_rates is not None)
+        if cointoss_rate is not None:
+            assert np.isscalar(cointoss_rate) and 0.0 <= cointoss_rate <= 1.0
+        if per_asset_cointoss_rates is not None:
+            for cointoss_rate_ in per_asset_cointoss_rates:
+                assert np.isscalar(cointoss_rate_) and 0.0 <= cointoss_rate_ <= 1.0
 
         assert not (noise_level is not None and per_asset_noise_levels is not None)
         if noise_level is not None:
@@ -381,14 +381,14 @@ class RawDatasetReader(DatasetReader):
                         if random.random() > true_sampling_rate:
                             continue
 
-                    if randomness_level is not None:
-                        true_randomness_level = randomness_level
-                    elif per_asset_randomness_levels is not None:
-                        true_randomness_level = (per_asset_randomness_levels[idx] + per_asset_randomness_levels[idx2]) / 2.0
+                    if cointoss_rate is not None:
+                        true_cointoss_rate = cointoss_rate
+                    elif per_asset_cointoss_rates is not None:
+                        true_cointoss_rate = (per_asset_cointoss_rates[idx] + per_asset_cointoss_rates[idx2]) / 2.0
                     else:
-                        true_randomness_level = None
+                        true_cointoss_rate = None
 
-                    if true_randomness_level is not None and random.random() < true_randomness_level:
+                    if true_cointoss_rate is not None and random.random() < true_cointoss_rate:
                         if random.random() > 0.5:
                             new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1
                         else:

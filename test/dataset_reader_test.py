@@ -339,7 +339,7 @@ class RawDatasetReaderPCTest(unittest.TestCase):
     def test_dataset_to_pc_dataset_random(self):
         import random
         random.seed(0)
-        pc_dataset = self.dataset_reader.to_pc_dataset(randomness_level=0.5)
+        pc_dataset = self.dataset_reader.to_pc_dataset(cointoss_rate=0.5)
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 8242)
@@ -370,10 +370,10 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
-    def test_dataset_to_pc_dataset_per_asset_randomness_levels(self):
+    def test_dataset_to_pc_dataset_per_asset_cointoss_rates(self):
         import random
         random.seed(0)
-        pc_dataset = self.dataset_reader.to_pc_dataset(per_asset_randomness_levels=np.hstack([np.ones(39), np.ones(40) * 0.1]))
+        pc_dataset = self.dataset_reader.to_pc_dataset(per_asset_cointoss_rates=np.hstack([np.ones(39), np.ones(40) * 0.1]))
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 8242)
