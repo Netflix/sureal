@@ -296,6 +296,8 @@ class RawDatasetReader(DatasetReader):
         noise_level = kwargs['noise_level'] if 'noise_level' in kwargs and kwargs['noise_level'] is not None else None
         per_asset_noise_levels = kwargs['per_asset_noise_levels'] if 'per_asset_noise_levels' in kwargs and kwargs['per_asset_noise_levels'] is not None else None
 
+        per_asset_mean_scores = kwargs['per_asset_mean_scores'] if 'per_asset_mean_scores' in kwargs and kwargs['per_asset_mean_scores'] is not None else None
+
         assert pc_type == 'within_subject_within_content' or pc_type == 'within_subject'
         assert tiebreak_method == 'even_split' or tiebreak_method == 'coin_toss'
 
@@ -311,6 +313,7 @@ class RawDatasetReader(DatasetReader):
         if cointoss_rate is not None:
             assert np.isscalar(cointoss_rate) and 0.0 <= cointoss_rate <= 1.0
         if per_asset_cointoss_rates is not None:
+            assert len(per_asset_cointoss_rates) == len(self.dataset.dis_videos)
             for cointoss_rate_ in per_asset_cointoss_rates:
                 assert np.isscalar(cointoss_rate_) and 0.0 <= cointoss_rate_ <= 1.0
 
@@ -318,8 +321,14 @@ class RawDatasetReader(DatasetReader):
         if noise_level is not None:
             assert np.isscalar(noise_level) and 0.0 <= noise_level
         if per_asset_noise_levels is not None:
+            assert len(per_asset_noise_levels) == len(self.dataset.dis_videos)
             for noise_level_ in per_asset_noise_levels:
                 assert np.isscalar(noise_level_) and 0.0 <= noise_level_
+
+        if per_asset_mean_scores is not None:
+            assert len(per_asset_mean_scores) == len(self.dataset.dis_videos)
+            for mean_score_ in per_asset_mean_scores:
+                assert np.isscalar(mean_score_)
 
         dis_videos = self.dataset.dis_videos
         if isinstance(dis_videos[0]['os'], dict):
@@ -395,15 +404,22 @@ class RawDatasetReader(DatasetReader):
                             new_dis_videos[d_assetid_disvideoidx[assetid2]]['os'][(subj, assetid)] = 1
                     else:
 
-                        if noise_level is not None:
-                            score = d_subj_assetid[subj][assetid]['score'] + random.gauss(0, noise_level)
-                            score2 = d_subj_assetid[subj][assetid2]['score'] + random.gauss(0, noise_level)
-                        elif per_asset_noise_levels is not None:
-                            score = d_subj_assetid[subj][assetid]['score'] + random.gauss(0, per_asset_noise_levels[idx])
-                            score2 = d_subj_assetid[subj][assetid2]['score'] + random.gauss(0, per_asset_noise_levels[idx2])
+                        if per_asset_mean_scores is not None:
+                            mscore = per_asset_mean_scores[assetid]
+                            mscore2 = per_asset_mean_scores[assetid2]
                         else:
-                            score = d_subj_assetid[subj][assetid]['score']
-                            score2 = d_subj_assetid[subj][assetid2]['score']
+                            mscore = d_subj_assetid[subj][assetid]['score']
+                            mscore2 = d_subj_assetid[subj][assetid2]['score']
+
+                        if noise_level is not None:
+                            score = mscore + random.gauss(0, noise_level)
+                            score2 = mscore2 + random.gauss(0, noise_level)
+                        elif per_asset_noise_levels is not None:
+                            score = mscore + random.gauss(0, per_asset_noise_levels[idx])
+                            score2 = mscore2 + random.gauss(0, per_asset_noise_levels[idx2])
+                        else:
+                            score = mscore
+                            score2 = mscore2
 
                         if score > score2:
                             new_dis_videos[d_assetid_disvideoidx[assetid]]['os'][(subj, assetid2)] = 1

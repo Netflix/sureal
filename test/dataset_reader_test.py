@@ -392,6 +392,15 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         self.assertEqual(np.nanmin(opinion_score_3darray), 1.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
+    def test_dataset_to_pc_dataset_within_subject_per_asset_mean_scores(self):
+        pc_dataset = self.dataset_reader.to_pc_dataset(pc_type='within_subject', per_asset_mean_scores=np.ones(79))
+        pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
+        opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
+        self.assertEqual(np.nansum(opinion_score_3darray), 80106)
+        self.assertEqual(np.nanmean(opinion_score_3darray), 0.5)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertEqual(np.nanmax(opinion_score_3darray), 0.5)
+
 
 if __name__ == '__main__':
     unittest.main()
