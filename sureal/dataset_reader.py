@@ -282,7 +282,7 @@ class RawDatasetReader(DatasetReader):
         # ref_videos: deepcopy
         newone.ref_videos = copy.deepcopy(self.dataset.ref_videos)
 
-        pc_type = kwargs['pc_type'] if 'pc_type' in kwargs and kwargs['pc_type'] is not None else 'within_subject_and_content'
+        pc_type = kwargs['pc_type'] if 'pc_type' in kwargs and kwargs['pc_type'] is not None else 'within_subject_within_content'
         tiebreak_method = kwargs['tiebreak_method'] if 'tiebreak_method' in kwargs and kwargs['tiebreak_method'] is not None else 'even_split'
 
         sampling_seed = kwargs['sampling_seed'] if 'sampling_seed' in kwargs and kwargs['sampling_seed'] is not None else None
@@ -296,7 +296,7 @@ class RawDatasetReader(DatasetReader):
         noise_level = kwargs['noise_level'] if 'noise_level' in kwargs and kwargs['noise_level'] is not None else None
         per_asset_noise_levels = kwargs['per_asset_noise_levels'] if 'per_asset_noise_levels' in kwargs and kwargs['per_asset_noise_levels'] is not None else None
 
-        assert pc_type == 'within_subject_and_content' or pc_type == 'within_subject'
+        assert pc_type == 'within_subject_within_content' or pc_type == 'within_subject'
         assert tiebreak_method == 'even_split' or tiebreak_method == 'coin_toss'
 
         assert not (sampling_rate is not None and per_asset_sampling_rates is not None)
@@ -362,7 +362,7 @@ class RawDatasetReader(DatasetReader):
                     content_id = d_subj_assetid[subj][assetid]['content_id']
                     content_id2 = d_subj_assetid[subj][assetid2]['content_id']
 
-                    if pc_type == 'within_subject_and_content':
+                    if pc_type == 'within_subject_within_content':
                         if content_id != content_id2:
                             continue
                     elif pc_type == 'within_subject':
