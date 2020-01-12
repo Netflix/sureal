@@ -192,7 +192,3 @@ def get_pdf(data, bins=20, density=True):
     return pdf, bin_centres
 
 
-def rmse(x, y):
-    return np.sqrt(np.mean(np.power(np.array(x) - np.array(y), 2.0)))
-
-
