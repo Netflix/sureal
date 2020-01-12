@@ -98,7 +98,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                         except TypeError:
                             quality_error = None
                         ax_quality.errorbar(np.array(xs)+shift_count*bar_width+0.2, quality,
-                                            yerr=quality_error, fmt='.',
+                                            yerr=quality_error, fmt='.', capsize=2,
                                             color=colors[shift_count],
                                             label=subjective_model.TYPE)
                     else:
@@ -142,7 +142,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     if 'observer_bias_std' in result:
                         bias_error = np.array(result['observer_bias_std']) * 1.96 # 95% C.I.
                         ax_bias.errorbar(np.array(xs)+shift_count*bar_width+0.2, bias,
-                                         yerr=bias_error, fmt='.',
+                                         yerr=bias_error, fmt='.', capsize=2,
                                          color=colors[shift_count],
                                          label=subjective_model.TYPE)
                     else:
@@ -175,7 +175,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     if 'observer_inconsistency_std' in result:
                         inconsistency_error = np.array(result['observer_inconsistency_std']) * 1.96 # 95% C.I.
                         ax_inconsty.errorbar(np.array(xs)+shift_count*bar_width+0.2, inconsty,
-                                             yerr=inconsistency_error, fmt='.',
+                                             yerr=inconsistency_error, fmt='.', capsize=2,
                                              color=colors[shift_count],
                                              label=subjective_model.TYPE)
                     else:
@@ -222,7 +222,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     if 'content_ambiguity_std' in result:
                         ambiguity_error = np.array(result['content_ambiguity_std']) * 1.96 # 95% C.I.
                         ax_ambgty.errorbar(np.array(xs)+shift_count*bar_width+0.2, ambgty,
-                                           yerr=ambiguity_error, fmt='.',
+                                           yerr=ambiguity_error, fmt='.', capsize=2,
                                            color=colors[shift_count],
                                            label=subjective_model.TYPE)
                     else:
