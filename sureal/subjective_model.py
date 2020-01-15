@@ -1132,7 +1132,7 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
     TYPE = 'MLE_BSTP'
     VERSION = MaximumLikelihoodEstimationModel.VERSION + "_0.1"
 
-    DEFAULT_BOOTSTRAP_N = 10
+    DEFAULT_N_BOOTSTRAP = 10
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
@@ -1141,8 +1141,12 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
         dataset = dataset_reader.to_dataset()
         n_subj = dataset_reader.num_observers
 
+        n_bootstrap = kwargs['n_bootstrap'] if 'n_bootstrap' in kwargs \
+                                               and kwargs['n_bootstrap'] is not None else cls.DEFAULT_N_BOOTSTRAP
+        assert isinstance(n_bootstrap, int) and n_bootstrap > 0
+
         bootstrap_results = []
-        for ibootstrap in range(cls.DEFAULT_BOOTSTRAP_N):
+        for ibootstrap in range(n_bootstrap):
             np.random.seed(ibootstrap)
             selected_subjects = np.random.choice(range(n_subj), size=n_subj, replace=True)
 
@@ -1155,10 +1159,10 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
 
         bootstrap_quality_scoress = [r['quality_scores'] for r in bootstrap_results]
         bootstrap_quality_scoress = np.array(bootstrap_quality_scoress)
-        bootstrap_quality_scores_std = np.std(bootstrap_quality_scoress, axis=0)
-        result['quality_scores_std'] = list(bootstrap_quality_scores_std)
-        result['quality_scores_ci95'] = [list(1.96 * bootstrap_quality_scores_std),
-                                         list(1.96 * bootstrap_quality_scores_std)]
+        result['quality_scores_ci95'] = [
+            np.array(result['quality_scores']) - np.percentile(bootstrap_quality_scoress, 2.5, axis=0),
+            np.percentile(bootstrap_quality_scoress, 97.5, axis=0) - np.array(result['quality_scores'])
+        ]
 
         return result
 

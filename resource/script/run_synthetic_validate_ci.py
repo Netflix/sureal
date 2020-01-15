@@ -45,6 +45,11 @@ def validate_with_synthetic_dataset_quality_wrapper(subjective_model_classes, **
 
     synthetic_result_dict = more['synthetic_result_dict'] if 'synthetic_result_dict' in more else None
 
+    n_bootstrap = more['n_bootstrap'] if 'n_bootstrap' in more else None
+    if n_bootstrap is not None:
+        for subjective_model_class in subjective_model_classes:
+            assert 'bootstrap' in subjective_model_class.__name__.lower()
+
     if synthetic_result_dict is None:
         synthetic_result_dict = 'quality_ambiguity'
 
@@ -129,6 +134,7 @@ def validate_with_synthetic_dataset_quality_wrapper(subjective_model_classes, **
         delta_thr=4e-3,
         color_dict=color_dict,
         do_errorbar=do_errorbar,
+        n_bootstrap=n_bootstrap,
     )
     ret.update(ret_)
 
@@ -202,7 +208,9 @@ def run_synthetic_validate_mleco_bstp():
             synthetic_result_dict='observer_only',
             do_plot=True,
             do_errorbar=True,
-            seed=seed)
+            seed=seed,
+            # n_bootstrap=50,
+        )
         rets.append(ret)
 
     qs_ci_percs = []
@@ -216,8 +224,8 @@ def run_synthetic_validate_mleco_bstp():
 
 if __name__ == '__main__':
 
-    run_synthetic_validate_mos()
-    run_synthetic_validate_mleco()
+    # run_synthetic_validate_mos()
+    # run_synthetic_validate_mleco()
     run_synthetic_validate_mleco_bstp()
 
     DisplayConfig.show(write_to_dir=None)
