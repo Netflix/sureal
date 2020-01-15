@@ -624,9 +624,6 @@ class SelectSubjectRawDatasetReader(MockedRawDatasetReader):
 
         selected_subjects = self.input_dict['selected_subjects']
 
-        # assert no repeated numbers
-        assert len(list(set(selected_subjects))) == len(selected_subjects)
-
         # assert in 0, 1, 2...., num_observer -1
         observer_idxs = range(super(SelectSubjectRawDatasetReader, self).num_observers)
         for subject in selected_subjects:

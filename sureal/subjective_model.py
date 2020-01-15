@@ -10,7 +10,7 @@ from scipy.stats import norm
 
 from sureal.core.mixin import TypeVersionEnabled
 from sureal.tools.misc import import_python_file, indices
-from sureal.dataset_reader import RawDatasetReader
+from sureal.dataset_reader import RawDatasetReader, SelectSubjectRawDatasetReader
 from sureal.tools.stats import vectorized_gaussian, vectorized_convolution_of_two_logistics, \
     vectorized_convolution_of_two_uniforms, vectorized_logistic
 
@@ -1121,3 +1121,43 @@ class BiasremvSubjrejMosModel(BiasremvMosModel):
         kwargs2['bias_offset'] = True
         kwargs2['subject_rejection'] = True
         return super(BiasremvMosModel, self).run_modeling(**kwargs2)
+
+
+class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimationModel):
+
+    TYPE = 'MLE_BSTP'
+    VERSION = MaximumLikelihoodEstimationModel.VERSION + "_0.1"
+
+    DEFAULT_BOOTSTRAP_N = 10
+
+    @classmethod
+    def _run_modeling(cls, dataset_reader, **kwargs):
+        result = super(MaximumLikelihoodEstimationModelWithBootstrapping, cls).\
+            _run_modeling(dataset_reader, **kwargs)
+        dataset = dataset_reader.to_dataset()
+        n_subj = dataset_reader.num_observers
+
+        bootstrap_results = []
+        for ibootstrap in range(cls.DEFAULT_BOOTSTRAP_N):
+            np.random.seed(ibootstrap)
+            selected_subjects = np.random.choice(range(n_subj), size=n_subj, replace=True)
+
+            select_subj_reader = SelectSubjectRawDatasetReader(
+                dataset, input_dict={'selected_subjects': selected_subjects})
+
+            bootstrap_result = super(MaximumLikelihoodEstimationModelWithBootstrapping, cls).\
+                _run_modeling(select_subj_reader, **kwargs)
+            bootstrap_results.append(bootstrap_result)
+
+        bootstrap_quality_scoress = [r['quality_scores'] for r in bootstrap_results]
+        bootstrap_quality_scoress = np.array(bootstrap_quality_scoress)
+        bootstrap_quality_scores_std = np.std(bootstrap_quality_scoress, axis=0)
+        result['quality_scores_std'] = list(bootstrap_quality_scores_std)
+
+        return result
+
+
+class MaximumLikelihoodEstimationModelContentObliviousWithBootstrapping(MaximumLikelihoodEstimationModelWithBootstrapping):
+    TYPE = 'MLE_CO_BSTP' # maximum likelihood estimation (no content modeling) with bootstrapping
+    VERSION = MaximumLikelihoodEstimationModelWithBootstrapping.VERSION + "_0.1"
+    mode = 'CONTENT_OBLIVIOUS'
