@@ -1,10 +1,9 @@
-import os, sys
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sureal.subjective_model import MaximumLikelihoodEstimationModelContentOblivious, MosModel, \
-    MaximumLikelihoodEstimationModelContentObliviousWithBootstrapping
+from sureal.subjective_model import MaximumLikelihoodEstimationModelContentOblivious, MosModel
 from sureal.config import DisplayConfig
 from sureal.dataset_reader import SyntheticRawDatasetReader
 from sureal.routine import validate_with_synthetic_dataset
@@ -195,38 +194,10 @@ def run_synthetic_validate_mleco():
     print(f'-- Averge CI%: quality_scores: {np.mean(qs_ci_percs):.1f} observer_bias {np.mean(ob_ci_percs):.1f} observer_inconsistency {np.mean(oi_ci_percs):.1f} --')
 
 
-def run_synthetic_validate_mleco_bstp():
-
-    rets = []
-    # seeds = range(10)
-    seeds = [0]
-    for seed in seeds:
-        ret = validate_with_synthetic_dataset_quality_wrapper(
-            [
-                MaximumLikelihoodEstimationModelContentObliviousWithBootstrapping,
-            ],
-            synthetic_result_dict='observer_only',
-            do_plot=True,
-            do_errorbar=True,
-            seed=seed,
-            # n_bootstrap=50,
-        )
-        rets.append(ret)
-
-    qs_ci_percs = []
-    for ret, seed in zip(rets, seeds):
-        qs_ci_perc = ret['results']['MLE_CO_BSTP']['quality_scores_ci_perc']
-        print(f"Seed {seed} CI%: quality_scores: {qs_ci_perc:.1f}")
-        qs_ci_percs.append(qs_ci_perc)
-
-    print(f'-- Averge CI%: quality_scores: {np.mean(qs_ci_percs):.1f} --')
-
-
 if __name__ == '__main__':
 
-    # run_synthetic_validate_mos()
-    # run_synthetic_validate_mleco()
-    run_synthetic_validate_mleco_bstp()
+    run_synthetic_validate_mos()
+    run_synthetic_validate_mleco()
 
     DisplayConfig.show(write_to_dir=None)
 
