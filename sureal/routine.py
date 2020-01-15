@@ -327,3 +327,209 @@ def visualize_pc_dataset(dataset_filepath):
     plt.set_cmap('jet')
     plt.colorbar()
     plt.tight_layout()
+
+
+def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
+                                    subjective_model_classes,
+                                    dataset_filepath,
+                                    synthetic_result,
+                                    ax_dict,
+                                    **more):
+        ret = {}
+
+        color_dict = more['color_dict'] if 'color_dict' in more else {}
+
+        output_synthetic_dataset_filepath = more['output_synthetic_dataset_filepath'] \
+            if 'output_synthetic_dataset_filepath' in more else None
+
+        dataset = import_python_file(dataset_filepath)
+
+        dataset_reader = synthetic_dataset_reader_class(dataset, input_dict=synthetic_result)
+
+        if output_synthetic_dataset_filepath is not None:
+            dataset_reader.write_out_dataset(dataset_reader.to_dataset(), output_synthetic_dataset_filepath)
+            ret['output_synthetic_dataset_filepath'] = output_synthetic_dataset_filepath
+
+        subjective_models = map(
+            lambda subjective_model_class: subjective_model_class(dataset_reader),
+            subjective_model_classes
+        )
+
+        results = list(map(
+            lambda subjective_model: subjective_model.run_modeling(
+                **more
+            ),
+            subjective_models
+        ))
+
+        if ax_dict is None:
+            ax_dict = dict()
+
+        do_errorbar = more['do_errorbar'] if 'do_errorbar' in more else False
+        assert isinstance(do_errorbar, bool)
+
+        ret['results'] = dict()
+        for subjective_model_class, result in zip(subjective_model_classes, results):
+            ret['results'][subjective_model_class.TYPE] = result
+
+        for ax in ax_dict.values():
+            ax.set_xlabel('Synthetic')
+            ax.set_ylabel('Recovered')
+            ax.grid()
+
+        for subjective_model_class, result, idx in zip(subjective_model_classes, results, range(len(results))):
+
+            model_name = subjective_model_class.TYPE
+
+            if 'quality_scores' in result and 'quality_scores' in synthetic_result and 'quality_scores_std' in result:
+                yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result, 'quality_scores',
+                                                                        'quality_scores_std')
+                ret['results'][model_name]['quality_scores_ci_perc'] = ci_perc
+
+            if 'observer_bias' in result and 'observer_bias' in synthetic_result and 'observer_bias_std' in result:
+                yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result, 'observer_bias',
+                                                                        'observer_bias_std')
+                ret['results'][model_name]['observer_bias_ci_perc'] = ci_perc
+
+            if 'observer_inconsistency' in result and 'observer_inconsistency' in synthetic_result and \
+                    'observer_inconsistency_std' in result:
+                yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result,
+                                                                        'observer_inconsistency',
+                                                                        'observer_inconsistency_std')
+                ret['results'][model_name]['observer_inconsistency_ci_perc'] = ci_perc
+
+            if 'quality_scores' in ax_dict:
+                ax = ax_dict['quality_scores']
+                ax.set_title(r'Quality Score ($\psi_j$)')
+                if 'quality_scores' in result and 'quality_scores' in synthetic_result:
+                    color = color_dict[model_name] if model_name in color_dict else 'black'
+                    x = synthetic_result['quality_scores']
+                    y = result['quality_scores']
+                    if 'quality_scores_std' in result:
+                        yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result,
+                                                                                'quality_scores', 'quality_scores_std')
+                    else:
+                        yerr = None
+                        ci_perc=None
+                    if do_errorbar is True and 'quality_scores_std' in result:
+                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
+                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
+                                        sm=model_name,
+                                        rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
+                                        ci_perc=ci_perc,
+                                    ))
+                    else:
+                        ax.scatter(x, y, color=color,
+                                   label='{sm} (RMSE {rmse:.4f})'.format(
+                                       sm=model_name, rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
+                    ax.legend()
+                    diag_line = np.arange(min(x), max(x), step=0.01)
+                    ax.plot(diag_line, diag_line, '-k')
+
+            if 'quality_scores_std' in ax_dict:
+                ax = ax_dict['quality_scores_std']
+                ax.set_title(r'Std of Quality Score ($\sigma(\psi_j)$)')
+                if 'quality_scores_std' in result and 'quality_scores_std' in synthetic_result:
+                    color = color_dict[model_name] if model_name in color_dict else 'black'
+                    x = synthetic_result['quality_scores_std']
+                    y = result['quality_scores_std']
+                    ax.scatter(x, y, color=color,
+                               label='{sm} (RMSE {rmse:.4f})'.format(
+                                   sm=model_name, rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
+                    ax.legend()
+                    diag_line = np.arange(min(x), max(x), step=0.01)
+                    ax.plot(diag_line, diag_line, '-k')
+
+            if 'observer_bias' in ax_dict:
+                ax = ax_dict['observer_bias']
+                ax.set_title(r'Subject Bias ($\Delta_i$)')
+                if 'observer_bias' in result and 'observer_bias' in synthetic_result:
+                    color = color_dict[model_name] if model_name in color_dict else 'black'
+                    x = synthetic_result['observer_bias']
+                    y = result['observer_bias']
+                    if 'observer_bias_std' in result:
+                        yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result,
+                                                                                'observer_bias', 'observer_bias_std')
+                    else:
+                        yerr = None
+                        ci_perc = None
+                    min_xy = np.min([len(x),len(y)])
+                    x = x[:min_xy]
+                    y = y[:min_xy]
+                    if do_errorbar is True and 'observer_bias_std' in result:
+                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
+                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
+                                        sm=model_name,
+                                        rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
+                                        ci_perc=ci_perc,
+                                    ))
+                    else:
+                        ax.scatter(x, y, color=color,
+                                    label='{sm} (RMSE {rmse:.4f})'.format(
+                                        sm=model_name,
+                                        rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
+                    ax.legend()
+                    diag_line = np.arange(min(x), max(x), step=0.01)
+                    ax.plot(diag_line, diag_line, '-k')
+
+            if 'observer_inconsistency' in ax_dict:
+                ax = ax_dict['observer_inconsistency']
+                ax.set_title(r'Subject Inconsistency ($\upsilon_i$)')
+                if 'observer_inconsistency' in result and 'observer_inconsistency' in synthetic_result:
+                    color = color_dict[model_name] if model_name in color_dict else 'black'
+                    x = synthetic_result['observer_inconsistency']
+                    y = result['observer_inconsistency']
+                    if 'observer_bias_std' in result:
+                        yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result,
+                                                                                'observer_inconsistency',
+                                                                                'observer_inconsistency_std')
+                    else:
+                        yerr = None
+                        ci_perc = None
+                    min_xy = np.min([len(x),len(y)])
+                    x = x[:min_xy]
+                    y = y[:min_xy]
+                    if do_errorbar is True and 'observer_inconsistency_std' in result:
+                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
+                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
+                                        sm=model_name,
+                                        rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
+                                        ci_perc=ci_perc,
+                                    ))
+                    else:
+                        ax.scatter(x, y, color=color,
+                                   label='{sm} (RMSE {rmse:.4f})'.format(
+                                       sm=model_name, rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
+                    ax.legend()
+                    diag_line = np.arange(min(x), max(x), step=0.01)
+                    ax.plot(diag_line, diag_line, '-k')
+
+            if 'quality_ambiguity' in ax_dict:
+                ax = ax_dict['quality_ambiguity']
+                ax.set_title(r'Quality Ambiguity ($\phi_j$)')
+                if 'quality_ambiguity' in result and 'quality_ambiguity' in synthetic_result:
+                    color = color_dict[model_name] if model_name in color_dict else 'black'
+                    x = synthetic_result['quality_ambiguity']
+                    y = result['quality_ambiguity']
+                    min_xy = np.min([len(x),len(y)])
+                    x = x[:min_xy]
+                    y = y[:min_xy]
+                    ax.scatter(x, y, color=color,
+                               label='{sm} (RMSE {rmse:.4f})'.format(
+                                   sm=model_name, rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
+                    ax.legend()
+                    diag_line = np.arange(min(x), max(x), step=0.01)
+                    ax.plot(diag_line, diag_line, '-k')
+
+        return ret
+
+
+def get_ci_one_side_distance_and_ci_percentage(synthetic_result, result, key, errkey):
+    x_ = synthetic_result[key]
+    y_ = result[key]
+    ci_one_side_dist = np.array(result[errkey]) * 1.96  # 3 delta
+    ind_in_ci = list(
+        map(lambda x_y_yerr: x_y_yerr[1] - x_y_yerr[2] <= x_y_yerr[0] <= x_y_yerr[1] + x_y_yerr[2],
+            zip(x_, y_, ci_one_side_dist)))
+    ci_perc = sum(ind_in_ci) / len(ind_in_ci) * 100
+    return ci_one_side_dist, ci_perc
