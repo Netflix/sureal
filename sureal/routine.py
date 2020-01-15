@@ -381,21 +381,18 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
 
             model_name = subjective_model_class.TYPE
 
-            if 'quality_scores' in result and 'quality_scores' in synthetic_result and 'quality_scores_std' in result:
-                yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result, 'quality_scores',
-                                                                        'quality_scores_std')
+            if 'quality_scores' in result and 'quality_scores' in synthetic_result and 'quality_scores_ci95' in result:
+                ci_perc = get_ci_percentage(synthetic_result, result, 'quality_scores', 'quality_scores_ci95')
                 ret['results'][model_name]['quality_scores_ci_perc'] = ci_perc
 
-            if 'observer_bias' in result and 'observer_bias' in synthetic_result and 'observer_bias_std' in result:
-                yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result, 'observer_bias',
-                                                                        'observer_bias_std')
+            if 'observer_bias' in result and 'observer_bias' in synthetic_result and 'observer_bias_ci95' in result:
+                ci_perc = get_ci_percentage(synthetic_result, result, 'observer_bias', 'observer_bias_ci95')
                 ret['results'][model_name]['observer_bias_ci_perc'] = ci_perc
 
-            if 'observer_inconsistency' in result and 'observer_inconsistency' in synthetic_result and \
-                    'observer_inconsistency_std' in result:
-                yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result,
-                                                                        'observer_inconsistency',
-                                                                        'observer_inconsistency_std')
+            if 'observer_inconsistency' in result and 'observer_inconsistency' in synthetic_result \
+                    and 'observer_inconsistency_ci95' in result:
+                ci_perc = get_ci_percentage(synthetic_result, result,
+                                            'observer_inconsistency', 'observer_inconsistency_ci95')
                 ret['results'][model_name]['observer_inconsistency_ci_perc'] = ci_perc
 
             if 'quality_scores' in ax_dict:
@@ -406,8 +403,8 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = synthetic_result['quality_scores']
                     y = result['quality_scores']
                     if 'quality_scores_std' in result:
-                        yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result,
-                                                                                'quality_scores', 'quality_scores_std')
+                        yerr = result['quality_scores_ci95']
+                        ci_perc = get_ci_percentage(synthetic_result, result,  'quality_scores', 'quality_scores_ci95')
                     else:
                         yerr = None
                         ci_perc=None
@@ -448,8 +445,8 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = synthetic_result['observer_bias']
                     y = result['observer_bias']
                     if 'observer_bias_std' in result:
-                        yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result,
-                                                                                'observer_bias', 'observer_bias_std')
+                        yerr = result['observer_bias_ci95']
+                        ci_perc = get_ci_percentage(synthetic_result, result, 'observer_bias', 'observer_bias_ci95')
                     else:
                         yerr = None
                         ci_perc = None
@@ -480,9 +477,9 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = synthetic_result['observer_inconsistency']
                     y = result['observer_inconsistency']
                     if 'observer_bias_std' in result:
-                        yerr, ci_perc = get_ci_one_side_distance_and_ci_percentage(synthetic_result, result,
-                                                                                'observer_inconsistency',
-                                                                                'observer_inconsistency_std')
+                        yerr = np.array(result['observer_inconsistency_ci95'])
+                        ci_perc = get_ci_percentage(synthetic_result, result,
+                                                    'observer_inconsistency', 'observer_inconsistency_ci95')
                     else:
                         yerr = None
                         ci_perc = None
@@ -524,12 +521,13 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
         return ret
 
 
-def get_ci_one_side_distance_and_ci_percentage(synthetic_result, result, key, errkey):
-    x_ = synthetic_result[key]
-    y_ = result[key]
-    ci_one_side_dist = np.array(result[errkey]) * 1.96  # 3 delta
-    ind_in_ci = list(
-        map(lambda x_y_yerr: x_y_yerr[1] - x_y_yerr[2] <= x_y_yerr[0] <= x_y_yerr[1] + x_y_yerr[2],
-            zip(x_, y_, ci_one_side_dist)))
+def get_ci_percentage(synthetic_result, result, key, errkey):
+    xs = synthetic_result[key]
+    ys = result[key]
+    ys_ci95 = np.array(result[errkey])
+    ys_ci95_shape = ys_ci95.shape
+    assert ys_ci95_shape[0] == 2
+    assert len(xs) == len(ys) == ys_ci95_shape[1]
+    ind_in_ci = [y - y_ci95_l <= x <= y + y_ci95_u for x, y, y_ci95_l, y_ci95_u in zip(xs, ys, ys_ci95[0], ys_ci95[1])]
     ci_perc = sum(ind_in_ci) / len(ind_in_ci) * 100
-    return ci_one_side_dist, ci_perc
+    return ci_perc

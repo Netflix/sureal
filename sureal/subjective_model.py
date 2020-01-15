@@ -256,6 +256,7 @@ class MosModel(SubjectiveModel):
         std = pd.DataFrame(os_2darray).std(axis=1)
         result = {'quality_scores': mos,
                   'quality_scores_std': mos_std,
+                  'quality_scores_ci95': [list(1.96 * mos_std), list(1.96 * mos_std)],
                   'quality_ambiguity': std,
                   'raw_scores': os_2darray,
                   }
@@ -916,21 +917,24 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         result = {
             'quality_scores': list(x_e),
             'quality_scores_std': list(x_e_std),
+            'quality_scores_ci95': [list(1.96 * x_e_std), list(1.96 * x_e_std)],
         }
 
         if cls.mode != 'SUBJECT_OBLIVIOUS':
             result['observer_bias'] = list(b_s)
             result['observer_bias_std'] = list(b_s_std)
+            result['observer_bias_ci95'] = [list(1.96 * b_s_std), list(1.96 * b_s_std)]
 
             result['observer_inconsistency'] = list(v_s)
             result['observer_inconsistency_std'] = list(v_s_std)
+            result['observer_inconsistency_ci95'] = [list(1.96 * v_s_std), list(1.96 * v_s_std)]
 
         if cls.mode != 'CONTENT_OBLIVIOUS':
             result['content_ambiguity'] = list(a_c)
             result['content_ambiguity_std'] = list(a_c_std)
 
         try:
-            observers = dataset_reader._get_list_observers() # may not exist
+            observers = dataset_reader._get_list_observers()  # may not exist
             result['observers'] = observers
         except AssertionError:
             pass
@@ -1153,6 +1157,8 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
         bootstrap_quality_scoress = np.array(bootstrap_quality_scoress)
         bootstrap_quality_scores_std = np.std(bootstrap_quality_scoress, axis=0)
         result['quality_scores_std'] = list(bootstrap_quality_scores_std)
+        result['quality_scores_ci95'] = [list(1.96 * bootstrap_quality_scores_std),
+                                         list(1.96 * bootstrap_quality_scores_std)]
 
         return result
 
