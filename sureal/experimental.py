@@ -44,11 +44,6 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
             bootstrap_result = super(MaximumLikelihoodEstimationModelWithBootstrapping, cls).\
                 _run_modeling(select_subj_reader, **new_kwargs)
 
-            if force_subjbias_zeromean:
-                mean_b_s = np.mean(bootstrap_result['observer_bias'])
-                bootstrap_result['observer_bias'] = list(np.array(bootstrap_result['observer_bias']) - mean_b_s)
-                bootstrap_result['quality_scores'] = list(np.array(bootstrap_result['quality_scores']) + mean_b_s)
-
             bootstrap_results.append(bootstrap_result)
 
         if force_subjbias_zeromean is True:
