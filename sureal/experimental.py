@@ -33,9 +33,23 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
                                                and kwargs['n_bootstrap'] is not None else cls.DEFAULT_N_BOOTSTRAP
         assert isinstance(n_bootstrap, int) and n_bootstrap > 0
 
+        quality_scores_ci95 = cls._bootstrap_subjects(dataset, result, n_subj, n_bootstrap, new_kwargs)
+
+        result['quality_scores_ci95'] = quality_scores_ci95
+
+        if force_subjbias_zeromean is True:
+            assert 'quality_scores' in result
+            assert 'observer_bias' in result
+            mean_b_s = np.mean(result['observer_bias'])
+            result['observer_bias'] = list(np.array(result['observer_bias']) - mean_b_s)
+            result['quality_scores'] = list(np.array(result['quality_scores']) + mean_b_s)
+
+        return result
+
+    @classmethod
+    def _bootstrap_subjects(cls, dataset, result, n_subj, n_bootstrap, kwargs):
         bootstrap_results = []
         for ibootstrap in range(n_bootstrap):
-
             print(f"Bootstrap with seed {ibootstrap}")
 
             np.random.seed(ibootstrap)
@@ -44,8 +58,8 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
             select_subj_reader = SelectSubjectRawDatasetReader(
                 dataset, input_dict={'selected_subjects': selected_subjects})
 
-            bootstrap_result = super(MaximumLikelihoodEstimationModelWithBootstrapping, cls).\
-                _run_modeling(select_subj_reader, **new_kwargs)
+            bootstrap_result = super(MaximumLikelihoodEstimationModelWithBootstrapping, cls). \
+                _run_modeling(select_subj_reader, **kwargs)
 
             bootstrap_observer_bias_offset = np.mean(
                 np.array(bootstrap_result['observer_bias']) -
@@ -58,22 +72,13 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
                                                       bootstrap_observer_bias_offset)
 
             bootstrap_results.append(bootstrap_result)
-
         bootstrap_quality_scoress = [r['quality_scores'] for r in bootstrap_results]
         bootstrap_quality_scoress = np.array(bootstrap_quality_scoress)
-        result['quality_scores_ci95'] = [
+        quality_scores_ci95 = [
             np.array(result['quality_scores']) - np.percentile(bootstrap_quality_scoress, 2.5, axis=0),
             np.percentile(bootstrap_quality_scoress, 97.5, axis=0) - np.array(result['quality_scores'])
         ]
-
-        if force_subjbias_zeromean is True:
-            assert 'quality_scores' in result
-            assert 'observer_bias' in result
-            mean_b_s = np.mean(result['observer_bias'])
-            result['observer_bias'] = list(np.array(result['observer_bias']) - mean_b_s)
-            result['quality_scores'] = list(np.array(result['quality_scores']) + mean_b_s)
-
-        return result
+        return quality_scores_ci95
 
 
 class MaximumLikelihoodEstimationModelContentObliviousWithBootstrapping(MaximumLikelihoodEstimationModelWithBootstrapping):
