@@ -59,19 +59,19 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
 
             bootstrap_results.append(bootstrap_result)
 
-        if force_subjbias_zeromean is True:
-            assert 'quality_scores' in result
-            assert 'observer_bias' in result
-            mean_b_s = np.mean(result['observer_bias'])
-            result['observer_bias'] = list(np.array(result['observer_bias']) - mean_b_s)
-            result['quality_scores'] = list(np.array(result['quality_scores']) + mean_b_s)
-
         bootstrap_quality_scoress = [r['quality_scores'] for r in bootstrap_results]
         bootstrap_quality_scoress = np.array(bootstrap_quality_scoress)
         result['quality_scores_ci95'] = [
             np.array(result['quality_scores']) - np.percentile(bootstrap_quality_scoress, 2.5, axis=0),
             np.percentile(bootstrap_quality_scoress, 97.5, axis=0) - np.array(result['quality_scores'])
         ]
+
+        if force_subjbias_zeromean is True:
+            assert 'quality_scores' in result
+            assert 'observer_bias' in result
+            mean_b_s = np.mean(result['observer_bias'])
+            result['observer_bias'] = list(np.array(result['observer_bias']) - mean_b_s)
+            result['quality_scores'] = list(np.array(result['quality_scores']) + mean_b_s)
 
         return result
 
