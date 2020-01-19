@@ -646,6 +646,33 @@ class SelectSubjectRawDatasetReader(MockedRawDatasetReader):
         return score_mtx
 
 
+class SelectDisVideoRawDatasetReader(MockedRawDatasetReader):
+
+    def _assert_input_dict(self):
+        assert 'selected_dis_videos' in self.input_dict
+
+        selected_dis_videos = self.input_dict['selected_dis_videos']
+
+        dis_video_idxs = range(super(SelectDisVideoRawDatasetReader, self).num_dis_videos)
+        for dis_video in selected_dis_videos:
+            assert dis_video in dis_video_idxs
+
+    @property
+    def num_dis_videos(self):
+        return len(self.input_dict['selected_dis_videos'])
+
+    @property
+    def opinion_score_2darray(self):
+        selected_dis_videos = self.input_dict['selected_dis_videos']
+        score_mtx = np.zeros([self.num_dis_videos, self.num_observers])
+        for i_dis_video, dis_video in enumerate(selected_dis_videos):
+            score_mtx[i_dis_video, :] = np.array(self.dataset.dis_videos[dis_video]['os'])
+        return score_mtx
+
+    def to_dataset(self):
+        raise NotImplementedError
+
+
 class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
     """
     Dataset reader that have scores of selected subjects shuffled. It reads a

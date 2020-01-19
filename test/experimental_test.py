@@ -36,6 +36,12 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.float(np.sum(result['quality_scores_ci95'][0])), 16.40231025161599, places=6)
         self.assertAlmostEqual(np.float(np.sum(result['quality_scores_ci95'][1])), 16.03875029097417, places=6)
 
+        self.assertAlmostEqual(np.float(np.sum(result['observer_bias_ci95'][0])), 1.5802456315996944, places=6)
+        self.assertAlmostEqual(np.float(np.sum(result['observer_bias_ci95'][1])), 1.7042998573080086, places=6)
+
+        self.assertAlmostEqual(np.float(np.sum(result['observer_inconsistency_ci95'][0])), 1.4129652283023595, places=6)
+        self.assertAlmostEqual(np.float(np.sum(result['observer_inconsistency_ci95'][1])), 0.9315979842046503, places=6)
+
     def test_observer_content_aware_subjective_model_bootstrapping_nocontent_subjbias_zeromean(self):
         subjective_model = MaximumLikelihoodEstimationModelContentObliviousWithBootstrapping.from_dataset_file(
             self.dataset_filepath)
@@ -52,4 +58,10 @@ class SubjectiveModelTest(unittest.TestCase):
 
         self.assertAlmostEqual(np.float(np.sum(result['quality_scores_ci95'][0])), 16.40231025161599, places=6)
         self.assertAlmostEqual(np.float(np.sum(result['quality_scores_ci95'][1])), 16.03875029097417, places=6)
+
+        self.assertAlmostEqual(np.float(np.sum(result['observer_bias_ci95'][0])), 1.5802456315996944, places=6)
+        self.assertAlmostEqual(np.float(np.sum(result['observer_bias_ci95'][1])), 1.7042998573080086, places=6)
+
+        self.assertAlmostEqual(np.float(np.sum(result['observer_inconsistency_ci95'][0])), 1.4129652283023595, places=6)
+        self.assertAlmostEqual(np.float(np.sum(result['observer_inconsistency_ci95'][1])), 0.9315979842046503, places=6)
 

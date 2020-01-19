@@ -10,7 +10,7 @@ from sureal.config import SurealConfig
 from sureal.tools.misc import import_python_file, indices
 from sureal.dataset_reader import RawDatasetReader, SyntheticRawDatasetReader, \
     MissingDataRawDatasetReader, SelectSubjectRawDatasetReader, \
-    CorruptSubjectRawDatasetReader, CorruptDataRawDatasetReader, PairedCompDatasetReader
+    CorruptSubjectRawDatasetReader, CorruptDataRawDatasetReader, PairedCompDatasetReader, SelectDisVideoRawDatasetReader
 
 
 class RawDatasetReaderTest(unittest.TestCase):
@@ -193,6 +193,33 @@ class SelectedSubjectDatasetReaderTest(unittest.TestCase):
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
 
         self.assertNotEqual(old_scores, new_scores)
+
+
+class SelectDisVideoDatasetReaderTest(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        dataset = import_python_file(dataset_filepath)
+
+        np.random.seed(0)
+        info_dict = {
+            'selected_dis_videos': range(15),
+        }
+
+        self.dataset_reader = SelectDisVideoRawDatasetReader(dataset, input_dict=info_dict)
+
+    def test_opinion_score_2darray(self):
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (15, 26))
+
+    def test_read_dataset_stats(self):
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 15)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
+
+    def test_to_dataset(self):
+        with self.assertRaises(NotImplementedError):
+            self.dataset_reader.to_dataset()
 
 
 class CorruptSubjectDatasetReaderTestWithCorruptionProb(unittest.TestCase):

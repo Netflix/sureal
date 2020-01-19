@@ -2,7 +2,7 @@ import copy
 
 import numpy as np
 
-from sureal.dataset_reader import SelectSubjectRawDatasetReader
+from sureal.dataset_reader import SelectSubjectRawDatasetReader, SelectDisVideoRawDatasetReader
 from sureal.subjective_model import MaximumLikelihoodEstimationModel
 
 
@@ -28,14 +28,20 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
 
         dataset = dataset_reader.to_dataset()
         n_subj = dataset_reader.num_observers
+        n_disvideo = dataset_reader.num_dis_videos
 
         n_bootstrap = kwargs['n_bootstrap'] if 'n_bootstrap' in kwargs \
                                                and kwargs['n_bootstrap'] is not None else cls.DEFAULT_N_BOOTSTRAP
         assert isinstance(n_bootstrap, int) and n_bootstrap > 0
 
-        quality_scores_ci95 = cls._bootstrap_subjects(dataset, result, n_subj, n_bootstrap, new_kwargs)
+        quality_scores_ci95 = \
+            cls._bootstrap_subjects(dataset, result, n_subj, n_bootstrap, new_kwargs)
+        observer_bias_ci95, observer_inconsistency_ci95 = \
+            cls._boostrap_dis_videos(dataset, result, n_disvideo, n_bootstrap, new_kwargs)
 
         result['quality_scores_ci95'] = quality_scores_ci95
+        result['observer_bias_ci95'] = observer_bias_ci95
+        result['observer_inconsistency_ci95'] = observer_inconsistency_ci95
 
         if force_subjbias_zeromean is True:
             assert 'quality_scores' in result
@@ -72,13 +78,50 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
                                                       bootstrap_observer_bias_offset)
 
             bootstrap_results.append(bootstrap_result)
-        bootstrap_quality_scoress = [r['quality_scores'] for r in bootstrap_results]
-        bootstrap_quality_scoress = np.array(bootstrap_quality_scoress)
+        bootstrap_quality_scoress = np.array([r['quality_scores'] for r in bootstrap_results])
         quality_scores_ci95 = [
             np.array(result['quality_scores']) - np.percentile(bootstrap_quality_scoress, 2.5, axis=0),
             np.percentile(bootstrap_quality_scoress, 97.5, axis=0) - np.array(result['quality_scores'])
         ]
         return quality_scores_ci95
+
+    @classmethod
+    def _boostrap_dis_videos(cls, dataset, result, n_dis_videos, n_bootstrap, kwargs):
+        bootstrap_results = []
+        for ibootstrap in range(n_bootstrap):
+            print(f"Bootstrap with seed {ibootstrap}")
+
+            np.random.seed(ibootstrap)
+            selected_dis_videos = np.random.choice(range(n_dis_videos), size=n_dis_videos, replace=True)
+
+            select_dis_video_reader = SelectDisVideoRawDatasetReader(
+                dataset, input_dict={'selected_dis_videos': selected_dis_videos})
+
+            bootstrap_result = super(MaximumLikelihoodEstimationModelWithBootstrapping, cls). \
+                _run_modeling(select_dis_video_reader, **kwargs)
+
+            bootstrap_quality_scores_offset = np.mean(
+                np.array(bootstrap_result['quality_scores']) -
+                np.array(result['quality_scores'])[selected_dis_videos]
+            )
+
+            bootstrap_result['quality_scores'] = list(np.array(bootstrap_result['quality_scores']) -
+                                                      bootstrap_quality_scores_offset)
+            bootstrap_result['observer_bias'] = list(np.array(bootstrap_result['observer_bias']) +
+                                                     bootstrap_quality_scores_offset)
+
+            bootstrap_results.append(bootstrap_result)
+        bootstrap_observer_biass = np.array([r['observer_bias'] for r in bootstrap_results])
+        observer_bias_ci95 = [
+            np.array(result['observer_bias']) - np.percentile(bootstrap_observer_biass, 2.5, axis=0),
+            np.percentile(bootstrap_observer_biass, 97.5, axis=0) - np.array(result['observer_bias'])
+        ]
+        bootstrap_observer_inconsistencys = np.array([r['observer_inconsistency'] for r in bootstrap_results])
+        observer_inconsistency_ci95 = [
+            np.array(result['observer_inconsistency']) - np.percentile(bootstrap_observer_inconsistencys, 2.5, axis=0),
+            np.percentile(bootstrap_observer_inconsistencys, 97.5, axis=0) - np.array(result['observer_inconsistency'])
+        ]
+        return observer_bias_ci95, observer_inconsistency_ci95
 
 
 class MaximumLikelihoodEstimationModelContentObliviousWithBootstrapping(MaximumLikelihoodEstimationModelWithBootstrapping):
