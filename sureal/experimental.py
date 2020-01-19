@@ -35,6 +35,9 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
 
         bootstrap_results = []
         for ibootstrap in range(n_bootstrap):
+
+            print(f"Bootstrap with seed {ibootstrap}")
+
             np.random.seed(ibootstrap)
             selected_subjects = np.random.choice(range(n_subj), size=n_subj, replace=True)
 
@@ -44,6 +47,16 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
             bootstrap_result = super(MaximumLikelihoodEstimationModelWithBootstrapping, cls).\
                 _run_modeling(select_subj_reader, **new_kwargs)
 
+            bootstrap_observer_bias_offset = np.mean(
+                np.array(bootstrap_result['observer_bias']) -
+                np.array(result['observer_bias'])[selected_subjects]
+            )
+
+            bootstrap_result['observer_bias'] = list(np.array(bootstrap_result['observer_bias']) -
+                                                     bootstrap_observer_bias_offset)
+            bootstrap_result['quality_scores'] = list(np.array(bootstrap_result['quality_scores']) +
+                                                      bootstrap_observer_bias_offset)
+
             bootstrap_results.append(bootstrap_result)
 
         if force_subjbias_zeromean is True:
@@ -52,12 +65,6 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
             mean_b_s = np.mean(result['observer_bias'])
             result['observer_bias'] = list(np.array(result['observer_bias']) - mean_b_s)
             result['quality_scores'] = list(np.array(result['quality_scores']) + mean_b_s)
-            for bootstrap_result in bootstrap_results:
-                assert 'quality_scores' in bootstrap_result
-                assert 'observer_bias' in bootstrap_result
-                mean_b_s = np.mean(bootstrap_result['observer_bias'])
-                bootstrap_result['observer_bias'] = list(np.array(bootstrap_result['observer_bias']) - mean_b_s)
-                bootstrap_result['quality_scores'] = list(np.array(bootstrap_result['quality_scores']) + mean_b_s)
 
         bootstrap_quality_scoress = [r['quality_scores'] for r in bootstrap_results]
         bootstrap_quality_scoress = np.array(bootstrap_quality_scoress)
