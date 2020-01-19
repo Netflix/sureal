@@ -540,6 +540,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     DEFAULT_GRADIENT_METHOD = 'simplified'
     DEFAULT_NUMERICAL_PDF = 'gaussian'
     DEFAULT_DELTA_THR = 1e-8
+    DEFAULT_FORCE_SUBJBIAS_ZEROMEAN = True
 
     @staticmethod
     def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis, numerical_pdf):
@@ -592,7 +593,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         delta_thr = kwargs['delta_thr'] if 'delta_thr' in kwargs else cls.DEFAULT_DELTA_THR
 
-        force_subjbias_zeromean = kwargs['force_subjbias_zeromean'] if 'force_subjbias_zeromean' in kwargs else True
+        force_subjbias_zeromean = kwargs['force_subjbias_zeromean'] \
+            if 'force_subjbias_zeromean' in kwargs else cls.DEFAULT_FORCE_SUBJBIAS_ZEROMEAN
         assert isinstance(force_subjbias_zeromean, bool)
 
         def sum_over_content_id(xs, cids, num_c):
