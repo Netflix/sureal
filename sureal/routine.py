@@ -402,13 +402,13 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     color = color_dict[model_name] if model_name in color_dict else 'black'
                     x = synthetic_result['quality_scores']
                     y = result['quality_scores']
-                    if 'quality_scores_std' in result:
+                    if 'quality_scores_ci95' in result:
                         yerr = result['quality_scores_ci95']
                         ci_perc = get_ci_percentage(synthetic_result, result,  'quality_scores', 'quality_scores_ci95')
                     else:
                         yerr = None
                         ci_perc=None
-                    if do_errorbar is True and 'quality_scores_std' in result:
+                    if do_errorbar is True and 'quality_scores_ci95' in result:
                         ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
                                         sm=model_name,
@@ -444,7 +444,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     color = color_dict[model_name] if model_name in color_dict else 'black'
                     x = synthetic_result['observer_bias']
                     y = result['observer_bias']
-                    if 'observer_bias_std' in result:
+                    if 'observer_bias_ci95' in result:
                         yerr = result['observer_bias_ci95']
                         ci_perc = get_ci_percentage(synthetic_result, result, 'observer_bias', 'observer_bias_ci95')
                     else:
@@ -453,7 +453,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     min_xy = np.min([len(x),len(y)])
                     x = x[:min_xy]
                     y = y[:min_xy]
-                    if do_errorbar is True and 'observer_bias_std' in result:
+                    if do_errorbar is True and 'observer_bias_ci95' in result:
                         ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
                                         sm=model_name,
@@ -476,7 +476,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     color = color_dict[model_name] if model_name in color_dict else 'black'
                     x = synthetic_result['observer_inconsistency']
                     y = result['observer_inconsistency']
-                    if 'observer_bias_std' in result:
+                    if 'observer_inconsistency_ci95' in result:
                         yerr = np.array(result['observer_inconsistency_ci95'])
                         ci_perc = get_ci_percentage(synthetic_result, result,
                                                     'observer_inconsistency', 'observer_inconsistency_ci95')
@@ -486,7 +486,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     min_xy = np.min([len(x),len(y)])
                     x = x[:min_xy]
                     y = y[:min_xy]
-                    if do_errorbar is True and 'observer_inconsistency_std' in result:
+                    if do_errorbar is True and 'observer_inconsistency_ci95' in result:
                         ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
                                         sm=model_name,

@@ -11,15 +11,17 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
     TYPE = 'MLE_BSTP'
     VERSION = MaximumLikelihoodEstimationModel.VERSION + "_0.1"
 
-    DEFAULT_N_BOOTSTRAP = 10
+    DEFAULT_N_BOOTSTRAP = 30
+    DEFAULT_BOOTSTRAP_SUBJECTS = True
+    DEFAULT_BOOSTRAP_DIS_VIDEOS = True
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
 
         force_subjbias_zeromean = kwargs['force_subjbias_zeromean'] \
-            if 'force_subjbias_zeromean' in kwargs else cls.DEFAULT_FORCE_SUBJBIAS_ZEROMEAN
+            if 'force_subjbias_zeromean' in kwargs \
+               and kwargs['force_subjbias_zeromean'] is not None else MaximumLikelihoodEstimationModel.DEFAULT_FORCE_SUBJBIAS_ZEROMEAN
         assert isinstance(force_subjbias_zeromean, bool)
-
         new_kwargs = copy.deepcopy(kwargs)
         new_kwargs['force_subjbias_zeromean'] = False
 
@@ -34,14 +36,31 @@ class MaximumLikelihoodEstimationModelWithBootstrapping(MaximumLikelihoodEstimat
                                                and kwargs['n_bootstrap'] is not None else cls.DEFAULT_N_BOOTSTRAP
         assert isinstance(n_bootstrap, int) and n_bootstrap > 0
 
-        quality_scores_ci95 = \
-            cls._bootstrap_subjects(dataset, result, n_subj, n_bootstrap, new_kwargs)
-        observer_bias_ci95, observer_inconsistency_ci95 = \
-            cls._boostrap_dis_videos(dataset, result, n_disvideo, n_bootstrap, new_kwargs)
+        bootstrap_subjects = kwargs['bootstrap_subjects'] \
+            if 'bootstrap_subjects' in kwargs \
+               and kwargs['bootstrap_subjects'] is not None else cls.DEFAULT_BOOTSTRAP_SUBJECTS
+        assert isinstance(bootstrap_subjects, bool)
 
-        result['quality_scores_ci95'] = quality_scores_ci95
-        result['observer_bias_ci95'] = observer_bias_ci95
-        result['observer_inconsistency_ci95'] = observer_inconsistency_ci95
+        boostrap_dis_videos = kwargs['boostrap_dis_videos'] \
+            if 'boostrap_dis_videos' in kwargs \
+               and kwargs['boostrap_dis_videos'] is not None else cls.DEFAULT_BOOSTRAP_DIS_VIDEOS
+        assert isinstance(boostrap_dis_videos, bool)
+
+        if bootstrap_subjects:
+            quality_scores_ci95 = \
+                cls._bootstrap_subjects(dataset, result, n_subj, n_bootstrap, new_kwargs)
+            result['quality_scores_ci95'] = quality_scores_ci95
+        else:
+            del result['quality_scores_ci95']
+
+        if boostrap_dis_videos:
+            observer_bias_ci95, observer_inconsistency_ci95 = \
+                cls._boostrap_dis_videos(dataset, result, n_disvideo, n_bootstrap, new_kwargs)
+            result['observer_bias_ci95'] = observer_bias_ci95
+            result['observer_inconsistency_ci95'] = observer_inconsistency_ci95
+        else:
+            del result['observer_bias_ci95']
+            del result['observer_inconsistency_ci95']
 
         if force_subjbias_zeromean is True:
             assert 'quality_scores' in result

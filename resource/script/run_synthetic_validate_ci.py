@@ -37,8 +37,8 @@ def validate_with_synthetic_dataset_quality_wrapper(subjective_model_classes, **
 
     seed = more['seed'] if 'seed' in more else 0
 
-    force_bias_zero_mean = more['force_bias_zero_mean'] if 'force_bias_zero_mean' in more else True
-    assert isinstance(force_bias_zero_mean, bool)
+    force_synth_subjbias_zeromean = more['force_synth_subjbias_zeromean'] if 'force_synth_subjbias_zeromean' in more else True
+    assert isinstance(force_synth_subjbias_zeromean, bool)
 
     np.random.seed(seed)
 
@@ -116,7 +116,7 @@ def validate_with_synthetic_dataset_quality_wrapper(subjective_model_classes, **
     else:
         assert False
 
-    if force_bias_zero_mean:
+    if force_synth_subjbias_zeromean:
         # pass
         synthetic_result_dict['observer_bias'] -= np.mean(synthetic_result_dict['observer_bias'])
 

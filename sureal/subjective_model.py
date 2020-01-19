@@ -417,7 +417,8 @@ class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
             assert False, 'SubjectAwareGenerativeModel must not and need not ' \
                           'apply subject rejection.'
 
-        force_subjbias_zeromean = kwargs['force_subjbias_zeromean'] if 'force_subjbias_zeromean' in kwargs else True
+        force_subjbias_zeromean = kwargs['force_subjbias_zeromean'] \
+            if 'force_subjbias_zeromean' in kwargs and kwargs['force_subjbias_zeromean'] is not None else True
         assert isinstance(force_subjbias_zeromean, bool)
 
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
@@ -594,7 +595,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         delta_thr = kwargs['delta_thr'] if 'delta_thr' in kwargs else cls.DEFAULT_DELTA_THR
 
         force_subjbias_zeromean = kwargs['force_subjbias_zeromean'] \
-            if 'force_subjbias_zeromean' in kwargs else cls.DEFAULT_FORCE_SUBJBIAS_ZEROMEAN
+            if 'force_subjbias_zeromean' in kwargs and kwargs['force_subjbias_zeromean'] is not None \
+            else cls.DEFAULT_FORCE_SUBJBIAS_ZEROMEAN
         assert isinstance(force_subjbias_zeromean, bool)
 
         def sum_over_content_id(xs, cids, num_c):
