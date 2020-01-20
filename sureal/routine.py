@@ -42,7 +42,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     if 'ax_dict' in kwargs:
         ax_dict = kwargs['ax_dict']
     else:
-        ax_dict = None
+        ax_dict = {}
 
     colors = ['black', 'gray', 'blue', 'red'] * 2
 
@@ -65,7 +65,10 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     if do_plot == 'all' or 'raw_scores' in do_plot:
 
         # ===== plot raw scores
-        fig, ax_rawscores = plt.subplots(figsize=(5, 2.5))
+        if 'ax_raw_scores' in ax_dict:
+            ax_rawscores = ax_dict['ax_raw_scores']
+        else:
+            _, ax_rawscores = plt.subplots(figsize=(5, 2.5))
         mtx = dataset_reader.opinion_score_2darray.T
         # S, E = mtx.shape
         ax_rawscores.imshow(mtx, interpolation='nearest', cmap='gray')
@@ -75,12 +78,18 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
         ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
+
         plt.tight_layout()
 
     if do_plot == 'all' or 'quality_scores' in do_plot:
         # ===== plot quality scores =====
         bar_width = 0.4
-        fig, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
+
+        if 'ax_quality_scores' in ax_dict:
+            ax_quality = ax_dict['ax_quality_scores']
+        else:
+            _, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
+
         # xs = None
         shift_count = 0
         # my_xticks = None
@@ -123,16 +132,18 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 shift_count += 1
         ax_quality.grid()
         # ax_quality.legend(loc=1, ncol=2, frameon=True)
-        ax_quality.legend(ncol=2, frameon=True)
+        ax_quality.legend(ncol=3, frameon=True)
         plt.tight_layout()
 
     if do_plot == 'all' or 'subject_scores' in do_plot:
 
         # ===== plot subject bias and inconsistency =====
         bar_width = 0.4
-        figsize = (5, 3.5)
-        # figsize = (7, 10)
-        fig, (ax_bias, ax_inconsty) = plt.subplots(figsize=figsize, nrows=2, sharex=True)
+        if 'ax_observer_bias' in ax_dict and 'ax_observer_inconsistency' in ax_dict:
+            ax_bias = ax_dict['ax_observer_bias']
+            ax_inconsty = ax_dict['ax_observer_inconsistency']
+        else:
+            _, (ax_bias, ax_inconsty) = plt.subplots(figsize=(5, 3.5), nrows=2, ncols=1, sharex=True)
         xs = None
         shift_count = 0
         my_xticks = None
@@ -228,7 +239,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         # ===== plot content ambiguity =====
         bar_width = 0.4
-        fig, ax_ambgty = plt.subplots(figsize=(5, 3.5), nrows=1)
+
+        if 'ax_content_ambiguity' in ax_dict:
+            ax_ambgty = ax_dict['ax_content_ambiguity']
+        else:
+            _, ax_ambgty = plt.subplots(figsize=(5, 3.5), nrows=1)
         xs = None
         shift_count = 0
         for subjective_model, result in zip(subjective_models, results):
