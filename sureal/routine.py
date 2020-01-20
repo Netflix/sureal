@@ -339,6 +339,8 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
 
         color_dict = more['color_dict'] if 'color_dict' in more else {}
 
+        marker_dict = more['marker_dict'] if 'marker_dict' in more else {}
+
         output_synthetic_dataset_filepath = more['output_synthetic_dataset_filepath'] \
             if 'output_synthetic_dataset_filepath' in more else None
 
@@ -400,6 +402,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                 ax.set_title(r'Quality Score ($\psi_j$)')
                 if 'quality_scores' in result and 'quality_scores' in synthetic_result:
                     color = color_dict[model_name] if model_name in color_dict else 'black'
+                    marker = marker_dict[model_name] if model_name in marker_dict else '.'
                     x = synthetic_result['quality_scores']
                     y = result['quality_scores']
                     if 'quality_scores_ci95' in result:
@@ -409,39 +412,41 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                         yerr = None
                         ci_perc=None
                     if do_errorbar is True and 'quality_scores_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
+                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
                                         ci_perc=ci_perc,
                                     ))
                     else:
-                        ax.scatter(x, y, color=color,
+                        ax.scatter(x, y, color=color, marker=marker,
                                    label='{sm} (RMSE {rmse:.4f})'.format(
                                        sm=model_name, rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
                     ax.legend()
                     diag_line = np.arange(min(x), max(x), step=0.01)
-                    ax.plot(diag_line, diag_line, '-k')
+                    ax.plot(diag_line, diag_line, '-', color='gray', )
 
             if 'quality_scores_std' in ax_dict:
                 ax = ax_dict['quality_scores_std']
                 ax.set_title(r'Std of Quality Score ($\sigma(\psi_j)$)')
                 if 'quality_scores_std' in result and 'quality_scores_std' in synthetic_result:
                     color = color_dict[model_name] if model_name in color_dict else 'black'
+                    marker = marker_dict[model_name] if model_name in marker_dict else '.'
                     x = synthetic_result['quality_scores_std']
                     y = result['quality_scores_std']
-                    ax.scatter(x, y, color=color,
+                    ax.scatter(x, y, color=color, marker=marker,
                                label='{sm} (RMSE {rmse:.4f})'.format(
                                    sm=model_name, rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
                     ax.legend()
                     diag_line = np.arange(min(x), max(x), step=0.01)
-                    ax.plot(diag_line, diag_line, '-k')
+                    ax.plot(diag_line, diag_line, '-', color='gray', )
 
             if 'observer_bias' in ax_dict:
                 ax = ax_dict['observer_bias']
                 ax.set_title(r'Subject Bias ($\Delta_i$)')
                 if 'observer_bias' in result and 'observer_bias' in synthetic_result:
                     color = color_dict[model_name] if model_name in color_dict else 'black'
+                    marker = marker_dict[model_name] if model_name in marker_dict else '.'
                     x = synthetic_result['observer_bias']
                     y = result['observer_bias']
                     if 'observer_bias_ci95' in result:
@@ -454,26 +459,27 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = x[:min_xy]
                     y = y[:min_xy]
                     if do_errorbar is True and 'observer_bias_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
+                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
                                         ci_perc=ci_perc,
                                     ))
                     else:
-                        ax.scatter(x, y, color=color,
+                        ax.scatter(x, y, color=color, marker=marker,
                                     label='{sm} (RMSE {rmse:.4f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
                     ax.legend()
                     diag_line = np.arange(min(x), max(x), step=0.01)
-                    ax.plot(diag_line, diag_line, '-k')
+                    ax.plot(diag_line, diag_line, '-', color='gray', )
 
             if 'observer_inconsistency' in ax_dict:
                 ax = ax_dict['observer_inconsistency']
                 ax.set_title(r'Subject Inconsistency ($\upsilon_i$)')
                 if 'observer_inconsistency' in result and 'observer_inconsistency' in synthetic_result:
                     color = color_dict[model_name] if model_name in color_dict else 'black'
+                    marker = marker_dict[model_name] if model_name in marker_dict else '.'
                     x = synthetic_result['observer_inconsistency']
                     y = result['observer_inconsistency']
                     if 'observer_inconsistency_ci95' in result:
@@ -487,36 +493,37 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = x[:min_xy]
                     y = y[:min_xy]
                     if do_errorbar is True and 'observer_inconsistency_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2,
+                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
                                         ci_perc=ci_perc,
                                     ))
                     else:
-                        ax.scatter(x, y, color=color,
+                        ax.scatter(x, y, color=color, marker=marker,
                                    label='{sm} (RMSE {rmse:.4f})'.format(
                                        sm=model_name, rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
                     ax.legend()
                     diag_line = np.arange(min(x), max(x), step=0.01)
-                    ax.plot(diag_line, diag_line, '-k')
+                    ax.plot(diag_line, diag_line, '-', color='gray', )
 
             if 'quality_ambiguity' in ax_dict:
                 ax = ax_dict['quality_ambiguity']
                 ax.set_title(r'Quality Ambiguity ($\phi_j$)')
                 if 'quality_ambiguity' in result and 'quality_ambiguity' in synthetic_result:
                     color = color_dict[model_name] if model_name in color_dict else 'black'
+                    marker = marker_dict[model_name] if model_name in marker_dict else '.'
                     x = synthetic_result['quality_ambiguity']
                     y = result['quality_ambiguity']
                     min_xy = np.min([len(x),len(y)])
                     x = x[:min_xy]
                     y = y[:min_xy]
-                    ax.scatter(x, y, color=color,
+                    ax.scatter(x, y, color=color, marker=marker,
                                label='{sm} (RMSE {rmse:.4f})'.format(
                                    sm=model_name, rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score']))
                     ax.legend()
                     diag_line = np.arange(min(x), max(x), step=0.01)
-                    ax.plot(diag_line, diag_line, '-k')
+                    ax.plot(diag_line, diag_line, '-', color='gray', )
 
         return ret
 

@@ -522,6 +522,9 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
         assert S == self.num_observers
         assert C == self.num_ref_videos
 
+        if 'seed' in self.input_dict:
+            assert self.input_dict['seed'] is None or isinstance(self.input_dict['seed'], int)
+
     @property
     def opinion_score_2darray(self):
         """
@@ -534,6 +537,9 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
         Y_c ~ N(mu_c, delta_c), where c is a function of e, or c = c(e), represents
         content c's bias (mu_c) and ambiguity (delta_c).
         """
+
+        if 'seed' in self.input_dict:
+            np.random.seed(self.input_dict['seed'])
 
         S = self.num_observers
         E = self.num_dis_videos
