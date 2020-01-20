@@ -92,9 +92,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                                 color=colors[shift_count],
                                 label=subjective_model.TYPE)
                 elif plot_type == 'errorbar':
-                    if 'quality_scores_std' in result:
+                    if 'quality_scores_ci95' in result:
                         try:
-                            quality_error = np.array(result['quality_scores_std']) * 1.96 # 95% C.I.
+                            quality_error = result['quality_scores_ci95']
                         except TypeError:
                             quality_error = None
                         ax_quality.errorbar(np.array(xs)+shift_count*bar_width+0.2, quality,
@@ -139,8 +139,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                                 color=colors[shift_count],
                                 label=subjective_model.TYPE)
                 elif plot_type == 'errorbar':
-                    if 'observer_bias_std' in result:
-                        bias_error = np.array(result['observer_bias_std']) * 1.96 # 95% C.I.
+                    if 'observer_bias_ci95' in result:
+                        bias_error = result['observer_bias_ci95']
                         ax_bias.errorbar(np.array(xs)+shift_count*bar_width+0.2, bias,
                                          yerr=bias_error, fmt='.', capsize=2,
                                          color=colors[shift_count],
@@ -172,8 +172,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                                     color=colors[shift_count],
                                     label=subjective_model.TYPE)
                 elif plot_type == 'errorbar':
-                    if 'observer_inconsistency_std' in result:
-                        inconsistency_error = np.array(result['observer_inconsistency_std']) * 1.96 # 95% C.I.
+                    if 'observer_inconsistency_ci95' in result:
+                        inconsistency_error = result['observer_inconsistency_ci95']
                         ax_inconsty.errorbar(np.array(xs)+shift_count*bar_width+0.2, inconsty,
                                              yerr=inconsistency_error, fmt='.', capsize=2,
                                              color=colors[shift_count],
@@ -219,8 +219,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                                   color=colors[shift_count],
                                   label=subjective_model.TYPE)
                 elif plot_type == 'errorbar':
-                    if 'content_ambiguity_std' in result:
-                        ambiguity_error = np.array(result['content_ambiguity_std']) * 1.96 # 95% C.I.
+                    if 'content_ambiguity_ci95' in result:
+                        ambiguity_error = result['content_ambiguity_ci95']
                         ax_ambgty.errorbar(np.array(xs)+shift_count*bar_width+0.2, ambgty,
                                            yerr=ambiguity_error, fmt='.', capsize=2,
                                            color=colors[shift_count],
