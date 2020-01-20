@@ -41,6 +41,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     if 'ax_dict' in kwargs:
         ax_dict = kwargs['ax_dict']
+        del kwargs['ax_dict']
     else:
         ax_dict = {}
 
