@@ -39,6 +39,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     else:
         plot_type = 'errorbar'
 
+    if 'ax_dict' in kwargs:
+        ax_dict = kwargs['ax_dict']
+    else:
+        ax_dict = None
+
     colors = ['black', 'gray', 'blue', 'red'] * 2
 
     if dataset_filepath.endswith('.py'):
@@ -58,27 +63,27 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     ]
 
     if do_plot == 'all' or 'raw_scores' in do_plot:
+
         # ===== plot raw scores
-        plt.figure(figsize=(5, 2.5))
+        fig, ax_rawscores = plt.subplots(figsize=(5, 2.5))
         mtx = dataset_reader.opinion_score_2darray.T
-        S, E = mtx.shape
-        plt.imshow(mtx, interpolation='nearest')
+        # S, E = mtx.shape
+        ax_rawscores.imshow(mtx, interpolation='nearest', cmap='gray')
         # xs = np.array(range(S)) + 1
         # my_xticks = map(lambda x: "#{}".format(x), xs)
         # plt.yticks(np.array(xs), my_xticks, rotation=0)
-        plt.title(r'Raw Opinion Scores ($u_{ij}$)')
-        plt.xlabel(r'Video Stimuli ($j$)')
-        plt.ylabel(r'Test Subjects ($i$)')
-        plt.set_cmap('gray')
+        ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
+        ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
+        ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
         plt.tight_layout()
 
     if do_plot == 'all' or 'quality_scores' in do_plot:
         # ===== plot quality scores =====
         bar_width = 0.4
         fig, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
-        xs = None
+        # xs = None
         shift_count = 0
-        my_xticks = None
+        # my_xticks = None
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result:
                 quality = result['quality_scores']
@@ -95,12 +100,16 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     if 'quality_scores_ci95' in result:
                         try:
                             quality_error = result['quality_scores_ci95']
+                            label = '{} (avg CI {:.2f})'.format(
+                                subjective_model.TYPE, np.mean(np.array(quality_error[0]) +
+                                                               np.array(quality_error[1])))
                         except TypeError:
                             quality_error = None
+                            label = subjective_model.TYPE
                         ax_quality.errorbar(np.array(xs)+shift_count*bar_width+0.2, quality,
                                             yerr=quality_error, fmt='.', capsize=2,
                                             color=colors[shift_count],
-                                            label=subjective_model.TYPE)
+                                            label=label)
                     else:
                         ax_quality.plot(np.array(xs)+shift_count*bar_width+0.2, quality, '.',
                                     color=colors[shift_count],
@@ -140,11 +149,18 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                                 label=subjective_model.TYPE)
                 elif plot_type == 'errorbar':
                     if 'observer_bias_ci95' in result:
-                        bias_error = result['observer_bias_ci95']
+                        try:
+                            bias_error = result['observer_bias_ci95']
+                            label = '{} (avg CI {:.2f})'.format(
+                                subjective_model.TYPE, np.mean(np.array(bias_error[0]) +
+                                                               np.array(bias_error[1])))
+                        except TypeError:
+                            bias_error = None
+                            label = subjective_model.TYPE
                         ax_bias.errorbar(np.array(xs)+shift_count*bar_width+0.2, bias,
                                          yerr=bias_error, fmt='.', capsize=2,
                                          color=colors[shift_count],
-                                         label=subjective_model.TYPE)
+                                         label=label)
                     else:
                         ax_bias.plot(np.array(xs)+shift_count*bar_width+0.2, bias, '.',
                                      color=colors[shift_count],
@@ -173,11 +189,18 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                                     label=subjective_model.TYPE)
                 elif plot_type == 'errorbar':
                     if 'observer_inconsistency_ci95' in result:
-                        inconsistency_error = result['observer_inconsistency_ci95']
+                        try:
+                            inconsistency_error = result['observer_inconsistency_ci95']
+                            label = '{} (avg CI {:.2f})'.format(
+                                subjective_model.TYPE, np.mean(np.array(inconsistency_error[0]) +
+                                                               np.array(inconsistency_error[1])))
+                        except TypeError:
+                            inconsistency_error = None
+                            label = subjective_model.TYPE
                         ax_inconsty.errorbar(np.array(xs)+shift_count*bar_width+0.2, inconsty,
                                              yerr=inconsistency_error, fmt='.', capsize=2,
                                              color=colors[shift_count],
-                                             label=subjective_model.TYPE)
+                                             label=label)
                     else:
                         ax_inconsty.plot(np.array(xs)+shift_count*bar_width+0.2, inconsty, '.',
                                          color=colors[shift_count],
@@ -220,11 +243,18 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                                   label=subjective_model.TYPE)
                 elif plot_type == 'errorbar':
                     if 'content_ambiguity_ci95' in result:
-                        ambiguity_error = result['content_ambiguity_ci95']
+                        try:
+                            ambiguity_error = result['content_ambiguity_ci95']
+                            label = '{} (avg CI {:.2f})'.format(
+                                subjective_model.TYPE, np.mean(np.array(ambiguity_error[0]) +
+                                                               np.array(ambiguity_error[1])))
+                        except TypeError:
+                            ambiguity_error = None
+                            label = subjective_model.TYPE
                         ax_ambgty.errorbar(np.array(xs)+shift_count*bar_width+0.2, ambgty,
                                            yerr=ambiguity_error, fmt='.', capsize=2,
                                            color=colors[shift_count],
-                                           label=subjective_model.TYPE)
+                                           label=label)
                     else:
                         ax_ambgty.plot(np.array(xs)+shift_count*bar_width+0.2, ambgty, '.',
                                        color=colors[shift_count],
@@ -413,7 +443,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                         ci_perc=None
                     if do_errorbar is True and 'quality_scores_ci95' in result:
                         ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
-                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
+                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
                                         ci_perc=ci_perc,
@@ -460,7 +490,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     y = y[:min_xy]
                     if do_errorbar is True and 'observer_bias_ci95' in result:
                         ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
-                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
+                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
                                         ci_perc=ci_perc,
@@ -494,7 +524,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     y = y[:min_xy]
                     if do_errorbar is True and 'observer_inconsistency_ci95' in result:
                         ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
-                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f}'.format(
+                                    label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
                                         ci_perc=ci_perc,
