@@ -270,6 +270,128 @@ class CorruptSubjectDatasetReaderTestWithCorruptionProb(unittest.TestCase):
         self.assertEqual(os_2darray.shape, (79, 26))
         self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.96532565883975119, places=4)
 
+    def test_opinion_score_2darray_with_corruption_prob_flip(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.0,
+            'corrupt_behavior': 'flip',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.64933186478291516, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob2_flip(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.2,
+            'corrupt_behavior': 'flip',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.8313104324219012, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob3_flip(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.7,
+            'corrupt_behavior': 'flip',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 1.105462191789546, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob4_flip(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 1.0,
+            'corrupt_behavior': 'flip',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 1.2037017964018906, places=4)
+
+
+    def test_opinion_score_2darray_with_corruption_prob_min(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.0,
+            'corrupt_behavior': 'min',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.64933186478291516, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob2_min(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.2,
+            'corrupt_behavior': 'min',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.8313708086943223, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob3_min(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.7,
+            'corrupt_behavior': 'min',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 1.1056046722467132, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob4_min(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 1.0,
+            'corrupt_behavior': 'min',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 1.2039488364011253, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob3_mid(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.7,
+            'corrupt_behavior': 'mid',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.7698970309018135, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob3_max(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.7,
+            'corrupt_behavior': 'max',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.8401951693458558, places=4)
+
+    def test_opinion_score_2darray_with_corruption_prob3_constant(self):
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_probability': 0.7,
+            'corrupt_behavior': 'constant',
+        }
+        self.dataset_reader = CorruptSubjectRawDatasetReader(self.dataset, input_dict=info_dict)
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.8358848954630226, places=4)
+
 
 class CorruptSubjectDatasetReaderTest(unittest.TestCase):
 
@@ -293,6 +415,171 @@ class CorruptSubjectDatasetReaderTest(unittest.TestCase):
         os_2darray = self.dataset_reader.opinion_score_2darray
         self.assertEqual(os_2darray.shape, (79, 26))
         self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.93177573807000225, places=4)
+
+    def test_to_dataset(self):
+        dataset = self.dataset_reader.to_dataset()
+
+        old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
+        new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
+
+        self.assertNotEqual(old_scores, new_scores)
+
+
+class CorruptSubjectDatasetReaderTestFlip(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        dataset = import_python_file(dataset_filepath)
+
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_behavior': 'flip',
+        }
+
+        self.dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+
+    def test_read_dataset_stats(self):
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
+
+    def test_opinion_score_2darray(self):
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 1.2037017964018906, places=4)
+
+    def test_to_dataset(self):
+        dataset = self.dataset_reader.to_dataset()
+
+        old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
+        new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
+
+        self.assertNotEqual(old_scores, new_scores)
+
+
+class CorruptSubjectDatasetReaderTestMin(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        dataset = import_python_file(dataset_filepath)
+
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_behavior': 'min',
+        }
+
+        self.dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+
+    def test_read_dataset_stats(self):
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
+
+    def test_opinion_score_2darray(self):
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 1.2039488364011253, places=4)
+
+    def test_to_dataset(self):
+        dataset = self.dataset_reader.to_dataset()
+
+        old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
+        new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
+
+        self.assertNotEqual(old_scores, new_scores)
+
+
+class CorruptSubjectDatasetReaderTestMid(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        dataset = import_python_file(dataset_filepath)
+
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_behavior': 'mid',
+        }
+
+        self.dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+
+    def test_read_dataset_stats(self):
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
+
+    def test_opinion_score_2darray(self):
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.7894505437942192, places=4)
+
+    def test_to_dataset(self):
+        dataset = self.dataset_reader.to_dataset()
+
+        old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
+        new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
+
+        self.assertNotEqual(old_scores, new_scores)
+
+
+class CorruptSubjectDatasetReaderTestMax(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        dataset = import_python_file(dataset_filepath)
+
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_behavior': 'max',
+        }
+
+        self.dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+
+    def test_read_dataset_stats(self):
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
+
+    def test_opinion_score_2darray(self):
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.8754822173027904, places=4)
+
+    def test_to_dataset(self):
+        dataset = self.dataset_reader.to_dataset()
+
+        old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
+        new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
+
+        self.assertNotEqual(old_scores, new_scores)
+
+
+class CorruptSubjectDatasetReaderTestConstant(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        dataset = import_python_file(dataset_filepath)
+
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+            'corrupt_behavior': 'constant',
+        }
+
+        self.dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+
+    def test_read_dataset_stats(self):
+        self.assertEqual(self.dataset_reader.num_ref_videos, 9)
+        self.assertEqual(self.dataset_reader.num_dis_videos, 79)
+        self.assertEqual(self.dataset_reader.num_observers, 26)
+
+    def test_opinion_score_2darray(self):
+        os_2darray = self.dataset_reader.opinion_score_2darray
+        self.assertEqual(os_2darray.shape, (79, 26))
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray, axis=1))), 0.7838541915456235, places=4)
 
     def test_to_dataset(self):
         dataset = self.dataset_reader.to_dataset()

@@ -687,13 +687,17 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
     """
 
     def _assert_input_dict(self):
+
+        self._assert_selected_subjects()
+
+        corrupt_behavior = self._get_corrupt_behavior()
+        assert corrupt_behavior in ['shuffle', 'flip', 'min', 'mid', 'max', 'constant']
+
+    def _assert_selected_subjects(self):
         assert 'selected_subjects' in self.input_dict
-
         selected_subjects = self.input_dict['selected_subjects']
-
         # assert no repeated numbers
         assert len(list(set(selected_subjects))) == len(selected_subjects)
-
         # assert in 0, 1, 2...., num_observer -1
         observer_idxs = range(super(CorruptSubjectRawDatasetReader, self).num_observers)
         for subject in selected_subjects:
@@ -709,18 +713,102 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
         num_video, num_subject = score_mtx.shape
 
         # for selected subjects, shuffle its score
-        selected_subjects = self.input_dict['selected_subjects']
-        for subject in selected_subjects:
+        selected_subjects = self._get_selected_subjects()
+        corrupt_probability = self._get_corrupt_probability()
+        corrupt_behavior = self._get_corrupt_behavior()
 
-            if 'corrupt_probability' in self.input_dict:
-                videos = list(np.where(np.random.uniform(size=num_video)
-                                       < self.input_dict['corrupt_probability'])[0])
-                score_mtx[videos, subject] = \
-                    np.random.permutation(score_mtx[videos, subject])
-            else:
-                np.random.shuffle(score_mtx[:, subject])
+        if corrupt_behavior == 'shuffle':
+
+            for subject in selected_subjects:
+
+                if corrupt_probability is not None:
+                    videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
+                    score_mtx[videos, subject] = np.random.permutation(score_mtx[videos, subject])
+                else:
+                    np.random.shuffle(score_mtx[:, subject])
+
+        elif corrupt_behavior == 'flip':
+
+            min_score = np.nanmin(score_mtx)
+            max_score = np.nanmax(score_mtx)
+
+            for subject in selected_subjects:
+
+                if corrupt_probability is not None:
+                    videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
+                    score_mtx[videos, subject] = max_score + min_score - score_mtx[videos, subject]
+                else:
+                    score_mtx[:, subject] = max_score + min_score - score_mtx[:, subject]
+
+        elif corrupt_behavior == 'min':
+
+            min_score = np.nanmin(score_mtx)
+            for subject in selected_subjects:
+
+                if corrupt_probability is not None:
+                    videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
+                    score_mtx[videos, subject] = min_score
+                else:
+                    score_mtx[:, subject] = min_score
+
+        elif corrupt_behavior == 'mid':
+
+            min_score = np.nanmin(score_mtx)
+            max_score = np.nanmax(score_mtx)
+            mid_score = (min_score + max_score) / 2.0
+
+            for subject in selected_subjects:
+
+                if corrupt_probability is not None:
+                    videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
+                    score_mtx[videos, subject] = mid_score
+                else:
+                    score_mtx[:, subject] = mid_score
+
+        elif corrupt_behavior == 'max':
+
+            max_score = np.nanmax(score_mtx)
+            for subject in selected_subjects:
+
+                if corrupt_probability is not None:
+                    videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
+                    score_mtx[videos, subject] = max_score
+                else:
+                    score_mtx[:, subject] = max_score
+
+        elif corrupt_behavior == 'constant':
+
+            min_score = np.nanmin(score_mtx)
+            max_score = np.nanmax(score_mtx)
+
+            for subject in selected_subjects:
+
+                const_score = np.random.uniform(min_score, max_score)
+
+                if corrupt_probability is not None:
+                    videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
+                    score_mtx[videos, subject] = const_score
+                else:
+                    score_mtx[:, subject] = const_score
+
+        else:
+            assert False
 
         return score_mtx
+
+    def _get_corrupt_probability(self):
+        corrupt_probability = self.input_dict[
+            'corrupt_probability'] if 'corrupt_probability' in self.input_dict else None
+        return corrupt_probability
+
+    def _get_selected_subjects(self):
+        selected_subjects = self.input_dict['selected_subjects']
+        return selected_subjects
+
+    def _get_corrupt_behavior(self):
+        corrupt_behavior = self.input_dict['corrupt_behavior'] \
+            if 'corrupt_behavior' in self.input_dict and self.input_dict['corrupt_behavior'] is not None else 'shuffle'
+        return corrupt_behavior
 
 
 class CorruptDataRawDatasetReader(MockedRawDatasetReader):
