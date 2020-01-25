@@ -303,7 +303,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             'std(std)',
             'dof',
         ]
-        fig, ax = plt.subplots(figsize=[12, 4])
+        if 'ax_data_fitness' in ax_dict:
+            ax_fitness = ax_dict['ax_data_fitness']
+        else:
+            _, ax_fitness = plt.subplots(figsize=[12, 4])
+
         for subjective_model, result in zip(subjective_models, results):
             if 'multiple_of_stds' in result:
                 n_stds = result['multiple_of_stds']
@@ -344,12 +348,10 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
                 label = '{} ({})'.format(subjective_model.TYPE, ', '.join(map(lambda key: '{} {}'.format(key, metrics[key]), metric_keys)))
 
-                ax.bar(map(lambda x: '${}\sigma$'.format(x), range(1, n_sigmas + 1)), ys,
-                       label=label,
-                       alpha=0.4)
-        ax.set_xlabel('Number of $\sigma$')
-        ax.set_ylabel('Percentage (%)')
-        ax.legend()
+                ax_fitness.bar(list(map(lambda x: '${}\sigma$'.format(x), range(1, n_sigmas + 1))), ys, label=label, alpha=0.4)
+        ax_fitness.set_xlabel('Number of $\sigma$')
+        ax_fitness.set_ylabel('Percentage (%)')
+        ax_fitness.legend()
         plt.tight_layout()
 
     return dataset, subjective_models, results
