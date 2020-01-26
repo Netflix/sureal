@@ -45,6 +45,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(float(np.mean(quality_ambiguity)), 0.6621911698651353, places=4)
 
         self.assertEqual(result['dof'], 158)
+        self.assertAlmostEqual(result['loglikelihood'], -1927.6193619438554, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.183732241710059, places=6)
 
@@ -243,6 +244,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 8.8863877635750423, places=4)
 
         self.assertEqual(result['dof'], 140)
+        self.assertAlmostEqual(result['loglikelihood'], -1827.5822008950126, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.2332790063154353, places=6)
 
@@ -373,6 +375,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.var(result['quality_scores']), 1.4355485462027884, places=4)
 
         self.assertEqual(result['dof'], 131)
+        self.assertAlmostEqual(result['loglikelihood'], -1841.9028006998542, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.2347392971084559, places=6)
 
@@ -391,6 +394,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.var(result['quality_scores']), 1.4355485462027884, places=4)
 
         self.assertEqual(result['dof'], 131)
+        self.assertAlmostEqual(result['loglikelihood'], -1841.9028006998542, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.2347392971084559, places=6)
 
@@ -406,6 +410,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.var(result['content_ambiguity']), 0.0045809756997836721, places=4)
 
         self.assertEqual(result['dof'], 88)
+        self.assertAlmostEqual(result['loglikelihood'], -2103.6991725900293, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.183732241710059, places=6)
 
@@ -641,6 +646,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.var(scores), 1.1049505732699529, places=4) # 1.4012220200639218
 
         self.assertEqual(result['dof'], 158)
+        self.assertAlmostEqual(result['loglikelihood'], -2285.0510469745345, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3565171169581582, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.0511662919205282, places=6)
 
@@ -676,6 +682,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.var(bias), 0.08903258562151982, places=8)
 
         self.assertEqual(result['dof'], 158)
+        self.assertAlmostEqual(result['loglikelihood'], -2621.218904081007, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.332411174171261, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 0.9792512716077287, places=6)
 
@@ -697,6 +704,7 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.var(bias), 0.08903258562151982, places=8)
 
         self.assertEqual(result['dof'], 158)
+        self.assertAlmostEqual(result['loglikelihood'], -2225.49386312642, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3307052960550632, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.04642254062382, places=6)
 
