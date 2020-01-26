@@ -260,35 +260,36 @@ class MosModel(SubjectiveModel):
                   'quality_ambiguity': std,
                   'raw_scores': os_2darray,
                   }
-        std = pd.DataFrame(os_2darray).std(axis=1)
-        stats = cls._get_stats(os_2darray, mos, std)
-        result.update(stats)
+        num_pvs, num_obs = os_2darray.shape
+
+        result['reconstructions'] = cls._get_reconstructions(mos, num_obs)
+
+        dof = cls._get_dof(num_pvs, num_obs)
+        result['dof'] = dof
+
+        loglikelihood = np.nansum(np.log(vectorized_gaussian(
+            os_2darray,
+            np.tile(mos, (num_obs, 1)).T,
+            np.tile(std, (num_obs, 1)).T,
+        )))
+        result['loglikelihood'] = loglikelihood
+
+        aic = 2 * dof - 2 * loglikelihood
+        result['aic'] = aic
+
+        bic = np.log(num_pvs * num_obs) * dof - 2 * loglikelihood
+        result['bic'] = bic
+
         return result
 
     @classmethod
-    def _get_stats(cls, x_es, x_e, std_e):
-        E, S = x_es.shape
+    def _get_reconstructions(cls, x_e, S):
         x_es_hat = np.tile(x_e, (S, 1)).T
-        # std_es = np.tile(std_e, (S, 1)).T
-        # n_stds = np.abs(x_es - x_es_hat) / (std_es + 1e-18)
-        # p_values = (1.0 - norm.cdf(np.abs(x_es - x_es_hat), scale=std_es)) * 2
-        dof = E * 2
-        loglikelihood = np.nansum(np.log(vectorized_gaussian(
-            x_es,
-            np.tile(x_e, (S, 1)).T,
-            np.tile(std_e, (S, 1)).T,
-        )))
-        aic = 2 * dof - 2 * loglikelihood
-        bic = np.log(E * S) * dof - 2 * loglikelihood
-        return {
-            # 'p_values': p_values,
-            # 'multiple_of_stds': n_stds,
-            'reconstructions': x_es_hat,
-            'dof': dof,
-            'loglikelihood': loglikelihood,
-            'aic': aic,
-            'bic': bic,
-        }
+        return x_es_hat
+
+    @classmethod
+    def _get_dof(cls, E, S):
+        return E * 2
 
 
 class DmosModel(MosModel):
@@ -960,14 +961,14 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         except AssertionError:
             pass
 
-        stats = cls._get_reconstructions(x_es, x_e, b_s)
-        result.update(stats)
+        result['reconstructions'] = cls._get_reconstructions(x_es, x_e, b_s)
 
         dof = cls._get_dof(E, S, C)
         result['dof'] = dof
 
         loglikelihood = np.sum(cls.loglikelihood_fcn(
-            x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, 1, numerical_pdf))
+            x_es, x_e, b_s, v_s, a_c,
+            dataset_reader.content_id_of_dis_videos, 1, numerical_pdf))
         result['loglikelihood'] = loglikelihood
 
         aic = 2 * dof - 2 * loglikelihood
@@ -982,9 +983,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     def _get_reconstructions(cls, x_es, x_e, b_s):
         E, S = x_es.shape
         x_es_hat = np.tile(x_e, (S, 1)).T + np.tile(b_s, (E, 1))
-        return {
-            'reconstructions': x_es_hat,
-        }
+        return x_es_hat
 
     @classmethod
     def _get_dof(cls, E, S, C):
