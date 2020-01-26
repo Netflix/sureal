@@ -149,7 +149,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 shift_count += 1
         ax_quality.grid()
         # ax_quality.legend(loc=1, ncol=2, frameon=True)
-        ax_quality.legend(ncol=3, frameon=True)
+        ax_quality.legend(ncol=4, frameon=True)
         plt.tight_layout()
 
     if do_plot == 'all' or 'subject_scores' in do_plot:
