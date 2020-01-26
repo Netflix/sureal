@@ -21,6 +21,18 @@ __license__ = "Apache, Version 2.0"
 
 def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=None, **kwargs):
 
+    def _get_reconstruction_stats(raw_scores, rec_scores):
+        rec_scores = rec_scores[~np.isnan(rec_scores)]
+        raw_scores = raw_scores[~np.isnan(raw_scores)]
+        rmse = RmsePerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=False)['score']
+        cc = PccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=False)['score']
+        srocc = SrccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=False)['score']
+        return {
+            'rmse': rmse,
+            'cc': cc,
+            'srocc': srocc,
+        }
+
     if do_plot is None:
         do_plot = []
 
@@ -62,6 +74,10 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     results = [
         s.run_modeling(**kwargs) for s in subjective_models
     ]
+
+    for subjective_model, result in zip(subjective_models, results):
+        if 'raw_scores' in result and 'reconstructions' in result:
+            result['reconstruction_stats'] = _get_reconstruction_stats(result['raw_scores'], result['reconstructions'])
 
     if do_plot == 'all' or 'raw_scores' in do_plot:
 

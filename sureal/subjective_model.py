@@ -269,13 +269,13 @@ class MosModel(SubjectiveModel):
     def _get_stats(cls, x_es, x_e, std_e):
         E, S = x_es.shape
         x_es_hat = np.tile(x_e, (S, 1)).T
-        std_es = np.tile(std_e, (S, 1)).T
-        n_stds = np.abs(x_es - x_es_hat) / (std_es + 1e-18)
-        p_values = (1.0 - norm.cdf(np.abs(x_es - x_es_hat), scale=std_es)) * 2
+        # std_es = np.tile(std_e, (S, 1)).T
+        # n_stds = np.abs(x_es - x_es_hat) / (std_es + 1e-18)
+        # p_values = (1.0 - norm.cdf(np.abs(x_es - x_es_hat), scale=std_es)) * 2
         dof = E * 2
         return {
-            'p_values': p_values,
-            'multiple_of_stds': n_stds,
+            # 'p_values': p_values,
+            # 'multiple_of_stds': n_stds,
             'reconstructions': x_es_hat,
             'dof': dof,
         }
@@ -583,6 +583,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         # mode: DEFAULT - full model
         #       SUBJECT_OBLIVIOUS - model not considering subject bias and inconsistency
         #       CONTENT_OBLIVIOUS - model not considering content ambiguity
+
+        assert cls.mode in ['DEFAULT', 'SUBJECT_OBLIVIOUS', 'CONTENT_OBLIVIOUS']
 
         if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
             assert False, '{} must not and need not apply subject rejection.'.format(cls.__name__)
@@ -919,9 +921,12 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             x_e += mean_b_s
 
         result = {
+            'raw_scores': x_es,
+
             'quality_scores': list(x_e),
             'quality_scores_std': list(x_e_std),
             'quality_scores_ci95': [list(1.96 * x_e_std), list(1.96 * x_e_std)],
+
         }
 
         if cls.mode != 'SUBJECT_OBLIVIOUS':
@@ -936,6 +941,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         if cls.mode != 'CONTENT_OBLIVIOUS':
             result['content_ambiguity'] = list(a_c)
             result['content_ambiguity_std'] = list(a_c_std)
+            result['content_ambiguity_ci95'] = [list(1.96 * a_c_std), list(1.96 * a_c_std)]
 
         try:
             observers = dataset_reader._get_list_observers()  # may not exist
@@ -943,7 +949,32 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         except AssertionError:
             pass
 
+        stats = cls._get_stats(x_es, x_e, b_s)
+        result.update(stats)
+        dof = cls._get_dof(E, S, C)
+        result.update(dof)
+
         return result
+
+    @classmethod
+    def _get_stats(cls, x_es, x_e, b_s):
+        E, S = x_es.shape
+        x_es_hat = np.tile(x_e, (S, 1)).T + np.tile(b_s, (E, 1))
+        return {
+            'reconstructions': x_es_hat,
+        }
+
+    @classmethod
+    def _get_dof(cls, E, S, C):
+        if cls.mode == 'DEFAULT':
+            dof = E + S * 2 + C
+        elif cls.mode == 'CONTENT_OBLIVIOUS':
+            dof = E + S * 2
+        elif cls.mode == 'SUBJECT_OBLIVIOUS':
+            dof = E + C
+        else:
+            assert False
+        return {'dof': dof}
 
 
 class MaximumLikelihoodEstimationModelContentOblivious(MaximumLikelihoodEstimationModel):
@@ -1128,6 +1159,7 @@ class BiasremvSubjrejMosModel(BiasremvMosModel):
         kwargs2 = kwargs.copy()
         kwargs2['bias_offset'] = True
         kwargs2['subject_rejection'] = True
-        return super(BiasremvMosModel, self).run_modeling(**kwargs2)
+        result = super(BiasremvMosModel, self).run_modeling(**kwargs2)
 
+        return result
 
