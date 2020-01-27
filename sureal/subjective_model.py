@@ -243,13 +243,14 @@ class MosModel(SubjectiveModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
+        original_os_2darray_shape = [dataset_reader.num_dis_videos, dataset_reader.num_observers]
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         os_2darray = ret['opinion_score_2darray']
-        result = cls._get_mos_and_stats(os_2darray, dataset_reader.opinion_score_2darray)
+        result = cls._get_mos_and_stats(os_2darray, original_os_2darray_shape)
         return result
 
     @classmethod
-    def _get_mos_and_stats(cls, os_2darray, original_os_2darray):
+    def _get_mos_and_stats(cls, os_2darray, original_os_2darray_shape):
         mos = pd.DataFrame(os_2darray).mean(axis=1)  # mean along s, ignore NaN
         mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(
             pd.DataFrame(os_2darray / os_2darray).sum(axis=1))  # std / sqrt(N), ignoring NaN
@@ -264,7 +265,7 @@ class MosModel(SubjectiveModel):
 
         result['reconstructions'] = cls._get_reconstructions(mos, num_obs)
 
-        original_num_pvs, original_num_obs = original_os_2darray.shape
+        original_num_pvs, original_num_obs = original_os_2darray_shape
         dof = cls._get_dof(original_num_pvs, original_num_obs)
         result['dof'] = dof
 
@@ -1164,8 +1165,9 @@ class BiasremvMosModel(MosModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
+        original_os_2darray_shape = [dataset_reader.num_dis_videos, dataset_reader.num_observers]
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        result = cls._get_mos_and_stats(ret['opinion_score_2darray'], dataset_reader.opinion_score_2darray)
+        result = cls._get_mos_and_stats(ret['opinion_score_2darray'], original_os_2darray_shape)
         result['observer_bias'] = ret['bias_offset_estimate']
         return result
 
