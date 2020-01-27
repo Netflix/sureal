@@ -245,11 +245,11 @@ class MosModel(SubjectiveModel):
     def _run_modeling(cls, dataset_reader, **kwargs):
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         os_2darray = ret['opinion_score_2darray']
-        result = cls._get_mos_and_stats(os_2darray)
+        result = cls._get_mos_and_stats(os_2darray, dataset_reader.opinion_score_2darray)
         return result
 
     @classmethod
-    def _get_mos_and_stats(cls, os_2darray):
+    def _get_mos_and_stats(cls, os_2darray, original_os_2darray):
         mos = pd.DataFrame(os_2darray).mean(axis=1)  # mean along s, ignore NaN
         mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(
             pd.DataFrame(os_2darray / os_2darray).sum(axis=1))  # std / sqrt(N), ignoring NaN
@@ -264,7 +264,8 @@ class MosModel(SubjectiveModel):
 
         result['reconstructions'] = cls._get_reconstructions(mos, num_obs)
 
-        dof = cls._get_dof(num_pvs, num_obs)
+        original_num_pvs, original_num_obs = original_os_2darray.shape
+        dof = cls._get_dof(original_num_pvs, original_num_obs)
         result['dof'] = dof
 
         loglikelihood = np.nansum(np.log(vectorized_gaussian(
@@ -277,7 +278,7 @@ class MosModel(SubjectiveModel):
         aic = 2 * dof - 2 * loglikelihood
         result['aic'] = aic
 
-        bic = np.log(num_pvs * num_obs) * dof - 2 * loglikelihood
+        bic = np.log(original_num_pvs * original_num_obs) * dof - 2 * loglikelihood
         result['bic'] = bic
 
         return result
@@ -963,7 +964,10 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         result['reconstructions'] = cls._get_reconstructions(x_es, x_e, b_s)
 
-        dof = cls._get_dof(E, S, C)
+        original_E, original_S = dataset_reader.opinion_score_2darray.shape
+        original_C = dataset_reader.max_content_id_of_ref_videos + 1
+
+        dof = cls._get_dof(original_E, original_S, original_C)
         result['dof'] = dof
 
         loglikelihood = np.sum(cls.loglikelihood_fcn(
@@ -974,7 +978,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         aic = 2 * dof - 2 * loglikelihood
         result['aic'] = aic
 
-        bic = np.log(E * S) * dof - 2 * loglikelihood
+        bic = np.log(original_E * original_S) * dof - 2 * loglikelihood
         result['bic'] = bic
 
         return result
@@ -1161,9 +1165,14 @@ class BiasremvMosModel(MosModel):
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        result = cls._get_mos_and_stats(ret['opinion_score_2darray'])
+        result = cls._get_mos_and_stats(ret['opinion_score_2darray'], dataset_reader.opinion_score_2darray)
         result['observer_bias'] = ret['bias_offset_estimate']
         return result
+
+    @classmethod
+    def _get_dof(cls, E, S):
+        # override MosModel._get_dof
+        return E * 2 + S
 
 
 class BiasremvSubjrejMosModel(BiasremvMosModel):

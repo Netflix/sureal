@@ -48,6 +48,8 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(result['loglikelihood'], -1927.6193619438554, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.183732241710059, places=6)
+        self.assertAlmostEqual(result['aic'], 4171.238723887711, places=6)
+        self.assertAlmostEqual(result['bic'], 5060.390737584894, places=6)
 
     def test_mos_subjective_model_output(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -247,6 +249,8 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(result['loglikelihood'], -1827.5822008950126, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.2332790063154353, places=6)
+        self.assertAlmostEqual(result['aic'], 3935.1644017900253, places=6)
+        self.assertAlmostEqual(result['bic'], 4723.020616458416, places=6)
 
     def test_observer_content_aware_subjective_model_subjbias_zeromean(self):
         subjective_model = MaximumLikelihoodEstimationModel.from_dataset_file(
@@ -378,6 +382,8 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(result['loglikelihood'], -1841.9028006998542, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.2347392971084559, places=6)
+        self.assertAlmostEqual(result['aic'], 3945.8056013997084, places=6)
+        self.assertAlmostEqual(result['bic'], 4683.013916553702, places=6)
 
     def test_observer_content_aware_subjective_model_nocontent_subjbias_zeromean(self):
         subjective_model = MaximumLikelihoodEstimationModelContentOblivious.from_dataset_file(
@@ -397,6 +403,8 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(result['loglikelihood'], -1841.9028006998542, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.2347392971084559, places=6)
+        self.assertAlmostEqual(result['aic'], 3945.8056013997084, places=6)
+        self.assertAlmostEqual(result['bic'], 4683.013916553702, places=6)
 
     def test_observer_content_aware_subjective_model_nosubject(self):
         subjective_model = MaximumLikelihoodEstimationModelSubjectOblivious.from_dataset_file(
@@ -413,6 +421,8 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(result['loglikelihood'], -2103.6991725900293, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3654128030298962, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.183732241710059, places=6)
+        self.assertAlmostEqual(result['aic'], 4383.398345180059, places=6)
+        self.assertAlmostEqual(result['bic'], 4878.622251543047, places=6)
 
     def test_observer_aware_subjective_model_synthetic(self):
 
@@ -649,6 +659,8 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(result['loglikelihood'], -2285.0510469745345, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3565171169581582, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.0511662919205282, places=6)
+        self.assertAlmostEqual(result['aic'], 4886.102093949069, places=6)
+        self.assertAlmostEqual(result['bic'], 5775.254107646253, places=6)
 
     def test_zscoremos_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -663,6 +675,13 @@ class SubjectiveModelTest(unittest.TestCase):
 
         self.assertAlmostEqual(np.mean(scores), 0.0, places=4)
         self.assertAlmostEqual(np.var(scores), 0.5405866214633748, places=4) # 1.4012220200639218
+
+        self.assertEqual(result['dof'], 158)
+        self.assertAlmostEqual(result['loglikelihood'], -1991.5628660366033, places=6)
+        self.assertAlmostEqual(np.std(result['raw_scores']), 0.99365072945774, places=6)
+        self.assertAlmostEqual(np.std(result['reconstructions']), 0.7352459598415858, places=6)
+        self.assertAlmostEqual(result['aic'], 4299.125732073207, places=6)
+        self.assertAlmostEqual(result['bic'], 5188.2777457703905, places=6)
 
     def test_biasremv_mos_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -681,10 +700,12 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.mean(bias), 0.0, places=8)
         self.assertAlmostEqual(np.var(bias), 0.08903258562151982, places=8)
 
-        self.assertEqual(result['dof'], 158)
+        self.assertEqual(result['dof'], 184)
         self.assertAlmostEqual(result['loglikelihood'], -2621.218904081007, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.332411174171261, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 0.9792512716077287, places=6)
+        self.assertAlmostEqual(result['aic'], 5610.437808162014, places=6)
+        self.assertAlmostEqual(result['bic'], 6645.905976011899, places=6)
 
     def test_biasremv_subjrej_mos_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -703,10 +724,12 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(np.mean(bias), 0.0, places=8)
         self.assertAlmostEqual(np.var(bias), 0.08903258562151982, places=8)
 
-        self.assertEqual(result['dof'], 158)
+        self.assertEqual(result['dof'], 184)
         self.assertAlmostEqual(result['loglikelihood'], -2225.49386312642, places=6)
         self.assertAlmostEqual(np.std(result['raw_scores']), 1.3307052960550632, places=6)
         self.assertAlmostEqual(np.std(result['reconstructions']), 1.04642254062382, places=6)
+        self.assertAlmostEqual(result['aic'], 4818.98772625284, places=6)
+        self.assertAlmostEqual(result['bic'], 5854.455894102724, places=6)
 
     def test_zscoresubjrejmos_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)
