@@ -117,9 +117,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
                 label = subjective_model.TYPE
 
-                # if 'raw_scores' in result and 'reconstructions' in result:
-                #     recon_stats = _get_reconstruction_stats(result['raw_scores'], result['reconstructions'])
-                #     label += ' (RMSE {:.2f})'.format(recon_stats['rmse'])
+                if 'bic' in result and 'reconstructions' in result:
+                    label += ' [BIC {:.2f}]'.format(result['bic'])
 
                 if plot_type == 'bar':
                     ax_quality.bar(np.array(xs)+shift_count*bar_width, quality,
@@ -131,7 +130,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     if 'quality_scores_ci95' in result:
                         try:
                             quality_error = result['quality_scores_ci95']
-                            label += ' (avg CI {:.2f})'.format(np.mean(np.array(quality_error[0]) +
+                            label += ' [avg CI {:.2f}]'.format(np.mean(np.array(quality_error[0]) +
                                                                        np.array(quality_error[1])))
                         except TypeError:
                             quality_error = None
