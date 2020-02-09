@@ -22,8 +22,9 @@ __license__ = "Apache, Version 2.0"
 def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=None, **kwargs):
 
     def _get_reconstruction_stats(raw_scores, rec_scores):
-        rec_scores = rec_scores[~np.isnan(rec_scores)]
-        raw_scores = raw_scores[~np.isnan(raw_scores)]
+        assert raw_scores.shape == rec_scores.shape
+        rec_scores, raw_scores = zip(*[(rec, raw) for rec, raw in zip(rec_scores.ravel(), raw_scores.ravel())
+                                 if (not np.isnan(rec) and not np.isnan(raw))])
         rmse = RmsePerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=False)['score']
         cc = PccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=False)['score']
         srocc = SrccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=False)['score']
