@@ -58,6 +58,12 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     else:
         ax_dict = {}
 
+    if 'show_dis_video_names' in kwargs:
+        show_dis_video_names = kwargs['show_dis_video_names']
+    else:
+        show_dis_video_names = False
+    assert isinstance(show_dis_video_names, bool)
+
     colors = ['black', 'gray', 'blue', 'red'] * 2
 
     if dataset_filepath.endswith('.py'):
@@ -75,6 +81,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     results = [
         s.run_modeling(**kwargs) for s in subjective_models
     ]
+
+    if show_dis_video_names:
+        for result in results:
+            dis_video_names = [dis_video['path'] for dis_video in dataset_reader.dataset.dis_videos]
+            result['dis_video_names'] = dis_video_names
 
     for subjective_model, result in zip(subjective_models, results):
         if 'raw_scores' in result and 'reconstructions' in result:
@@ -150,6 +161,14 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_quality.set_title(r'Recovered Quality Score ($\psi_j$)')
                 ax_quality.set_xlim([min(xs), max(xs)+1])
                 shift_count += 1
+
+                if 'dis_video_names' in result:
+                    dis_video_names = result['dis_video_names']
+                    assert len(dis_video_names) == len(quality)
+                    my_xticks = dis_video_names
+                    plt.sca(ax_quality)
+                    plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
+
         ax_quality.grid()
         # ax_quality.legend(loc=1, ncol=2, frameon=True)
         ax_quality.legend(ncol=4, frameon=True)
@@ -207,6 +226,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     observers = result['observers']
                     assert len(bias) == len(observers)
                     my_xticks = observers
+                    plt.sca(ax_inconsty)
                     plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
 
             if 'observer_inconsistency' in result:
@@ -249,6 +269,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         if xs and my_xticks is None:
             my_xticks = map(lambda x: "#{}".format(x+1), xs)
+            plt.sca(ax_inconsty)
             plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
 
         ax_bias.grid()
@@ -306,6 +327,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 my_xticks[ref_video['content_id']] = ref_video['content_name']
             # rotation = 75
             rotation = 90
+            plt.sca(ax_ambgty)
             plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=rotation)
         # ax_ambgty.legend(loc=1, ncol=2, frameon=True)
         ax_ambgty.legend(ncol=2, frameon=True)
