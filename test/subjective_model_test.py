@@ -695,15 +695,15 @@ class SubjectiveModelTest(unittest.TestCase):
         scores = result['quality_scores']
         bias = result['observer_bias']
 
-        self.assertAlmostEqual(np.mean(scores), 3.5447906523855885, places=8)
-        self.assertAlmostEqual(np.var(scores), 0.9589330529453537, places=8)
-        self.assertAlmostEqual(np.mean(bias), 0.0, places=8)
-        self.assertAlmostEqual(np.var(bias), 0.08903258562151982, places=8)
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5447906523855885, places=8)
+        self.assertAlmostEqual(float(np.var(scores)), 0.9589330529453537, places=8)
+        self.assertAlmostEqual(float(np.mean(bias)), 0.0, places=8)
+        self.assertAlmostEqual(float(np.var(bias)), 0.08903258562151982, places=8)
 
         self.assertAlmostEqual(result['dof'], 0.08958130477117819, places=6)
         self.assertAlmostEqual(result['loglikelihood'], -1.2761533126002955, places=6)
-        self.assertAlmostEqual(np.std(result['raw_scores']), 1.332411174171261, places=6)
-        self.assertAlmostEqual(np.std(result['reconstructions']), 0.9792512716077287, places=6)
+        self.assertAlmostEqual(float(np.std(result['raw_scores'])), 1.332411174171261, places=6)
+        self.assertAlmostEqual(float(np.std(result['reconstructions'])), 0.9792512716077287, places=6)
         self.assertAlmostEqual(result['aic'], 2.7314692347429474, places=6)
         self.assertAlmostEqual(result['bic'], 3.2355920039006323, places=6)
 

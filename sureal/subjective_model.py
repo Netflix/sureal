@@ -150,8 +150,16 @@ class SubjectiveModel(TypeVersionEnabled):
 
         if bias_offset is True:
             E, S = s_es.shape
+
+            # video-by-video, estimate MOS by averageing over subjects
             s_e = pd.DataFrame(s_es).mean(axis=1) # mean along s
-            delta_s = pd.DataFrame(s_es - np.tile(s_e, (S, 1)).T).mean(axis=0)  # mean along e
+
+            # subject by subject, estimate subject bias by comparing
+            # against MOS
+            delta_es = s_es - np.tile(s_e, (S, 1)).T
+            delta_s = pd.DataFrame(delta_es).mean(axis=0)  # mean along e
+
+            # remove bias from opinion scores
             s_es = s_es - np.tile(delta_s, (E, 1))
 
             ret['bias_offset_estimate'] = delta_s
