@@ -12,7 +12,7 @@ except (ImportError, RuntimeError):
     # OSX system python comes with an ancient matplotlib that triggers RuntimeError when imported in this way
     plt = None
 
-from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
+from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader, MissingDataRawDatasetReader
 from sureal.tools.misc import import_python_file, import_json_file
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -433,9 +433,15 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
         output_synthetic_dataset_filepath = more['output_synthetic_dataset_filepath'] \
             if 'output_synthetic_dataset_filepath' in more else None
 
-        dataset = import_python_file(dataset_filepath)
+        missing_probability = more['missing_probability'] if 'missing_probability' in more else None
+        assert missing_probability is None or 0 <= missing_probability < 1
 
+        dataset = import_python_file(dataset_filepath)
         dataset_reader = synthetic_dataset_reader_class(dataset, input_dict=synthetic_result)
+
+        if missing_probability is not None:
+            dataset = dataset_reader.to_dataset()
+            dataset_reader = MissingDataRawDatasetReader(dataset, input_dict={'missing_probability': missing_probability})
 
         if output_synthetic_dataset_filepath is not None:
             dataset_reader.write_out_dataset(dataset_reader.to_dataset(), output_synthetic_dataset_filepath)
