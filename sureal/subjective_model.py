@@ -274,20 +274,20 @@ class MosModel(SubjectiveModel):
         result['reconstructions'] = cls._get_reconstructions(mos, num_obs)
 
         original_num_pvs, original_num_obs = original_os_2darray_shape
-        dof = cls._get_dof(original_num_pvs, original_num_obs) / (original_num_pvs * original_num_obs)  # dof per observation
+        dof = cls._get_dof(original_num_pvs, original_num_obs) / (original_num_pvs * original_num_obs)  # dof per observation  # FIXME for incomplete matrix
         result['dof'] = dof
 
         loglikelihood = np.nansum(np.log(vectorized_gaussian(
             os_2darray,
             np.tile(mos, (num_obs, 1)).T,
             np.tile(std, (num_obs, 1)).T,
-        ))) / (num_pvs * num_obs)  # log-likelihood per observation FIXME: if os_2darray with empty cell, will not work!
+        ))) / (num_pvs * num_obs)  # log-likelihood per observation   # FIXME for incomplete matrix
         result['loglikelihood'] = loglikelihood
 
         aic = 2 * dof - 2 * loglikelihood  # aic per observation
         result['aic'] = aic
 
-        bic = np.log(original_num_pvs * original_num_obs) * dof - 2 * loglikelihood  # bic per observation
+        bic = np.log(original_num_pvs * original_num_obs) * dof - 2 * loglikelihood  # bic per observation  # FIXME for incomplete matrix
         result['bic'] = bic
 
         return result
@@ -976,18 +976,18 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         original_E, original_S = dataset_reader.num_dis_videos, dataset_reader.num_observers
         original_C = dataset_reader.max_content_id_of_ref_videos + 1
 
-        dof = cls._get_dof(original_E, original_S, original_C) / (original_E * original_S)  # dof per observation
+        dof = cls._get_dof(original_E, original_S, original_C) / (original_E * original_S)  # dof per observation  # FIXME for incomplete matrix
         result['dof'] = dof
 
         loglikelihood = np.sum(cls.loglikelihood_fcn(
             x_es, x_e, b_s, v_s, a_c,
-            dataset_reader.content_id_of_dis_videos, 1, numerical_pdf)) / (E * S)  # log-likelihood per observation
+            dataset_reader.content_id_of_dis_videos, 1, numerical_pdf)) / (E * S)  # log-likelihood per observation  # FIXME for incomplete matrix
         result['loglikelihood'] = loglikelihood
 
         aic = 2 * dof - 2 * loglikelihood  # aic per observation
         result['aic'] = aic
 
-        bic = np.log(original_E * original_S) * dof - 2 * loglikelihood  # bic per observation
+        bic = np.log(original_E * original_S) * dof - 2 * loglikelihood  # bic per observation  # FIXME for incomplete matrix
         result['bic'] = bic
 
         return result
