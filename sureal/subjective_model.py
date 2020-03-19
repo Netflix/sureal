@@ -1,3 +1,4 @@
+import copy
 from abc import ABCMeta, abstractmethod
 import sys
 import time
@@ -111,6 +112,8 @@ class SubjectiveModel(TypeVersionEnabled):
 
         s_es = dataset_reader.opinion_score_2darray
 
+        original_opinion_score_2darray = copy.deepcopy(s_es)
+
         ret = dict()
 
         # dscore_mode: True - do differential-scoring
@@ -201,6 +204,7 @@ class SubjectiveModel(TypeVersionEnabled):
             s_es = s_es[:, acceptions]
 
         ret['opinion_score_2darray'] = s_es
+        ret['original_opinion_score_2darray'] = original_opinion_score_2darray
 
         return ret
 
@@ -251,14 +255,14 @@ class MosModel(SubjectiveModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
-        original_os_2darray_shape = [dataset_reader.num_dis_videos, dataset_reader.num_observers]
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         os_2darray = ret['opinion_score_2darray']
-        result = cls._get_mos_and_stats(os_2darray, original_os_2darray_shape)
+        original_os_2darray = ret['original_opinion_score_2darray']
+        result = cls._get_mos_and_stats(os_2darray, original_os_2darray)
         return result
 
     @classmethod
-    def _get_mos_and_stats(cls, os_2darray, original_os_2darray_shape):
+    def _get_mos_and_stats(cls, os_2darray, original_os_2darray):
         mos = pd.DataFrame(os_2darray).mean(axis=1)  # mean along s, ignore NaN
         mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(
             pd.DataFrame(os_2darray / os_2darray).sum(axis=1))  # std / sqrt(N), ignoring NaN
@@ -270,24 +274,26 @@ class MosModel(SubjectiveModel):
                   'raw_scores': os_2darray,
                   }
         num_pvs, num_obs = os_2darray.shape
+        num_os = np.sum(~np.isnan(os_2darray))
 
         result['reconstructions'] = cls._get_reconstructions(mos, num_obs)
 
-        original_num_pvs, original_num_obs = original_os_2darray_shape
-        dof = cls._get_dof(original_num_pvs, original_num_obs) / (original_num_pvs * original_num_obs)  # dof per observation  # FIXME for incomplete matrix
+        original_num_pvs, original_num_obs = original_os_2darray.shape
+        original_num_os = np.sum(~np.isnan(original_os_2darray))
+        dof = cls._get_dof(original_num_pvs, original_num_obs) / original_num_os  # dof per observation
         result['dof'] = dof
 
         loglikelihood = np.nansum(np.log(vectorized_gaussian(
             os_2darray,
             np.tile(mos, (num_obs, 1)).T,
             np.tile(std, (num_obs, 1)).T,
-        ))) / (num_pvs * num_obs)  # log-likelihood per observation   # FIXME for incomplete matrix
+        ))) / num_os  # log-likelihood per observation
         result['loglikelihood'] = loglikelihood
 
         aic = 2 * dof - 2 * loglikelihood  # aic per observation
         result['aic'] = aic
 
-        bic = np.log(original_num_pvs * original_num_obs) * dof - 2 * loglikelihood  # bic per observation  # FIXME for incomplete matrix
+        bic = np.log(original_num_os) * dof - 2 * loglikelihood  # bic per observation
         result['bic'] = bic
 
         return result
@@ -652,6 +658,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
         x_es = ret['opinion_score_2darray']
+        x_es_original = ret['original_opinion_score_2darray']
 
         E, S = x_es.shape
         C = dataset_reader.max_content_id_of_ref_videos + 1
@@ -973,21 +980,24 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
         result['reconstructions'] = cls._get_reconstructions(x_es, x_e, b_s)
 
-        original_E, original_S = dataset_reader.num_dis_videos, dataset_reader.num_observers
+        original_E, original_S = x_es_original.shape
+        original_num_os = np.sum(~np.isnan(x_es_original))
         original_C = dataset_reader.max_content_id_of_ref_videos + 1
 
-        dof = cls._get_dof(original_E, original_S, original_C) / (original_E * original_S)  # dof per observation  # FIXME for incomplete matrix
+        num_os = np.sum(~np.isnan(x_es))
+
+        dof = cls._get_dof(original_E, original_S, original_C) / original_num_os  # dof per observation
         result['dof'] = dof
 
         loglikelihood = np.sum(cls.loglikelihood_fcn(
             x_es, x_e, b_s, v_s, a_c,
-            dataset_reader.content_id_of_dis_videos, 1, numerical_pdf)) / (E * S)  # log-likelihood per observation  # FIXME for incomplete matrix
+            dataset_reader.content_id_of_dis_videos, 1, numerical_pdf)) / num_os  # log-likelihood per observation
         result['loglikelihood'] = loglikelihood
 
         aic = 2 * dof - 2 * loglikelihood  # aic per observation
         result['aic'] = aic
 
-        bic = np.log(original_E * original_S) * dof - 2 * loglikelihood  # bic per observation  # FIXME for incomplete matrix
+        bic = np.log(original_num_os) * dof - 2 * loglikelihood  # bic per observation
         result['bic'] = bic
 
         return result
@@ -1173,9 +1183,10 @@ class BiasremvMosModel(MosModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
-        original_os_2darray_shape = [dataset_reader.num_dis_videos, dataset_reader.num_observers]
         ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        result = cls._get_mos_and_stats(ret['opinion_score_2darray'], original_os_2darray_shape)
+        os_2darray = ret['opinion_score_2darray']
+        original_os_2darray = ret['original_opinion_score_2darray']
+        result = cls._get_mos_and_stats(os_2darray, original_os_2darray)
         result['observer_bias'] = ret['bias_offset_estimate']
         return result
 
