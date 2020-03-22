@@ -385,6 +385,14 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(result['aic'], 1.921034859493529, places=6)
         self.assertAlmostEqual(result['bic'], 2.2799483527525326, places=6)
 
+        self.assertAlmostEqual(float(np.sum(result['observer_bias_std'])), 1.7643365374531321, places=4)
+        self.assertAlmostEqual(float(np.sum(result['observer_inconsistency_std'])), 1.2475743287658851, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 8.907545016644042, places=4)
+
+        self.assertAlmostEqual(float(np.sum(result['observer_bias_ci95'])), 7.2620091881570925, places=4)
+        self.assertAlmostEqual(float(np.sum(result['observer_inconsistency_ci95'])), 6.16201912464046, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_ci95'])), 36.31427952385441, places=4)
+
     def test_observer_content_aware_subjective_model_nocontent_subjbias_zeromean(self):
         subjective_model = MaximumLikelihoodEstimationModelContentOblivious.from_dataset_file(
             self.dataset_filepath)

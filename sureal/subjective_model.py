@@ -7,7 +7,6 @@ import numpy as np
 from scipy import linalg
 from scipy import stats
 import pandas as pd
-from scipy.stats import norm
 
 from sureal.core.mixin import TypeVersionEnabled
 from sureal.tools.misc import import_python_file, indices
@@ -546,6 +545,11 @@ class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
         return result
 
 
+QUALITY_SCORE_NONGAUSSIANITY_MULTIPLIER = 1.04
+OBSERVER_BIAS_NONGAUSSIANITY_MULTIPLIER = 1.05
+OBSERVER_INCONSISTENCY_NONGAUSSIANITY_MULTIPLIER = 1.26
+
+
 class MaximumLikelihoodEstimationModel(SubjectiveModel):
     """
     Generative model that considers individual subjective (or observer)'s bias
@@ -954,18 +958,21 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             'quality_scores': list(x_e),
             'quality_scores_std': list(x_e_std),
-            'quality_scores_ci95': [list(1.96 * x_e_std), list(1.96 * x_e_std)],
+            'quality_scores_ci95': [list(1.96 * x_e_std * QUALITY_SCORE_NONGAUSSIANITY_MULTIPLIER),
+                                    list(1.96 * x_e_std * QUALITY_SCORE_NONGAUSSIANITY_MULTIPLIER)],
 
         }
 
         if cls.mode != 'SUBJECT_OBLIVIOUS':
             result['observer_bias'] = list(b_s)
             result['observer_bias_std'] = list(b_s_std)
-            result['observer_bias_ci95'] = [list(1.96 * b_s_std), list(1.96 * b_s_std)]
+            result['observer_bias_ci95'] = [list(1.96 * b_s_std * OBSERVER_BIAS_NONGAUSSIANITY_MULTIPLIER),
+                                            list(1.96 * b_s_std * OBSERVER_BIAS_NONGAUSSIANITY_MULTIPLIER)]
 
             result['observer_inconsistency'] = list(v_s)
             result['observer_inconsistency_std'] = list(v_s_std)
-            result['observer_inconsistency_ci95'] = [list(1.96 * v_s_std), list(1.96 * v_s_std)]
+            result['observer_inconsistency_ci95'] = [list(1.96 * v_s_std * OBSERVER_INCONSISTENCY_NONGAUSSIANITY_MULTIPLIER),
+                                                     list(1.96 * v_s_std * OBSERVER_INCONSISTENCY_NONGAUSSIANITY_MULTIPLIER)]
 
         if cls.mode != 'CONTENT_OBLIVIOUS':
             result['content_ambiguity'] = list(a_c)
