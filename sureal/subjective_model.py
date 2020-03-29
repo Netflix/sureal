@@ -263,13 +263,14 @@ class MosModel(SubjectiveModel):
 
     @classmethod
     def _get_mos_and_stats(cls, os_2darray, original_os_2darray):
-        mos = pd.DataFrame(os_2darray).mean(axis=1)  # mean along s, ignore NaN
-        mos_std = pd.DataFrame(os_2darray).std(axis=1) / np.sqrt(
-            pd.DataFrame(os_2darray / os_2darray).sum(axis=1))  # std / sqrt(N), ignoring NaN
-        std = pd.DataFrame(os_2darray).std(axis=1)
+        mos = np.nanmean(os_2darray, axis=1)  # mean along s, ignore NaN
+        std = np.nanstd(os_2darray, axis=1, ddof=1)  # sample std -- use ddof 1
+        mos_std = std / np.sqrt(
+            np.nansum(~np.isnan(os_2darray), axis=1)
+        )  # std / sqrt(N), ignoring NaN
         result = {'quality_scores': mos,
                   'quality_scores_std': mos_std,
-                  'quality_scores_ci95': [list(1.96 * mos_std), list(1.96 * mos_std)],
+                  'quality_scores_ci95': [list(1.95996 * mos_std), list(1.95996 * mos_std)],
                   'quality_ambiguity': std,
                   'raw_scores': os_2darray,
                   }
@@ -359,7 +360,7 @@ class LiveDmosModel(SubjectiveModel):
 
         s_es = (s_es + 3.0) * 100.0 / 6.0
 
-        score = pd.DataFrame(s_es).mean(axis=1) # mean along s
+        score = np.nanmean(s_es, axis=1) # mean along s
         result = {
             'quality_scores': score
         }
@@ -954,8 +955,8 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             'quality_scores': list(x_e),
             'quality_scores_std': list(x_e_std),
-            'quality_scores_ci95': [list(1.96 * x_e_std),
-                                    list(1.96 * x_e_std)],
+            'quality_scores_ci95': [list(1.95996 * x_e_std),
+                                    list(1.95996 * x_e_std)],
 
         }
 
@@ -964,22 +965,22 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             cnt_s = np.sum(~np.isnan(x_es), axis=0)  # number of samples along i
             result['observer_bias'] = list(b_s)
             result['observer_bias_std'] = list(b_s_std)
-            result['observer_bias_ci95'] = [list(1.96 * b_s_std),
-                                            list(1.96 * b_s_std)]
+            result['observer_bias_ci95'] = [list(1.95996 * b_s_std),
+                                            list(1.95996 * b_s_std)]
 
             result['observer_inconsistency'] = list(v_s)
             result['observer_inconsistency_std'] = list(v_s_std)
             result['observer_inconsistency_ci95'] = [
                 list((1 - np.sqrt(cnt_s / chi2.ppf(1 - 0.025, df=cnt_s))) * v_s),
                 list((np.sqrt(cnt_s / chi2.ppf(0.025, df=cnt_s)) - 1) * v_s),
-                # list(1.96 * v_s_std),
-                # list(1.96 * v_s_std),
+                # list(1.95996 * v_s_std),
+                # list(1.95996 * v_s_std),
             ]
 
         if cls.mode != 'CONTENT_OBLIVIOUS':
             result['content_ambiguity'] = list(a_c)
             result['content_ambiguity_std'] = list(a_c_std)
-            result['content_ambiguity_ci95'] = [list(1.96 * a_c_std), list(1.96 * a_c_std)]
+            result['content_ambiguity_ci95'] = [list(1.95996 * a_c_std), list(1.95996 * a_c_std)]
 
         try:
             observers = dataset_reader._get_list_observers()  # may not exist

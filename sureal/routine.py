@@ -170,8 +170,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
 
         ax_quality.grid()
-        # ax_quality.legend(loc=1, ncol=2, frameon=True)
-        ax_quality.legend(ncol=4, frameon=True)
+        ax_quality.legend(ncol=2, frameon=True)
         plt.tight_layout()
 
     if do_plot == 'all' or 'subject_scores' in do_plot:
@@ -201,7 +200,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     if 'observer_bias_ci95' in result:
                         try:
                             bias_error = result['observer_bias_ci95']
-                            label = '{} (avg CI {:.2f})'.format(
+                            label = '{} [avg CI {:.2f}]'.format(
                                 subjective_model.TYPE, np.mean(np.array(bias_error[0]) +
                                                                np.array(bias_error[1])))
                         except TypeError:
@@ -242,7 +241,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     if 'observer_inconsistency_ci95' in result:
                         try:
                             inconsistency_error = result['observer_inconsistency_ci95']
-                            label = '{} (avg CI {:.2f})'.format(
+                            label = '{} [avg CI {:.2f}]'.format(
                                 subjective_model.TYPE, np.mean(np.array(inconsistency_error[0]) +
                                                                np.array(inconsistency_error[1])))
                         except TypeError:
@@ -301,7 +300,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     if 'content_ambiguity_ci95' in result:
                         try:
                             ambiguity_error = result['content_ambiguity_ci95']
-                            label = '{} (avg CI {:.2f})'.format(
+                            label = '{} [avg CI {:.2f}]'.format(
                                 subjective_model.TYPE, np.mean(np.array(ambiguity_error[0]) +
                                                                np.array(ambiguity_error[1])))
                         except TypeError:
