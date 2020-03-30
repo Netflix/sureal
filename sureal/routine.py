@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 from scipy import stats
 
@@ -440,7 +442,9 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
 
         if missing_probability is not None:
             dataset = dataset_reader.to_dataset()
-            dataset_reader = MissingDataRawDatasetReader(dataset, input_dict={'missing_probability': missing_probability})
+            synthetic_result2 = copy.deepcopy(synthetic_result)
+            synthetic_result2.update({'missing_probability': missing_probability})
+            dataset_reader = MissingDataRawDatasetReader(dataset, input_dict=synthetic_result2)
 
         if output_synthetic_dataset_filepath is not None:
             dataset_reader.write_out_dataset(dataset_reader.to_dataset(), output_synthetic_dataset_filepath)

@@ -612,6 +612,8 @@ class MissingDataRawDatasetReader(MockedRawDatasetReader):
     def opinion_score_2darray(self):
         score_mtx = super(MissingDataRawDatasetReader, self).opinion_score_2darray
 
+        if 'seed' in self.input_dict:
+            np.random.seed(self.input_dict['seed'])
         mask = np.random.uniform(size=score_mtx.shape)
         mask[mask > self.input_dict['missing_probability']] = 1.0
         mask[mask <= self.input_dict['missing_probability']] = float('NaN')
