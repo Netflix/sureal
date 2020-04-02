@@ -132,7 +132,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 label = subjective_model.TYPE
 
                 if 'bic' in result and 'reconstructions' in result:
-                    label += ' [BIC {:.2f}]'.format(result['bic'])
+                    label += ' [NBIC {:.2f}]'.format(result['bic'])
 
                 if plot_type == 'bar':
                     ax_quality.bar(np.array(xs)+shift_count*bar_width, quality,
