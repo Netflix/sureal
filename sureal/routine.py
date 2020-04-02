@@ -221,7 +221,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
                 ax_bias.set_title(r'Subject Bias ($\Delta_i$)')
-                ax_bias.legend(ncol=2, frameon=True)
+                ax_bias.legend(ncol=1, frameon=True)
 
                 if 'observers' in result:
                     observers = result['observers']
@@ -263,7 +263,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
                 ax_inconsty.set_title(r'Subject Inconsistency ($\upsilon_i$)')
                 # ax_inconsty.legend(loc=2, ncol=2, frameon=True)
-                ax_inconsty.legend(ncol=2, frameon=True)
+                ax_inconsty.legend(ncol=1, frameon=True)
 
             if 'observer_bias' in result:
                 shift_count += 1
