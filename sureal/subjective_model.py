@@ -957,7 +957,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             'quality_scores_std': list(x_e_std),
             'quality_scores_ci95': [list(1.95996 * x_e_std),
                                     list(1.95996 * x_e_std)],
-
+            'num_iter': itr,
         }
 
 

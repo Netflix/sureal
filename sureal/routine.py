@@ -1,10 +1,8 @@
 import copy
 
 import numpy as np
-from scipy import stats
 
 from sureal.perf_metric import PccPerfMetric, SrccPerfMetric, RmsePerfMetric
-from sureal.tools.stats import get_pdf
 
 try:
     from matplotlib import pyplot as plt
@@ -15,7 +13,7 @@ except (ImportError, RuntimeError):
     plt = None
 
 from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader, MissingDataRawDatasetReader
-from sureal.tools.misc import import_python_file, import_json_file
+from sureal.tools.misc import import_python_file, import_json_file, Timer
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -437,6 +435,9 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
         missing_probability = more['missing_probability'] if 'missing_probability' in more else None
         assert missing_probability is None or 0 <= missing_probability < 1
 
+        measure_runtime = more['measure_runtime'] if 'measure_runtime' in more else False
+        assert isinstance(measure_runtime, bool)
+
         dataset = import_python_file(dataset_filepath)
         dataset_reader = synthetic_dataset_reader_class(dataset, input_dict=synthetic_result)
 
@@ -455,10 +456,17 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
             subjective_model_classes
         )
 
+        def run_modeling(subjective_model):
+            if measure_runtime:
+                with Timer() as t:
+                    ret = subjective_model.run_modeling(**more)
+                ret['runtime'] = t.interval
+            else:
+                ret = subjective_model.run_modeling(**more)
+            return ret
+
         results = list(map(
-            lambda subjective_model: subjective_model.run_modeling(
-                **more
-            ),
+            lambda subjective_model: run_modeling(subjective_model),
             subjective_models
         ))
 

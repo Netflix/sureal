@@ -1,4 +1,5 @@
 import os
+import time
 from time import sleep
 import multiprocessing
 
@@ -221,3 +222,13 @@ def parallel_map(func, list_args, processes=None, pause_sec=0.01):
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+
+
+class Timer:
+    def __enter__(self):
+        self.start = time.clock()
+        return self
+
+    def __exit__(self, *args):
+        self.end = time.clock()
+        self.interval = self.end - self.start
