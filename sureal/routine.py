@@ -228,8 +228,12 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     plt.sca(ax_inconsty)
                     plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
 
-            if 'observer_inconsistency' in result:
-                inconsty = result['observer_inconsistency']
+            if 'observer_inconsistency' in result or 'observer_rejected' in result:
+                try:
+                    inconsty = result['observer_inconsistency']
+                except:
+                    inconsty = result['observer_rejected'].astype(int)
+
                 xs = range(len(inconsty))
 
                 if plot_type == 'bar':
@@ -263,7 +267,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 # ax_inconsty.legend(loc=2, ncol=2, frameon=True)
                 ax_inconsty.legend(ncol=1, frameon=True)
 
-            if 'observer_bias' in result:
+            if 'observer_bias' in result or 'observer_inconsistency' in result or 'observer_rejected' in result:
                 shift_count += 1
 
         if xs and my_xticks is None:
