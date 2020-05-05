@@ -102,7 +102,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         # S, E = mtx.shape
         ax_rawscores.imshow(mtx, interpolation='nearest', cmap='gray')
         # xs = np.array(range(S)) + 1
-        # my_xticks = map(lambda x: "#{}".format(x), xs)
+        # my_xticks = list(map(lambda x: "#{}".format(x), xs))
         # plt.yticks(np.array(xs), my_xticks, rotation=0)
         ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
@@ -182,6 +182,12 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_inconsty = ax_dict['ax_observer_inconsistency']
         else:
             _, (ax_bias, ax_inconsty) = plt.subplots(figsize=(5, 3.5), nrows=2, ncols=1, sharex=True)
+
+        if 'ax_rejected' in ax_dict:
+            ax_rejected = ax_dict['ax_rejected']
+        else:
+            ax_rejected = None
+
         xs = None
         shift_count = 0
         my_xticks = None
@@ -228,11 +234,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     plt.sca(ax_inconsty)
                     plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
 
-            if 'observer_inconsistency' in result or 'observer_rejected' in result:
-                try:
-                    inconsty = result['observer_inconsistency']
-                except:
-                    inconsty = result['observer_rejected'].astype(int)
+            if 'observer_inconsistency' in result:
+                inconsty = result['observer_inconsistency']
 
                 xs = range(len(inconsty))
 
@@ -267,16 +270,32 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 # ax_inconsty.legend(loc=2, ncol=2, frameon=True)
                 ax_inconsty.legend(ncol=1, frameon=True)
 
+            if 'observer_rejected' in result and ax_rejected is not None:
+                rejected = result['observer_rejected'].astype(int)
+                xs = range(len(rejected))
+                ax_rejected.bar(np.array(xs) + shift_count * bar_width, rejected,
+                                width=bar_width,
+                                color=colors[shift_count],
+                                label=subjective_model.TYPE)
+                ax_rejected.set_xlim([min(xs), max(xs)+1])
+                ax_rejected.set_title(r'Subject Rejected')
+                ax_rejected.legend(ncol=1, frameon=True)
+
             if 'observer_bias' in result or 'observer_inconsistency' in result or 'observer_rejected' in result:
                 shift_count += 1
 
         if xs and my_xticks is None:
-            my_xticks = map(lambda x: "#{}".format(x+1), xs)
+            my_xticks = list(map(lambda x: "#{}".format(x+1), xs))
             plt.sca(ax_inconsty)
             plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
+            if ax_rejected is not None:
+                plt.sca(ax_rejected)
+                plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
 
         ax_bias.grid()
         ax_inconsty.grid()
+        if ax_rejected is not None:
+            ax_rejected.grid()
         plt.tight_layout()
 
     if do_plot == 'all' or 'content_scores' in do_plot:
