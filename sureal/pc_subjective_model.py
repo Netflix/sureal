@@ -194,6 +194,7 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         return {'quality_scores': v,
                 'quality_scores_std': stdv_v,
+                'quality_scores_ci95': [list(1.95996 * np.array(stdv_v)), list(1.95996 * np.array(stdv_v))],
                 'quality_scores_p': p,
                 'quality_scores_p_std': stdv_p,
                 'quality_scores_p_cov': cova_p}
@@ -302,7 +303,11 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
             scores = (scores - scores_mean) / scores_std
             std = std / scores_std
 
-        result = {'quality_scores': scores, 'quality_scores_std': std}
+        result = {
+            'quality_scores': scores,
+            'quality_scores_std': std,
+            'quality_scores_ci95': [list(1.95996 * std), list(1.95996 * std)],
+        }
         return result
 
     @classmethod
