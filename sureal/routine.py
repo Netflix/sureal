@@ -271,7 +271,14 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_inconsty.legend(ncol=1, frameon=True)
 
             if 'observer_rejected' in result and ax_rejected is not None:
+
+                assert 'observer_rejected_1st_stats' in result
+                assert 'observer_rejected_2nd_stats' in result
+
                 rejected = result['observer_rejected'].astype(int)
+                # rejected = result['observer_rejected_1st_stats']
+                # rejected = result['observer_rejected_2nd_stats']
+
                 xs = range(len(rejected))
                 ax_rejected.bar(np.array(xs) + shift_count * bar_width, rejected,
                                 width=bar_width,

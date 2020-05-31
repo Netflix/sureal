@@ -195,8 +195,14 @@ class SubjectiveModel(TypeVersionEnabled):
                                 qs[idx_s] += 1
             rejections = []
             acceptions = []
+            reject_1st_stats = []
+            reject_2nd_stats = []
             for idx_s, subject in zip(list(range(S)), list(range(S))):
-                if (ps[idx_s] + qs[idx_s]) / E > 0.05 and np.abs((ps[idx_s] - qs[idx_s]) / (ps[idx_s] + qs[idx_s])) < 0.3:
+                reject_1st_stat = (ps[idx_s] + qs[idx_s]) / E
+                reject_2nd_stat = np.abs((ps[idx_s] - qs[idx_s]) / (ps[idx_s] + qs[idx_s]))
+                reject_1st_stats.append(reject_1st_stat)
+                reject_2nd_stats.append(reject_2nd_stat)
+                if reject_1st_stat > 0.05 and reject_2nd_stat < 0.3:
                     rejections.append(subject)
                 else:
                     acceptions.append(subject)
@@ -207,6 +213,8 @@ class SubjectiveModel(TypeVersionEnabled):
             observer_rejected[rejections] = True
 
             ret['observer_rejected'] = observer_rejected
+            ret['observer_rejected_1st_stats'] = reject_1st_stats
+            ret['observer_rejected_2nd_stats'] = reject_2nd_stats
 
         ret['opinion_score_2darray'] = s_es
         ret['original_opinion_score_2darray'] = original_opinion_score_2darray
@@ -266,6 +274,10 @@ class MosModel(SubjectiveModel):
         result = cls._get_mos_and_stats(os_2darray, original_os_2darray)
         if 'observer_rejected' in ret:
             result['observer_rejected'] = ret['observer_rejected']
+            assert 'observer_rejected_1st_stats' in ret
+            assert 'observer_rejected_2nd_stats' in ret
+            result['observer_rejected_1st_stats'] = ret['observer_rejected_1st_stats']
+            result['observer_rejected_2nd_stats'] = ret['observer_rejected_2nd_stats']
         return result
 
     @classmethod
@@ -1207,6 +1219,10 @@ class BiasremvMosModel(MosModel):
         result['observer_bias'] = ret['bias_offset_estimate']
         if 'observer_rejected' in ret:
             result['observer_rejected'] = ret['observer_rejected']
+            assert 'observer_rejected_1st_stats' in ret
+            assert 'observer_rejected_2nd_stats' in ret
+            result['observer_rejected_1st_stats'] = ret['observer_rejected_1st_stats']
+            result['observer_rejected_2nd_stats'] = ret['observer_rejected_2nd_stats']
         return result
 
     @classmethod
