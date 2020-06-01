@@ -1,4 +1,5 @@
 import copy
+import math
 
 import numpy as np
 
@@ -93,20 +94,98 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     if do_plot == 'all' or 'raw_scores' in do_plot:
 
-        # ===== plot raw scores
         if 'ax_raw_scores' in ax_dict:
             ax_rawscores = ax_dict['ax_raw_scores']
         else:
             _, ax_rawscores = plt.subplots(figsize=(5, 2.5))
         mtx = dataset_reader.opinion_score_2darray.T
         # S, E = mtx.shape
-        ax_rawscores.imshow(mtx, interpolation='nearest', cmap='gray')
+        im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap='gray')
         # xs = np.array(range(S)) + 1
         # my_xticks = list(map(lambda x: "#{}".format(x), xs))
         # plt.yticks(np.array(xs), my_xticks, rotation=0)
         ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
         ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
+        plt.colorbar(im, ax=ax_rawscores)
+
+        plt.tight_layout()
+
+    if do_plot == 'all' or 'raw_scores_minus_quality_scores':
+
+        for subjective_model, result in zip(subjective_models, results):
+            if 'quality_scores' in result:
+                quality_scores = result['quality_scores']
+                label = subjective_model.TYPE
+
+                _, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(5, 2.5))
+
+                mtx = dataset_reader.opinion_score_2darray.T
+                num_obs = mtx.shape[0]
+                mtx = mtx - np.tile(quality_scores, (num_obs, 1))
+                im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest', cmap='gray')
+                ax_raw_scores_minus_quality_scores.set_title(r'$u_{ij} - \psi_j$' + ', {}'.format(label))
+                ax_raw_scores_minus_quality_scores.set_xlabel(r'Video Stimuli ($j$)')
+                ax_raw_scores_minus_quality_scores.set_ylabel(r'Test Subjects ($i$)')
+                plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores)
+
+                plt.tight_layout()
+
+    if do_plot == 'all' or 'raw_scores_minus_quality_scores_and_observer_bias':
+
+        for subjective_model, result in zip(subjective_models, results):
+            if 'quality_scores' in result and 'observer_bias' in result:
+                observer_bias = result['observer_bias']
+                quality_scores = result['quality_scores']
+                label = subjective_model.TYPE
+
+                _, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(5, 2.5))
+
+                mtx = dataset_reader.opinion_score_2darray.T
+                num_obs = mtx.shape[0]
+                num_pvs = mtx.shape[1]
+                mtx = mtx - np.tile(quality_scores, (num_obs, 1))
+                mtx = mtx - np.tile(observer_bias, (num_pvs, 1)).T
+                im = ax_raw_scores_minus_quality_scores_and_observer_bias.imshow(mtx, interpolation='nearest', cmap='gray')
+                ax_raw_scores_minus_quality_scores_and_observer_bias.set_title(r'$u_{ij} - \psi_j - \Delta_i$' + ', {}'.format(label))
+                ax_raw_scores_minus_quality_scores_and_observer_bias.set_xlabel(r'Video Stimuli ($j$)')
+                ax_raw_scores_minus_quality_scores_and_observer_bias.set_ylabel(r'Test Subjects ($i$)')
+                plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores_and_observer_bias)
+
+                plt.tight_layout()
+
+    if do_plot == 'all' or 'quality_scores_vs_raw_scores' in do_plot:
+
+        mtx = dataset_reader.opinion_score_2darray.T
+        num_obs = mtx.shape[0]
+        assert num_obs > 1, 'need snum_subj > 1 for subplots to work'
+
+        min_lim = np.min(mtx)
+        max_lim = np.max(mtx)
+
+        nrows = int(math.floor(math.sqrt(num_obs)))
+        ncols = int(math.ceil(num_obs / float(nrows)))
+
+        fig, axs = plt.subplots(figsize=(ncols*4,nrows*4), ncols=ncols, nrows=nrows)
+
+        for subjective_model, result in zip(subjective_models, results):
+            if 'quality_scores' in result:
+                quality_scores = result['quality_scores']
+                label = subjective_model.TYPE
+
+                for i_obs in range(num_obs):
+                    assert num_obs > 1
+                    ax = axs.flatten()[i_obs]
+                    ax.set_title(f"#{i_obs + 1}")
+                    raw_scores = mtx[i_obs, :]
+                    ax.scatter(raw_scores, quality_scores, label=label)
+                    ax.set_xlim([min_lim, max_lim])
+                    ax.set_ylim([min_lim, max_lim])
+                    ax.plot([min_lim, max_lim], [min_lim, max_lim], '-r')
+                    ax.set_xlabel('Raw Score ($u_{ij}$)')
+                    ax.set_ylabel('Recovered Quality Score ($\psi_j$)')
+                    ax.legend()
+                    ax.grid()
 
         plt.tight_layout()
 
