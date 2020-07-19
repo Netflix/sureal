@@ -111,7 +111,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         plt.tight_layout()
 
-    if do_plot == 'all' or 'raw_scores_minus_quality_scores':
+    if do_plot == 'all' or 'raw_scores_minus_quality_scores' in do_plot:
 
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result:
@@ -131,7 +131,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
                 plt.tight_layout()
 
-    if do_plot == 'all' or 'raw_scores_minus_quality_scores_and_observer_bias':
+    if do_plot == 'all' or 'raw_scores_minus_quality_scores_and_observer_bias' in do_plot:
 
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result and 'observer_bias' in result:
