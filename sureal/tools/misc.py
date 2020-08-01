@@ -3,6 +3,8 @@ import time
 from time import sleep
 import multiprocessing
 
+import numpy as np
+
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
 
@@ -232,3 +234,21 @@ class Timer:
     def __exit__(self, *args):
         self.end = time.clock()
         self.interval = self.end - self.start
+
+
+def weighed_nanmean_2d(a, weights, axis):
+    assert len(a.shape) == 2
+    assert axis in [0, 1]
+    dim0, dim1 = a.shape
+    if axis == 0:
+        return np.divide(
+            np.nansum(np.multiply(a,            np.tile(weights, (dim1, 1)).T), axis=0),
+            np.nansum(np.multiply(~np.isnan(a), np.tile(weights, (dim1, 1)).T), axis=0)
+        )
+    elif axis == 1:
+        return np.divide(
+            np.nansum(np.multiply(a,            np.tile(weights, (dim0, 1))), axis=1),
+            np.nansum(np.multiply(~np.isnan(a), np.tile(weights, (dim0, 1))), axis=1),
+        )
+    else:
+        assert False

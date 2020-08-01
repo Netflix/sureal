@@ -4,10 +4,10 @@ import os
 import sys
 import json
 
-from .subjective_model import SubjectiveModel
-from .routine import run_subjective_models
-from .tools.misc import get_file_name_with_extension, get_cmd_option, cmd_option_exists
-from .config import DisplayConfig
+from sureal.subjective_model import SubjectiveModel
+from sureal.routine import run_subjective_models
+from sureal.tools.misc import get_file_name_with_extension, get_cmd_option, cmd_option_exists
+from sureal.config import DisplayConfig
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -71,9 +71,12 @@ def main():
         DisplayConfig.show()
     else:
         print(("Output wrote to {}.".format(output_dir)))
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         DisplayConfig.show(write_to_dir=output_dir)
         with open(os.path.join(output_dir, 'sureal.json'), 'w') as out_f:
-            json.dump(results[0], out_f, indent=4, sort_keys=True)
+            json.dump(results[0], out_f, default=lambda o: '<not serializable>',
+                      indent=4, sort_keys=True)
     return 0
 
 

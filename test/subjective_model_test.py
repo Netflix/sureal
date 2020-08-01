@@ -10,7 +10,7 @@ from sureal.subjective_model import MosModel, DmosModel, \
     SubjrejMosModel, ZscoringSubjrejMosModel, SubjrejDmosModel, \
     ZscoringSubjrejDmosModel, PerSubjectModel, \
     MaximumLikelihoodEstimationModelContentOblivious, \
-    MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel, BiasremvMosModel, BiasremvSubjrejMosModel
+    MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel, BiasremvMosModel, BiasremvSubjrejMosModel, SubjectMLEModelProjectionSolver
 from sureal.tools.misc import import_python_file
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -793,6 +793,111 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertTrue('groundtruth' in dis_video)
         self.assertTrue('os' not in dis_video)
         self.assertAlmostEqual(dis_video['groundtruth'], 100.0, places=4)
+
+    def test_proj_mle_subjective_model_corruptdata(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = SubjectMLEModelProjectionSolver(dataset_reader)
+        result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+        bias = result['observer_bias']
+        inconsistency = result['observer_inconsistency']
+
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5447906523855877, places=8)
+        self.assertAlmostEqual(float(np.var(scores)), 1.3559834679453553, places=8)
+        self.assertAlmostEqual(float(np.mean(bias)), 0.0, places=8)
+        self.assertAlmostEqual(float(np.var(bias)), 0.08903258562151985, places=8)
+        self.assertAlmostEqual(float(np.mean(inconsistency)), 0.8091663380211014, places=8)
+        self.assertAlmostEqual(float(np.var(inconsistency)), 0.21269010120806528, places=8)
+
+        self.assertAlmostEqual(float(np.sum(result['observer_bias_std'])), 2.3669964674034123, places=4)
+        self.assertAlmostEqual(float(np.sum(result['observer_inconsistency_std'])), 1.6737192530463552, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 9.592833401286343, places=4)
+
+    def test_proj_mle_subjective_model_corruptdata_nonzero_bias(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = SubjectMLEModelProjectionSolver(dataset_reader)
+        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        scores = result['quality_scores']
+        bias = result['observer_bias']
+        inconsistency = result['observer_inconsistency']
+
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5447906523855877, places=8)
+        self.assertAlmostEqual(float(np.var(scores)), 1.3559834679453553, places=8)
+        self.assertAlmostEqual(float(np.mean(bias)), 0.0, places=8)
+        self.assertAlmostEqual(float(np.var(bias)), 0.08903258562151985, places=8)
+        self.assertAlmostEqual(float(np.mean(inconsistency)), 0.8091663380211014, places=8)
+        self.assertAlmostEqual(float(np.var(inconsistency)), 0.21269010120806528, places=8)
+
+        self.assertAlmostEqual(result['dof'], 0.06377799415774099, places=6)
+        self.assertAlmostEqual(result['loglikelihood'], -1.084797535188502, places=6)
+        self.assertAlmostEqual(float(np.std(result['raw_scores'])), 1.3654128030298962, places=6)
+        self.assertAlmostEqual(float(np.std(result['reconstructions'])), 1.2020882040879586, places=6)
+        self.assertAlmostEqual(result['aic'], 2.297151058692486, places=6)
+        self.assertAlmostEqual(result['bic'], 2.6560645519514896, places=6)
+
+        self.assertAlmostEqual(float(np.sum(result['observer_bias_std'])), 2.3669964674034123, places=4)
+        self.assertAlmostEqual(float(np.sum(result['observer_inconsistency_std'])), 1.6737192530463552, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 9.592833401286343, places=4)
+
+    def test_mleco_subjective_model_corruptdata_nonzero_bias(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = MaximumLikelihoodEstimationModelContentOblivious(dataset_reader)
+        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        scores = result['quality_scores']
+        bias = result['observer_bias']
+        inconsistency = result['observer_inconsistency']
+
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5580494278512447, places=8)
+        self.assertAlmostEqual(float(np.var(scores)), 1.3559834445021643, places=8)
+        self.assertAlmostEqual(float(np.mean(bias)), -0.013258775465654477, places=8)
+        self.assertAlmostEqual(float(np.var(bias)), 0.08903258562151789, places=8)
+        self.assertAlmostEqual(float(np.mean(inconsistency)), 0.8091663380211014, places=8)
+        self.assertAlmostEqual(float(np.var(inconsistency)), 0.2126900961328451, places=8)
+
+        self.assertAlmostEqual(result['dof'], 0.06377799415774099, places=6)
+        self.assertAlmostEqual(result['loglikelihood'], -1.0847975351885024, places=6)
+        self.assertAlmostEqual(float(np.std(result['raw_scores'])), 1.3654128030298962, places=6)
+        self.assertAlmostEqual(float(np.std(result['reconstructions'])), 1.2020881956510854, places=6)
+        self.assertAlmostEqual(result['aic'], 2.297151058692487, places=6)
+        self.assertAlmostEqual(result['bic'], 2.6560645519514905, places=6)
+
+    def test_proj_mle_subjective_model_corruptdata_missingdata(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        dataset_reader1 = CorruptSubjectRawDatasetReader(dataset, input_dict={'selected_subjects': range(5)})
+        dataset1 = dataset_reader1.to_dataset()
+        dataset_reader2 = MissingDataRawDatasetReader(dataset1, input_dict={'missing_probability': 0.0001})
+        subjective_model = SubjectMLEModelProjectionSolver(dataset_reader2)
+        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        scores = result['quality_scores']
+        bias = result['observer_bias']
+        inconsistency = result['observer_inconsistency']
+
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5441674307897983, places=8)
+        self.assertAlmostEqual(float(np.var(scores)), 1.3557530628643795, places=8)
+        self.assertAlmostEqual(float(np.mean(bias)), 0.00011539474984923769, places=8)
+        self.assertAlmostEqual(float(np.var(bias)), 0.08879525615906458, places=8)
+        self.assertAlmostEqual(float(np.mean(inconsistency)), 0.8088220663739162, places=8)
+        self.assertAlmostEqual(float(np.var(inconsistency)), 0.21296014750848657, places=8)
+
+        self.assertAlmostEqual(float(np.sum(result['observer_bias_std'])), 2.3663572924335963, places=4)
+        self.assertAlmostEqual(float(np.sum(result['observer_inconsistency_std'])), 1.673273950838568, places=4)
+        self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 9.589031768667335, places=4)
 
 
 class SubjectiveModelPartialTest(unittest.TestCase):

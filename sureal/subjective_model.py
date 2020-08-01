@@ -7,10 +7,10 @@ import numpy as np
 from scipy import linalg
 from scipy import stats
 import pandas as pd
-from scipy.stats import chi2
+from scipy.stats import chi2, norm
 
 from sureal.core.mixin import TypeVersionEnabled
-from sureal.tools.misc import import_python_file, indices
+from sureal.tools.misc import import_python_file, indices, weighed_nanmean_2d
 from sureal.dataset_reader import RawDatasetReader
 from sureal.tools.stats import vectorized_gaussian, vectorized_convolution_of_two_logistics, \
     vectorized_convolution_of_two_uniforms
@@ -1249,3 +1249,158 @@ class BiasremvSubjrejMosModel(BiasremvMosModel):
 
         return result
 
+
+class SubjectMLEModelProjectionSolver(SubjectiveModel):
+
+    TYPE = 'Subject_MLE_Projection'
+    VERSION = '0.1'
+
+    @classmethod
+    def _run_modeling(cls, dataset_reader, **kwargs):
+
+        force_subjbias_zeromean = kwargs['force_subjbias_zeromean'] if \
+            'force_subjbias_zeromean' in kwargs and kwargs['force_subjbias_zeromean'] is not None else True
+        assert isinstance(force_subjbias_zeromean, bool)
+
+        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
+        x_ji = ret['opinion_score_2darray']
+        x_ji_original = ret['original_opinion_score_2darray']
+        J, I = x_ji.shape
+        cnt_i = np.sum(~np.isnan(x_ji), axis=0)  # number of samples along i
+        cnt_j = np.sum(~np.isnan(x_ji), axis=1)  # number of samples along j
+
+        # video by video, estimate MOS by averaging over subjects
+        s_j = np.nanmean(x_ji, axis=1)  # mean marginalized over i
+
+        # subject by subject, estimate subject bias by comparing with MOS
+        b_ji = x_ji - np.tile(s_j, (I, 1)).T
+        b_i = np.nanmean(b_ji, axis=0)  # mean marginalized over j
+
+        MAX_ITR = 1000
+        DELTA_THR = 1e-8
+        EPSILON = 1e-8
+
+        itr = 0
+        while True:
+
+            s_j_prev = s_j
+
+            # subject by subject, estimate subject inconsistency by averaging the residue over stimuli
+            r_ji = x_ji - np.tile(s_j, (I, 1)).T - np.tile(b_i, (J, 1))
+            v_i = np.nanstd(r_ji, axis=0)
+
+            # video by video, estimate MOS by averaging over subjects, inversely weighted by residue variance
+            s_ji = x_ji - np.tile(b_i, (J, 1))
+            w_i = 1.0 / (v_i ** 2 + EPSILON)
+            s_j = weighed_nanmean_2d(s_ji, weights=w_i, axis=1)  # mean marginalized over i
+
+            # subject by subject, estimate subject bias by comparing with MOS, inversely weighted by residue variance
+            b_ji = x_ji - np.tile(s_j, (I, 1)).T
+            b_i = np.nanmean(b_ji, axis=0)  # mean marginalized over j
+
+            itr += 1
+
+            delta_s_j = linalg.norm(s_j_prev - s_j)
+
+            msg = 'Iteration {itr:4d}: change {delta_s_j}, s_j {s_j}, b_i {b_i}, v_i {v_i}'.format(
+                itr=itr, delta_s_j=delta_s_j, s_j=np.mean(s_j), b_i=np.mean(b_i), v_i=np.mean(v_i))
+
+            sys.stdout.write(msg + '\r')
+            sys.stdout.flush()
+
+            if delta_s_j < DELTA_THR:
+                break
+
+            if itr >= MAX_ITR:
+                break
+
+        def one_or_nan(x):
+            y = np.ones(x.shape)
+            y[np.isnan(x)] = float('nan')
+            return y
+
+        den = np.nansum(one_or_nan(x_ji) / np.tile(v_i ** 2, (J, 1)), axis=1) # sum over s
+        s_j_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of s_j
+
+        den = np.nansum(one_or_nan(x_ji) / np.tile(v_i ** 2, (J, 1)), axis=0)  # sum over e
+        b_i_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of b_i
+
+        r_ji = x_ji - np.tile(s_j, (I, 1)).T - np.tile(b_i, (J, 1))
+        v_i2 = np.tile(v_i ** 2, (J, 1))
+        poly_term = - 3 * np.tile(v_i ** 4, (J, 1))
+        lpp = np.nansum(1.0 / v_i2 + r_ji ** 2 * poly_term / v_i2 ** 4, axis=0)  # sum over e
+        v_i_std = 1.0 / np.sqrt(np.maximum(0., -lpp))
+
+        sys.stdout.write("\n")
+
+        if force_subjbias_zeromean:
+            mean_b_i = np.mean(b_i)
+            b_i -= mean_b_i
+            s_j += mean_b_i
+
+        result = {'raw_scores': x_ji,
+                  'quality_scores': list(s_j),
+                  'quality_scores_std': list(s_j_std),
+                  'quality_scores_ci95': [list(1.95996 * s_j_std),
+                                          list(1.95996 * s_j_std)],
+                  'observer_bias': list(b_i), 'observer_bias_std': list(b_i_std),
+                  'observer_bias_ci95': [list(1.95996 * b_i_std),
+                                         list(1.95996 * b_i_std)],
+                  'observer_inconsistency': list(v_i),
+                  'observer_inconsistency_std': list(v_i_std),
+                  'observer_inconsistency_ci95': [
+                      list((1 - np.sqrt(cnt_i / chi2.ppf(1-0.025, df=cnt_i))) * v_i),
+                      list((np.sqrt(cnt_i / chi2.ppf(0.025, df=cnt_i)) - 1) * v_i),
+                      # list(1.95996 * v_i_std),
+                      # list(1.95996 * v_i_std),
+                  ],
+                  'reconstructions': cls._get_reconstructions(x_ji, s_j, b_i),
+                  'num_iter': itr,
+                  }
+
+        original_J, original_I = x_ji_original.shape
+        original_num_os = np.sum(~np.isnan(x_ji_original))
+
+        num_os = np.sum(~np.isnan(x_ji))
+
+        dof = (original_J + original_I * 2) / original_num_os
+        result['dof'] = dof
+
+        loglikelihood = cls.loglikelihood_function(np.hstack([s_j, b_i, v_i]), x_ji) / num_os
+        result['loglikelihood'] = loglikelihood
+
+        aic = 2 * dof - 2 * loglikelihood  # aic per observation
+        result['aic'] = aic
+
+        bic = np.log(original_num_os) * dof - 2 * loglikelihood  # bic per observation
+        result['bic'] = bic
+
+        return result
+
+    @classmethod
+    def _get_reconstructions(cls, x_ji, s_j, b_i):
+        J, I = x_ji.shape
+        x_ji_hat = np.tile(s_j, (I, 1)).T + np.tile(b_i, (J, 1))
+        return x_ji_hat
+
+    @staticmethod
+    def loglikelihood_function(x, x_ji):
+        J, I = x_ji.shape
+        assert len(x) == J + I + I
+        x_j, b_i, v_i = x[0: J], x[J: J + I], x[J + I: J + 2 * I]
+
+        mtx = np.log(norm.pdf(
+            x_ji,
+            loc=np.tile(x_j, (I, 1)).T + np.tile(b_i, (J, 1)),
+            scale=np.tile(v_i, (J, 1))
+        ))
+        # --- can be simplified as: ---
+        # a_ji = x_ji - np.tile(x_j, (I, 1)).T - np.tile(b_i, (J, 1))
+        # mtx = - 0.5 * np.tile(np.log(v_i**2), (J, 1)) - 0.5 * (a_ji) ** 2 / np.tile(v_i**2, (J, 1))
+
+        ll = mtx[~np.isnan(x_ji)].sum()
+        return ll
+
+
+class MaximumLikelihoodEstimationModelContentObliviousAlternativeProjection(SubjectMLEModelProjectionSolver):
+    TYPE = 'MLE_CO_AP'

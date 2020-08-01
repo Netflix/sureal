@@ -70,8 +70,10 @@ If ``--print`` is enabled, output statistics will be printed on the command-line
 
 Below are two example usages::
 
-    sureal MLE resource/dataset/NFLX_dataset_public_raw_last4outliers.py
-    sureal MLE_CO resource/dataset/VQEGHD3_dataset_raw.py
+    sureal MLE_CO_AP resource/dataset/NFLX_dataset_public_raw_last4outliers.py --print \
+        --output-dir ./output/NFLX_dataset_public_raw_last4outliers
+    sureal MLE_CO_AP resource/dataset/VQEGHD3_dataset_raw.py --print \
+        --output-dir \./output/VQEGHD3_dataset_raw
 
 
 Here ``subjective_model`` are the available subjective models offered in the package, including:
@@ -81,6 +83,8 @@ Here ``subjective_model`` are the available subjective models offered in the pac
   - MLE - Full maximum likelihood estimation (MLE) model that takes into account both subjects and contents
 
   - MLE_CO - MLE model that takes into account only subjects ("Content-Oblivious")
+
+  - MLE_CO_AP - Alternative implementation of MLE_CO based on Alternative Projection (AP)
 
   - DMOS - Differential MOS, as defined in [ITU-T P.910](https://www.itu.int/rec/T-REC-P.910)
 
