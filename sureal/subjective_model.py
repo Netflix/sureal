@@ -1255,6 +1255,12 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
     TYPE = 'Subject_MLE_Projection'
     VERSION = '0.1'
 
+    @staticmethod
+    def _one_or_nan(x):
+        y = np.ones(x.shape)
+        y[np.isnan(x)] = float('nan')
+        return y
+
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
 
@@ -1288,6 +1294,7 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
             # subject by subject, estimate subject inconsistency by averaging the residue over stimuli
             r_ji = x_ji - np.tile(s_j, (I, 1)).T - np.tile(b_i, (J, 1))
             v_i = np.nanstd(r_ji, axis=0)
+            v_j = np.nanstd(r_ji, axis=1)
 
             # video by video, estimate MOS by averaging over subjects, inversely weighted by residue variance
             s_ji = x_ji - np.tile(b_i, (J, 1))
@@ -1313,16 +1320,9 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
 
             if itr >= MAX_ITR:
                 break
+        s_j_std = cls._get_s_j_std(v_i, v_j, x_ji)
 
-        def one_or_nan(x):
-            y = np.ones(x.shape)
-            y[np.isnan(x)] = float('nan')
-            return y
-
-        den = np.nansum(one_or_nan(x_ji) / np.tile(v_i ** 2, (J, 1)), axis=1) # sum over s
-        s_j_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of s_j
-
-        den = np.nansum(one_or_nan(x_ji) / np.tile(v_i ** 2, (J, 1)), axis=0)  # sum over e
+        den = np.nansum(cls._one_or_nan(x_ji) / np.tile(v_i ** 2, (x_ji.shape[0], 1)), axis=0)  # sum over e
         b_i_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of b_i
 
         r_ji = x_ji - np.tile(s_j, (I, 1)).T - np.tile(b_i, (J, 1))
@@ -1378,6 +1378,12 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
         return result
 
     @classmethod
+    def _get_s_j_std(cls, v_i, v_j, x_ji):
+        den = np.nansum(cls._one_or_nan(x_ji) / np.tile(v_i ** 2, (x_ji.shape[0], 1)), axis=1)  # sum over s
+        s_j_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of s_j
+        return s_j_std
+
+    @classmethod
     def _get_reconstructions(cls, x_ji, s_j, b_i):
         J, I = x_ji.shape
         x_ji_hat = np.tile(s_j, (I, 1)).T + np.tile(b_i, (J, 1))
@@ -1402,5 +1408,22 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
         return ll
 
 
+class SubjectMLEModelProjectionSolverAltSubjStdMixin(object):
+    @classmethod
+    def _get_s_j_std(cls, v_i, v_j, x_ji):
+        den = np.nansum(cls._one_or_nan(x_ji) / np.tile(v_j ** 2, (x_ji.shape[1], 1)).T, axis=1)  # sum over s
+        s_j_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of s_j
+        return s_j_std
+
+
+class SubjectMLEModelProjectionSolver2(SubjectMLEModelProjectionSolverAltSubjStdMixin, SubjectMLEModelProjectionSolver):
+
+    TYPE = 'Subject_MLE_Projection2'
+
+
 class MaximumLikelihoodEstimationModelContentObliviousAlternativeProjection(SubjectMLEModelProjectionSolver):
     TYPE = 'MLE_CO_AP'
+
+
+class MaximumLikelihoodEstimationModelContentObliviousAlternativeProjection2(SubjectMLEModelProjectionSolver2):
+    TYPE = 'MLE_CO_AP2'
