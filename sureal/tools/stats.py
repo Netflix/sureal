@@ -4,8 +4,8 @@ import scipy.signal
 from .inverse import inversefunc
 import warnings
 
-import multiprocessing
-pool = multiprocessing.Pool()
+# import multiprocessing
+# pool = multiprocessing.Pool()
 
 from .misc import parallel_map
 

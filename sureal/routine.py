@@ -118,12 +118,17 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
 
-                _, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(5, 2.5))
+                if 'ax_raw_scores_minus_quality_scores' in ax_dict:
+                    ax_raw_scores_minus_quality_scores = ax_dict['ax_raw_scores_minus_quality_scores']
+                else:
+                    _, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(5, 2.5))
 
                 mtx = dataset_reader.opinion_score_2darray.T
                 num_obs = mtx.shape[0]
                 mtx = mtx - np.tile(quality_scores, (num_obs, 1))
-                im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest', cmap='gray')
+                im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest', cmap='gray',
+                                                               # vmin=-4, vmax=4,
+                                                               )
                 ax_raw_scores_minus_quality_scores.set_title(r'$u_{ij} - \psi_j$' + ', {}'.format(label))
                 ax_raw_scores_minus_quality_scores.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores.set_ylabel(r'Test Subjects ($i$)')
@@ -139,14 +144,19 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
 
-                _, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(5, 2.5))
+                if 'ax_raw_scores_minus_quality_scores_and_observer_bias' in ax_dict:
+                    ax_raw_scores_minus_quality_scores_and_observer_bias = ax_dict['ax_raw_scores_minus_quality_scores_and_observer_bias']
+                else:
+                    _, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(5, 2.5))
 
                 mtx = dataset_reader.opinion_score_2darray.T
                 num_obs = mtx.shape[0]
                 num_pvs = mtx.shape[1]
                 mtx = mtx - np.tile(quality_scores, (num_obs, 1))
                 mtx = mtx - np.tile(observer_bias, (num_pvs, 1)).T
-                im = ax_raw_scores_minus_quality_scores_and_observer_bias.imshow(mtx, interpolation='nearest', cmap='gray')
+                im = ax_raw_scores_minus_quality_scores_and_observer_bias.imshow(mtx, interpolation='nearest',
+                                                                                 # vmin=-4, vmax=4,
+                                                                                 cmap='gray')
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_title(r'$u_{ij} - \psi_j - \Delta_i$' + ', {}'.format(label))
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_ylabel(r'Test Subjects ($i$)')
