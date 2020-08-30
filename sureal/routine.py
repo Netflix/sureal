@@ -65,6 +65,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         show_dis_video_names = False
     assert isinstance(show_dis_video_names, bool)
 
+    raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else 'gray'
+
+    raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
+    assert len(raw_score_residue_range) == 2
+
     colors = ['black', 'gray', 'blue', 'red'] * 2
 
     if dataset_filepath.endswith('.py'):
@@ -100,7 +105,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             _, ax_rawscores = plt.subplots(figsize=(5, 2.5))
         mtx = dataset_reader.opinion_score_2darray.T
         # S, E = mtx.shape
-        im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap='gray')
+        im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
         # xs = np.array(range(S)) + 1
         # my_xticks = list(map(lambda x: "#{}".format(x), xs))
         # plt.yticks(np.array(xs), my_xticks, rotation=0)
@@ -109,7 +114,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
         plt.colorbar(im, ax=ax_rawscores)
 
-        plt.tight_layout()
+        # plt.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores' in do_plot:
 
@@ -126,15 +131,15 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 mtx = dataset_reader.opinion_score_2darray.T
                 num_obs = mtx.shape[0]
                 mtx = mtx - np.tile(quality_scores, (num_obs, 1))
-                im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest', cmap='gray',
-                                                               # vmin=-4, vmax=4,
-                                                               )
+                im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest',
+                                                               vmin=raw_score_residue_range[0], vmax=raw_score_residue_range[1],
+                                                               cmap=raw_score_cmap)
                 ax_raw_scores_minus_quality_scores.set_title(r'$u_{ij} - \psi_j$' + ', {}'.format(label))
                 ax_raw_scores_minus_quality_scores.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores)
 
-                plt.tight_layout()
+                # plt.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores_and_observer_bias' in do_plot:
 
@@ -155,14 +160,14 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 mtx = mtx - np.tile(quality_scores, (num_obs, 1))
                 mtx = mtx - np.tile(observer_bias, (num_pvs, 1)).T
                 im = ax_raw_scores_minus_quality_scores_and_observer_bias.imshow(mtx, interpolation='nearest',
-                                                                                 # vmin=-4, vmax=4,
-                                                                                 cmap='gray')
+                                                                                 vmin=raw_score_residue_range[0], vmax=raw_score_residue_range[1],
+                                                                                 cmap=raw_score_cmap)
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_title(r'$u_{ij} - \psi_j - \Delta_i$' + ', {}'.format(label))
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores_and_observer_bias)
 
-                plt.tight_layout()
+                # plt.tight_layout()
 
     if do_plot == 'all' or 'quality_scores_vs_raw_scores' in do_plot:
 
@@ -170,8 +175,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         num_obs = mtx.shape[0]
         assert num_obs > 1, 'need snum_subj > 1 for subplots to work'
 
-        min_lim = np.min(mtx)
-        max_lim = np.max(mtx)
+        min_lim = np.nanmin(mtx)
+        max_lim = np.nanmax(mtx)
 
         nrows = int(math.floor(math.sqrt(num_obs)))
         ncols = int(math.ceil(num_obs / float(nrows)))
