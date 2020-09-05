@@ -204,10 +204,10 @@ class RawDatasetReader(DatasetReader):
                 dis_video['groundtruth_std'] = score_std
 
         if 'aggregate_content_ids' in kwargs and kwargs['aggregate_content_ids'] is not None:
-            dis_videos = filter(lambda dis_video: dis_video['content_id'] in kwargs['aggregate_content_ids'], dis_videos)
+            dis_videos = list(filter(lambda dis_video: dis_video['content_id'] in kwargs['aggregate_content_ids'], dis_videos))
 
         if 'aggregate_asset_ids' in kwargs and kwargs['aggregate_asset_ids'] is not None:
-            dis_videos = filter(lambda dis_video: dis_video['asset_id'] in kwargs['aggregate_asset_ids'], dis_videos)
+            dis_videos = list(filter(lambda dis_video: dis_video['asset_id'] in kwargs['aggregate_asset_ids'], dis_videos))
 
         newone.dis_videos = dis_videos
 
