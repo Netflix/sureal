@@ -22,6 +22,25 @@ __license__ = "Apache, Version 2.0"
 
 def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=None, **kwargs):
 
+    def remove_observers(dataset_reader, remove_subjects):
+        """a funciton to remove specified observers from the dataset after it has been read
+        INPUT:
+            dataset_reader - an object of dataset_reader_class including the read dataset
+            remove_subjects - a list of subjects to be removed specified either by indexes (int) or concrete names (str)
+         OUTPUT:
+            dataset_reader object after the removal
+         """
+        assert isinstance(remove_subjects[0], int) or isinstance(remove_subjects[0], str)
+
+        for video in dataset_reader.dataset.dis_videos:
+            subjects = list(video['os'].keys())
+
+            for idx, name in enumerate(subjects):
+                if name in remove_subjects or idx in remove_subjects:
+                    del video['os'][name]
+
+        return dataset_reader
+
     def _get_reconstruction_stats(raw_scores, rec_scores):
         assert raw_scores.shape == rec_scores.shape
         rec_scores, raw_scores = zip(*[(rec, raw) for rec, raw in zip(rec_scores.ravel(), raw_scores.ravel())
@@ -65,6 +84,13 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         show_dis_video_names = False
     assert isinstance(show_dis_video_names, bool)
 
+    if 'remove_subjects' in kwargs:
+        remove_subjects = kwargs['remove_subjects']
+    else:
+        remove_subjects = []
+
+    assert isinstance(remove_subjects, list)
+
     raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else 'gray'
 
     raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
@@ -79,6 +105,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     else:
         raise AssertionError("Unknown input type, must be .py or .json")
     dataset_reader = dataset_reader_class(dataset, input_dict=dataset_reader_info_dict)
+
+    if len(remove_subjects) > 0:
+        dataset_reader = remove_observers(dataset_reader, remove_subjects)
 
     subjective_models = [
         s(dataset_reader) for s in subjective_model_classes
