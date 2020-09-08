@@ -22,25 +22,6 @@ __license__ = "Apache, Version 2.0"
 
 def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=None, **kwargs):
 
-    def remove_observers(dataset_reader, remove_subjects):
-        """a funciton to remove specified observers from the dataset after it has been read
-        INPUT:
-            dataset_reader - an object of dataset_reader_class including the read dataset
-            remove_subjects - a list of subjects to be removed specified either by indexes (int) or concrete names (str)
-         OUTPUT:
-            dataset_reader object after the removal
-         """
-        assert isinstance(remove_subjects[0], int) or isinstance(remove_subjects[0], str)
-
-        for video in dataset_reader.dataset.dis_videos:
-            subjects = list(video['os'].keys())
-
-            for idx, name in enumerate(subjects):
-                if name in remove_subjects or idx in remove_subjects:
-                    del video['os'][name]
-
-        return dataset_reader
-
     def _get_reconstruction_stats(raw_scores, rec_scores):
         assert raw_scores.shape == rec_scores.shape
         rec_scores, raw_scores = zip(*[(rec, raw) for rec, raw in zip(rec_scores.ravel(), raw_scores.ravel())
@@ -88,8 +69,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         remove_subjects = kwargs['remove_subjects']
     else:
         remove_subjects = []
-
-    assert isinstance(remove_subjects, list)
 
     raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else 'gray'
 
@@ -797,3 +776,38 @@ def get_ci_percentage(synthetic_result, result, key, errkey):
     ind_in_ci = [y - y_ci95_l <= x <= y + y_ci95_u for x, y, y_ci95_l, y_ci95_u in zip(xs, ys, ys_ci95[0], ys_ci95[1])]
     ci_perc = sum(ind_in_ci) / len(ind_in_ci) * 100
     return ci_perc
+
+
+def remove_observers(dataset_reader, remove_subjects):
+    """a funciton to remove specified observers from the dataset after it has been read
+    INPUT:
+        dataset_reader - an object of RawDatasetReader class including the read dataset
+        remove_subjects - a list of subjects to be removed specified either by indexes (int) or concrete names (str)
+     OUTPUT:
+        dataset_reader object after the removal
+     """
+
+    if type(dataset_reader) != RawDatasetReader:
+        raise AssertionError("Subjects removal can only be performed for RawDatasetReader class")
+
+    assert isinstance(remove_subjects, list)
+    assert isinstance(remove_subjects[0], int) or isinstance(remove_subjects[0], str)
+
+    for video in dataset_reader.dataset.dis_videos:
+
+        if isinstance(video['os'], dict):
+
+            subjects = list(video['os'].keys())
+
+            for idx, name in enumerate(subjects):
+                if name in remove_subjects or idx in remove_subjects:
+                    del video['os'][name]
+
+        elif isinstance(video['os'], list):
+
+            video['os'] = [i for j, i in enumerate(video['os']) if j not in remove_subjects]
+
+        else:
+            raise AssertionError("The os in the dataset must be a dictionary or a list")
+
+    return dataset_reader
