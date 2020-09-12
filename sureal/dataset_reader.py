@@ -650,7 +650,20 @@ class SelectSubjectRawDatasetReader(MockedRawDatasetReader):
         selected_subjects = self.input_dict['selected_subjects']
         score_mtx = np.zeros([self.num_dis_videos, self.num_observers])
         for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
-            score_mtx[i_dis_video, :] = np.array(dis_video['os'])[selected_subjects]
+
+            if isinstance(dis_video['os'], list):
+                score_mtx[i_dis_video, :] = np.array(dis_video['os'])[selected_subjects]
+
+            elif isinstance(dis_video['os'], dict):
+                selected_keys = np.array(list(dis_video['os'].keys()))[selected_subjects]
+                scores = []
+                for subject_key in selected_keys:
+                    scores.append(dis_video['os'][subject_key])
+                score_mtx[i_dis_video, :] = np.array(scores)
+
+            else:
+                raise AssertionError("The os in the dataset must be a dictionary or a list")
+
         return score_mtx
 
 

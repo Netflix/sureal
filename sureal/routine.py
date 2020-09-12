@@ -768,3 +768,5 @@ def get_ci_percentage(synthetic_result, result, key, errkey):
     ind_in_ci = [y - y_ci95_l <= x <= y + y_ci95_u for x, y, y_ci95_l, y_ci95_u in zip(xs, ys, ys_ci95[0], ys_ci95[1])]
     ci_perc = sum(ind_in_ci) / len(ind_in_ci) * 100
     return ci_perc
+
+

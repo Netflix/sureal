@@ -169,28 +169,55 @@ class SelectedSubjectDatasetReaderTest(unittest.TestCase):
     def setUp(self):
         dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
         dataset = import_python_file(dataset_filepath)
+        dataset2_filepath = SurealConfig.test_resource_path('test_dataset_os_as_dict.py')
+        dataset2 = import_python_file(dataset2_filepath)
 
         np.random.seed(0)
         info_dict = {
             'selected_subjects': range(5),
         }
+        info_dict2 = {
+            'selected_subjects': np.array([1, 2]),
+        }
 
         self.dataset_reader = SelectSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        self.dataset2_reader = SelectSubjectRawDatasetReader(dataset2, input_dict=info_dict2)
 
     def test_read_dataset_stats(self):
         self.assertEqual(self.dataset_reader.num_ref_videos, 9)
         self.assertEqual(self.dataset_reader.num_dis_videos, 79)
         self.assertEqual(self.dataset_reader.num_observers, 5)
 
+    def test_read_dataset_stats_os_as_dict(self):
+        self.assertEqual(self.dataset2_reader.num_ref_videos, 2)
+        self.assertEqual(self.dataset2_reader.num_dis_videos, 3)
+        self.assertEqual(self.dataset2_reader.num_observers, 2)
+
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
         self.assertEqual(os_2darray.shape, (79, 5))
+
+    def test_opinion_score_2darray_os_as_dict(self):
+        self.assertEqual(self.dataset2_reader.opinion_score_2darray[0, 0], 4.0)
+        self.assertEqual(self.dataset2_reader.opinion_score_2darray[1, 0], 1.0)
+        self.assertEqual(self.dataset2_reader.opinion_score_2darray[2, 0], 1.0)
+        self.assertEqual(self.dataset2_reader.opinion_score_2darray[0, 1], 1.0)
+        self.assertEqual(self.dataset2_reader.opinion_score_2darray[1, 1], 3.0)
+        self.assertEqual(self.dataset2_reader.opinion_score_2darray[2, 1], 3.0)
 
     def test_to_dataset(self):
         dataset = self.dataset_reader.to_dataset()
 
         old_scores = [dis_video['os'] for dis_video in self.dataset_reader.dataset.dis_videos]
         new_scores = [dis_video['os'] for dis_video in dataset.dis_videos]
+
+        self.assertNotEqual(old_scores, new_scores)
+
+    def test_to_dataset_os_as_dict(self):
+        dataset2 = self.dataset2_reader.to_dataset()
+
+        old_scores = [dis_video['os'] for dis_video in self.dataset2_reader.dataset.dis_videos]
+        new_scores = [dis_video['os'] for dis_video in dataset2.dis_videos]
 
         self.assertNotEqual(old_scores, new_scores)
 
