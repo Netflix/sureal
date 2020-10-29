@@ -5,8 +5,8 @@ SUREAL - Subjective Recovery Analysis
     :target: https://pypi.org/project/sureal/
     :alt: Version on pypi
 
-.. image:: https://travis-ci.org/Netflix/sureal.svg?branch=master
-    :target: https://travis-ci.org/Netflix/sureal
+.. image:: https://travis-ci.com/Netflix/sureal.svg?branch=master
+    :target: https://travis-ci.com/Netflix/sureal
     :alt: Build Status
 
 SUREAL is a toolbox developed by Netflix for recovering quality scores from noisy measurements obtained by subjective tests.
