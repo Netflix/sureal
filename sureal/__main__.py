@@ -12,7 +12,7 @@ from sureal.config import DisplayConfig
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
 
-SUBJECTIVE_MODELS = ['MOS', 'MLE', 'MLE_CO', 'DMOS', 'DMOS_MLE', 'DMOS_MLE_CO', 'SR_MOS', 'ZS_SR_MOS', 'SR_DMOS', 'ZS_SR_DMOS']
+SUBJECTIVE_MODELS = ['MOS', 'MLE', 'MLE_CO', 'MLE_CO_AP', 'MLE_CO_AP2', 'DMOS', 'DMOS_MLE', 'DMOS_MLE_CO', 'SR_MOS', 'ZS_SR_MOS', 'SR_DMOS', 'ZS_SR_DMOS']
 
 
 def print_usage():
@@ -36,7 +36,7 @@ def main():
     print_ = cmd_option_exists(sys.argv, 3, len(sys.argv), '--print')
 
     do_plot = ['raw_scores', 'quality_scores']
-    if subjective_model in ['MLE', 'MLE_CO', 'DMOS_MLE', 'DMOS_MLE_CO']:
+    if subjective_model in ['MLE', 'MLE_CO', 'MLE_CO_AP', 'MLE_CO_AP2', 'DMOS_MLE', 'DMOS_MLE_CO']:
         do_plot.append('subject_scores')
     if subjective_model in ['MLE', 'DMOS_MLE']:
         do_plot.append('content_scores')
