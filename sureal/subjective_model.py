@@ -207,6 +207,12 @@ class SubjectiveModel(TypeVersionEnabled):
                 else:
                     acceptions.append(subject)
 
+            # if all of the subjects would be rejected, none will
+            if len(rejections) == S:
+                for idx_rej in range(S):
+                    acceptions.append(rejections[idx_rej])
+                rejections = []
+
             s_es = s_es[:, acceptions]
 
             observer_rejected = np.array([False for _ in range(S)])
