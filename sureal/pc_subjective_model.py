@@ -190,14 +190,15 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         alpha = np.nansum(dataset_reader.opinion_score_3darray, axis=2)
 
-        v, stdv_v, p, stdv_p, cova_p = cls.resolve_model(alpha, **kwargs)
+        v, stdv_v, p, stdv_p, cova_v, cova_p = cls.resolve_model(alpha, **kwargs)
 
         return {'quality_scores': v,
                 'quality_scores_std': stdv_v,
                 'quality_scores_ci95': [list(1.95996 * np.array(stdv_v)), list(1.95996 * np.array(stdv_v))],
                 'quality_scores_p': p,
                 'quality_scores_p_std': stdv_p,
-                'quality_scores_p_cov': cova_p}
+                'quality_scores_p_cov': cova_p,
+                'quality_scores_v_cov': cova_v}
 
     @staticmethod
     def resolve_model(alpha, **more):
@@ -265,11 +266,12 @@ class BradleyTerryMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
         vari_p = np.diagonal(cova_p)[:-1]
         stdv_p = np.sqrt(vari_p)
         cova_p = cova_p[:-1, :-1]
+        cova_v = cova_p / (np.expand_dims(p, axis=1) * (np.expand_dims(p, axis=1).T))
 
         v = np.log(p)
         stdv_v = stdv_p / p  # y = log(x) -> dy = 1/x * dx
 
-        return list(v), list(stdv_v), list(p), list(stdv_p), cova_p
+        return list(v), list(stdv_v), list(p), list(stdv_p), cova_v, cova_p
 
 
 class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
