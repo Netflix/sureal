@@ -215,8 +215,9 @@ class SubjectiveModel(TypeVersionEnabled):
 
             s_es = s_es[:, acceptions]
 
-            observer_rejected = np.array([False for _ in range(S)])
-            observer_rejected[rejections] = True
+            observer_rejected = [False for _ in range(S)]
+            for rejection_idx in rejections:
+                observer_rejected[rejection_idx] = True
 
             ret['observer_rejected'] = observer_rejected
             ret['observer_rejected_1st_stats'] = reject_1st_stats
@@ -293,10 +294,10 @@ class MosModel(SubjectiveModel):
         mos_std = std / np.sqrt(
             np.nansum(~np.isnan(os_2darray), axis=1)
         )  # std / sqrt(N), ignoring NaN
-        result = {'quality_scores': mos,
-                  'quality_scores_std': mos_std,
+        result = {'quality_scores': list(mos),
+                  'quality_scores_std': list(mos_std),
                   'quality_scores_ci95': [list(1.95996 * mos_std), list(1.95996 * mos_std)],
-                  'quality_ambiguity': std,
+                  'quality_ambiguity': list(std),
                   'raw_scores': os_2darray,
                   }
         num_pvs, num_obs = os_2darray.shape
@@ -1222,7 +1223,7 @@ class BiasremvMosModel(MosModel):
         os_2darray = ret['opinion_score_2darray']
         original_os_2darray = ret['original_opinion_score_2darray']
         result = cls._get_mos_and_stats(os_2darray, original_os_2darray)
-        result['observer_bias'] = ret['bias_offset_estimate']
+        result['observer_bias'] = list(ret['bias_offset_estimate'])
         if 'observer_rejected' in ret:
             result['observer_rejected'] = ret['observer_rejected']
             assert 'observer_rejected_1st_stats' in ret
