@@ -134,8 +134,7 @@ class RawDatasetReader(DatasetReader):
                     "expect number of observers {expected} but got {actual} for {dis_video}".format(
                         expected=num_observers, actual=len(dis_video['os']), dis_video=str(dis_video))
 
-    @property
-    def num_observers(self):
+    def _get_num_observers(self):
         if (
                     isinstance(self.dataset.dis_videos[0]['os'], list) or
                     isinstance(self.dataset.dis_videos[0]['os'], tuple)
@@ -146,6 +145,10 @@ class RawDatasetReader(DatasetReader):
             return len(list_observers)
         else:
             assert False, ''
+
+    @property
+    def num_observers(self):
+        return self._get_num_observers()
 
     def _get_list_observers(self):
 
@@ -164,7 +167,7 @@ class RawDatasetReader(DatasetReader):
         2darray storing raw opinion scores, with first dimension the number of
         distorted videos, second dimension the number of observers
         """
-        score_mtx = float('NaN') * np.ones([self.num_dis_videos, self.num_observers])
+        score_mtx = float('NaN') * np.ones([self.num_dis_videos, self._get_num_observers()])
 
         if isinstance(self.dataset.dis_videos[0]['os'], list) \
                 or isinstance(self.dataset.dis_videos[0]['os'], tuple):
@@ -648,22 +651,8 @@ class SelectSubjectRawDatasetReader(MockedRawDatasetReader):
         distorted videos, second dimension the number of observers
         """
         selected_subjects = self.input_dict['selected_subjects']
-        score_mtx = np.zeros([self.num_dis_videos, self.num_observers])
-        for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
-
-            if isinstance(dis_video['os'], list):
-                score_mtx[i_dis_video, :] = np.array(dis_video['os'])[selected_subjects]
-
-            elif isinstance(dis_video['os'], dict):
-                selected_keys = np.array(list(dis_video['os'].keys()))[selected_subjects]
-                scores = []
-                for subject_key in selected_keys:
-                    scores.append(dis_video['os'][subject_key])
-                score_mtx[i_dis_video, :] = np.array(scores)
-
-            else:
-                raise AssertionError("The os in the dataset must be a dictionary or a list")
-
+        score_mtx = super().opinion_score_2darray
+        score_mtx = score_mtx[:, selected_subjects]
         return score_mtx
 
 
