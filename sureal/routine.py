@@ -369,7 +369,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 assert 'observer_rejected_1st_stats' in result
                 assert 'observer_rejected_2nd_stats' in result
 
-                rejected = result['observer_rejected'].astype(int)
+                rejected = np.array(result['observer_rejected']).astype(int)
                 # rejected = result['observer_rejected_1st_stats']
                 # rejected = result['observer_rejected_2nd_stats']
 
