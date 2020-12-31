@@ -102,6 +102,8 @@ Here ``subjective_model`` are the available subjective models offered in the pac
 
   - ZS_SR_DMOS - Apply z-score transformation, followed by SR, before calculating DMOS
 
+  - BR_SR_MOS - Apply subject bias removal, followed by SR, before calculating MOS, as defined in [ITU-T P.913](https://www.itu.int/rec/T-REC-P.913)
+
 
 Dataset files
 -------------
