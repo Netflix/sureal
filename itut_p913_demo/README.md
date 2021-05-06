@@ -3,14 +3,9 @@ ITU-T P.913 Demo
 
 This directory contains reference Python code for ITU-T P.913 clause 12.6.
 
-Python3 is required. Install dependency by
+Python3 is required. Install dependency (numpy and scipy) by
 ```bash
 python3 -m pip install -r ./requirements.txt
-```
-
-To run the demo:
-```
-./demo.py --input-csv ./sample_data.csv
 ```
 
 The `sample_data.csv` file contains the raw subjective scores, organized in a 2D matrix, separated by comma. Each row corresponds to a PVS; each column corresponds to a subject. If a vote is missing, a 'nan' is put in place.
@@ -96,6 +91,11 @@ The `sample_data.csv` file contains the raw subjective scores, organized in a 2D
 4.0,4.0,5.0,1.0,5.0,5.0,5.0,5.0,2.0,5.0,5.0,4.0,5.0,3.0,4.0,4.0,5.0,4.0,3.0,5.0,4.0,3.0,4.0,4.0,5.0,5.0
 3.0,4.0,3.0,2.0,5.0,5.0,4.0,5.0,4.0,5.0,5.0,4.0,5.0,3.0,5.0,4.0,5.0,5.0,5.0,5.0,5.0,4.0,5.0,4.0,5.0,4.0
 
+```
+
+To run the demo:
+```bash
+python3 demo.py --input-csv sample_data.csv
 ```
 
 The demo prints the MOS (mean opinion scores), SOS (standard deviation of scores), subject bias and inconsistency. You should expect results like:
