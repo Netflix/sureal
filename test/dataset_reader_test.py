@@ -25,6 +25,7 @@ class RawDatasetReaderTest(unittest.TestCase):
         self.assertEqual(self.dataset_reader.max_content_id_of_ref_videos, 8)
         self.assertEqual(self.dataset_reader.num_dis_videos, 79)
         self.assertEqual(self.dataset_reader.num_observers, 26)
+        self.assertEqual(self.dataset_reader.max_repetitions, 1)
 
     def test_opinion_score_2darray(self):
         os_2darray = self.dataset_reader.opinion_score_2darray
@@ -50,6 +51,36 @@ class RawDatasetReaderTest(unittest.TestCase):
     def test_to_persubject_dataset(self):
         dataset = self.dataset_reader.to_persubject_dataset(np.zeros([79, 26]))
         self.assertEqual(len(dataset.dis_videos), 2054)
+
+
+class RawDatasetReaderTest2(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath1 = SurealConfig.test_resource_path('test_dataset_os_as_dict.py')
+        dataset_filepath2 = SurealConfig.test_resource_path('test_dataset_os_as_dict_with_repetitions.py')
+        dataset_filepath3 = SurealConfig.test_resource_path('test_dataset_os_as_list_with_repetitions.py')
+        self.dataset1 = import_python_file(dataset_filepath1)
+        self.dataset2 = import_python_file(dataset_filepath2)
+        self.dataset3 = import_python_file(dataset_filepath3)
+        self.dataset_reader1 = RawDatasetReader(self.dataset1)
+        self.dataset_reader2 = RawDatasetReader(self.dataset2)
+        self.dataset_reader3 = RawDatasetReader(self.dataset3)
+
+    def test_read_dataset_stats(self):
+        self.assertEqual(self.dataset_reader1.max_repetitions, 1)
+        self.assertEqual(self.dataset_reader2.max_repetitions, 3)
+        self.assertEqual(self.dataset_reader3.max_repetitions, 3)
+
+    def test_opinion_score_2darray(self):
+        os_2darray1 = self.dataset_reader1.opinion_score_2darray
+        os_2darray2 = self.dataset_reader2.opinion_score_2darray
+        os_2darray3 = self.dataset_reader3.opinion_score_2darray
+        self.assertAlmostEqual(float(np.mean(os_2darray1)), 2.4444444444444446, places=4)
+        self.assertAlmostEqual(float(np.mean(np.std(os_2darray1, axis=1))), 1.1036449462590066, places=4)
+        self.assertAlmostEqual(float(np.nanmean(os_2darray2)), 2.3076923076923075, places=4)
+        self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_2darray2, axis=1))), 0.6351558064628366, places=4)
+        self.assertAlmostEqual(float(np.nanmean(os_2darray3)), 2.3076923076923075, places=4)
+        self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_2darray3, axis=1))), 0.6351558064628366, places=4)
 
 
 class RawDatasetReaderPartialTest(unittest.TestCase):

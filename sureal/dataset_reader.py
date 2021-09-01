@@ -161,24 +161,67 @@ class RawDatasetReader(DatasetReader):
 
         return get_unique_sorted_list(list_observers)
 
+    def _get_max_repetitions(self):
+        """get the maximum number of times any observer evaluated any stimulus. For example, if all of the observers
+        evaluated each stimulus only once, the function returns 1.
+        """
+        max_reps = 1
+        if (
+                    isinstance(self.dataset.dis_videos[0]['os'], list) or
+                    isinstance(self.dataset.dis_videos[0]['os'], tuple)
+        ):
+            for dis_video in self.dataset.dis_videos:
+                for idx_obs in range(self.num_observers):
+                    scores = dis_video['os'][idx_obs]
+                    if isinstance(scores, list) or isinstance(scores, tuple):
+                        if len(scores) > max_reps:
+                            max_reps = len(scores)
+
+        elif isinstance(self.dataset.dis_videos[0]['os'], dict):
+            for dis_video in self.dataset.dis_videos:
+                list_observers = dis_video['os'].keys()
+
+                for observer in list_observers:
+                    scores = dis_video['os'][observer]
+                    if isinstance(scores, list) or isinstance(scores, tuple):
+                        if len(scores) > max_reps:
+                            max_reps = len(scores)
+        else:
+            assert False, ''
+
+        return max_reps
+
+    @property
+    def max_repetitions(self):
+        return self._get_max_repetitions()
+
     @property
     def opinion_score_2darray(self):
         """
-        2darray storing raw opinion scores, with first dimension the number of
-        distorted videos, second dimension the number of observers
+        3darray storing raw opinion scores, with first dimension the number of
+        distorted videos, second dimension the number of observers, and third the maximum number of repetitions
         """
-        score_mtx = float('NaN') * np.ones([self.num_dis_videos, self._get_num_observers()])
+        score_mtx = float('NaN') * np.ones([self.num_dis_videos, self.num_observers, self.max_repetitions])
 
         if isinstance(self.dataset.dis_videos[0]['os'], list) \
                 or isinstance(self.dataset.dis_videos[0]['os'], tuple):
             for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
-                score_mtx[i_dis_video, :] = dis_video['os']
+                for i_observer in range(self.num_observers):
+                    if isinstance(dis_video['os'][i_observer], list) or isinstance(dis_video['os'][i_observer], tuple):
+                        reps = len(dis_video['os'][i_observer])
+                    else:
+                        reps = 1
+                    score_mtx[i_dis_video, i_observer, :reps] = dis_video['os'][i_observer]
         elif isinstance(self.dataset.dis_videos[0]['os'], dict):
             list_observers = self._get_list_observers()
             for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
                 for i_observer, observer in enumerate(list_observers):
                     if observer in dis_video['os']:
-                        score_mtx[i_dis_video, i_observer] = dis_video['os'][observer]
+                        if isinstance(dis_video['os'][observer], list) or isinstance(dis_video['os'][observer], tuple):
+                            reps = len(dis_video['os'][observer])
+                        else:
+                            reps = 1
+                        score_mtx[i_dis_video, i_observer, :reps] = dis_video['os'][observer]
         else:
             assert False
         return score_mtx
