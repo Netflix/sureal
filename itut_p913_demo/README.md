@@ -1,4 +1,4 @@
-ITU-T P.913 Demo
+ITU-T P.913 Demo of Alternating Projection Technique
 ===================
 
 This directory contains reference Python code for ITU-T P.913 clause 12.6.
