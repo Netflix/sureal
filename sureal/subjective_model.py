@@ -108,11 +108,11 @@ class SubjectiveModel(TypeVersionEnabled):
         return np.array(ref_mos)
 
     @staticmethod
-    def _get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs):
+    def _get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs):
 
-        s_es = dataset_reader.opinion_score_2darray
+        s_es = dataset_reader.opinion_score_3darray
 
-        original_opinion_score_2darray = copy.deepcopy(s_es)
+        original_opinion_score_3darray = copy.deepcopy(s_es)
 
         ret = dict()
 
@@ -140,13 +140,13 @@ class SubjectiveModel(TypeVersionEnabled):
             assert dataset_reader.dataset.ref_score is not None, \
                 "For differential score, dataset must have attribute ref_score."
 
-            E, S = s_es.shape
+            E, S, RR = s_es.shape
             s_e = pd.DataFrame(s_es).mean(axis=1) # mean along s
             s_e_ref = DmosModel._get_ref_mos(dataset_reader, s_e)
             s_es = s_es + dataset_reader.ref_score - np.tile(s_e_ref, (S, 1)).T
 
         if zscore_mode is True:
-            E, S = s_es.shape
+            E, S, RR = s_es.shape
             mu_s = pd.DataFrame(s_es).mean(axis=0) # mean along e
             simga_s = pd.DataFrame(s_es).std(ddof=1, axis=0) # std along e
             s_es = (s_es - np.tile(mu_s, (E, 1))) / np.tile(simga_s, (E, 1))
@@ -168,7 +168,7 @@ class SubjectiveModel(TypeVersionEnabled):
             ret['bias_offset_estimate'] = delta_s
 
         if subject_rejection is True:
-            E, S = s_es.shape
+            E, S, RR = s_es.shape
 
             ps = np.zeros(S)
             qs = np.zeros(S)
@@ -213,7 +213,7 @@ class SubjectiveModel(TypeVersionEnabled):
                     acceptions.append(rejections[idx_rej])
                 rejections = []
 
-            s_es = s_es[:, acceptions]
+            s_es = s_es[:, acceptions, :]
 
             observer_rejected = [False for _ in range(S)]
             for rejection_idx in rejections:
@@ -223,8 +223,8 @@ class SubjectiveModel(TypeVersionEnabled):
             ret['observer_rejected_1st_stats'] = reject_1st_stats
             ret['observer_rejected_2nd_stats'] = reject_2nd_stats
 
-        ret['opinion_score_2darray'] = s_es
-        ret['original_opinion_score_2darray'] = original_opinion_score_2darray
+        ret['opinion_score_3darray'] = s_es
+        ret['original_opinion_score_3darray'] = original_opinion_score_3darray
 
         return ret
 
@@ -275,10 +275,10 @@ class MosModel(SubjectiveModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
-        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        os_2darray = ret['opinion_score_2darray']
-        original_os_2darray = ret['original_opinion_score_2darray']
-        result = cls._get_mos_and_stats(os_2darray, original_os_2darray)
+        ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
+        os_3darray = ret['opinion_score_3darray']
+        original_os_3darray = ret['original_opinion_score_3darray']
+        result = cls._get_mos_and_stats(os_3darray, original_os_3darray)
         if 'observer_rejected' in ret:
             result['observer_rejected'] = ret['observer_rejected']
             assert 'observer_rejected_1st_stats' in ret
@@ -288,30 +288,30 @@ class MosModel(SubjectiveModel):
         return result
 
     @classmethod
-    def _get_mos_and_stats(cls, os_2darray, original_os_2darray):
-        mos = np.nanmean(os_2darray, axis=1)  # mean along s, ignore NaN
-        std = np.nanstd(os_2darray, axis=1, ddof=1)  # sample std -- use ddof 1
+    def _get_mos_and_stats(cls, os_3darray, original_os_3darray):
+        mos = np.nanmean(os_3darray, axis=1)  # mean along s, ignore NaN
+        std = np.nanstd(os_3darray, axis=1, ddof=1)  # sample std -- use ddof 1
         mos_std = std / np.sqrt(
-            np.nansum(~np.isnan(os_2darray), axis=1)
+            np.nansum(~np.isnan(os_3darray), axis=1)
         )  # std / sqrt(N), ignoring NaN
         result = {'quality_scores': list(mos),
                   'quality_scores_std': list(mos_std),
                   'quality_scores_ci95': [list(1.95996 * mos_std), list(1.95996 * mos_std)],
                   'quality_ambiguity': list(std),
-                  'raw_scores': os_2darray,
+                  'raw_scores': os_3darray,
                   }
-        num_pvs, num_obs = os_2darray.shape
-        num_os = np.sum(~np.isnan(os_2darray))
+        num_pvs, num_obs, max_reps = os_3darray.shape
+        num_os = np.sum(~np.isnan(os_3darray))
 
         result['reconstructions'] = cls._get_reconstructions(mos, num_obs)
 
-        original_num_pvs, original_num_obs = original_os_2darray.shape
-        original_num_os = np.sum(~np.isnan(original_os_2darray))
+        original_num_pvs, original_num_obs, original_max_reps = original_os_3darray.shape
+        original_num_os = np.sum(~np.isnan(original_os_3darray))
         dof = cls._get_dof(original_num_pvs, original_num_obs) / original_num_os  # dof per observation
         result['dof'] = dof
 
         loglikelihood = np.nansum(np.log(vectorized_gaussian(
-            os_2darray,
+            os_3darray,
             np.tile(mos, (num_obs, 1)).T,
             np.tile(std, (num_obs, 1)).T,
         ))) / num_os  # log-likelihood per observation
@@ -381,8 +381,8 @@ class LiveDmosModel(SubjectiveModel):
         kwargs2['dscore_mode'] = True
         kwargs2['zscore_mode'] = True
 
-        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs2)
-        s_es = ret['opinion_score_2darray']
+        ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs2)
+        s_es = ret['opinion_score_3darray']
 
         s_es = (s_es + 3.0) * 100.0 / 6.0
 
@@ -410,12 +410,12 @@ class LeastSquaresModel(SubjectiveModel):
             assert False, 'SubjectAwareGenerativeModel must not and need not ' \
                           'apply subject rejection.'
 
-        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        score_mtx = ret['opinion_score_2darray']
+        ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
+        score_mtx = ret['opinion_score_3darray']
 
-        num_video, num_subject = score_mtx.shape
+        num_video, num_subject, max_repetitions = score_mtx.shape
 
-        A = np.zeros([num_video * num_subject, num_video + num_subject])
+        A = np.zeros([num_video * num_subject, num_video + num_subject]) # TODO: add repetitions
         for idx_video in range(num_video):
             for idx_subject in range(num_subject):
                 cur_row = idx_video * num_subject + idx_subject
@@ -475,8 +475,8 @@ class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
             if 'force_subjbias_zeromean' in kwargs and kwargs['force_subjbias_zeromean'] is not None else True
         assert isinstance(force_subjbias_zeromean, bool)
 
-        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        x_es = ret['opinion_score_2darray']
+        ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
+        x_es = ret['opinion_score_3darray']
 
         E, S = x_es.shape
 
@@ -683,11 +683,11 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             y[np.isnan(x)] = float('nan')
             return y
 
-        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        x_es = ret['opinion_score_2darray']
-        x_es_original = ret['original_opinion_score_2darray']
+        ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
+        x_es = ret['opinion_score_3darray']
+        x_es_original = ret['original_opinion_score_3darray']
 
-        E, S = x_es.shape
+        E, S, RR = x_es.shape
         C = dataset_reader.max_content_id_of_ref_videos + 1
 
         # === initialization ===
@@ -1189,10 +1189,10 @@ class PerSubjectModel(SubjectiveModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
-        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        os_2darray = ret['opinion_score_2darray']
+        ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
+        os_3darray = ret['opinion_score_3darray']
 
-        result = {'quality_scores': os_2darray}
+        result = {'quality_scores': os_3darray}
         return result
 
     def to_aggregated_dataset(self, **kwargs):
@@ -1219,10 +1219,10 @@ class BiasremvMosModel(MosModel):
 
     @classmethod
     def _run_modeling(cls, dataset_reader, **kwargs):
-        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        os_2darray = ret['opinion_score_2darray']
-        original_os_2darray = ret['original_opinion_score_2darray']
-        result = cls._get_mos_and_stats(os_2darray, original_os_2darray)
+        ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
+        os_3darray = ret['opinion_score_3darray']
+        original_os_3darray = ret['original_opinion_score_3darray']
+        result = cls._get_mos_and_stats(os_3darray, original_os_3darray)
         result['observer_bias'] = list(ret['bias_offset_estimate'])
         if 'observer_rejected' in ret:
             result['observer_rejected'] = ret['observer_rejected']
@@ -1275,10 +1275,10 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
             'force_subjbias_zeromean' in kwargs and kwargs['force_subjbias_zeromean'] is not None else True
         assert isinstance(force_subjbias_zeromean, bool)
 
-        ret = cls._get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs)
-        x_ji = ret['opinion_score_2darray']
-        x_ji_original = ret['original_opinion_score_2darray']
-        J, I = x_ji.shape
+        ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
+        x_ji = ret['opinion_score_3darray']
+        x_ji_original = ret['original_opinion_score_3darray']
+        J, I, RR = x_ji.shape
         cnt_i = np.sum(~np.isnan(x_ji), axis=0)  # number of samples along i
         cnt_j = np.sum(~np.isnan(x_ji), axis=1)  # number of samples along j
 

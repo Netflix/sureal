@@ -103,7 +103,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rawscores = ax_dict['ax_raw_scores']
         else:
             _, ax_rawscores = plt.subplots(figsize=(5, 2.5))
-        mtx = dataset_reader.opinion_score_2darray.T
+        mtx = dataset_reader.opinion_score_3darray.T
         # S, E = mtx.shape
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
         # xs = np.array(range(S)) + 1
@@ -128,7 +128,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 else:
                     _, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(5, 2.5))
 
-                mtx = dataset_reader.opinion_score_2darray.T
+                mtx = dataset_reader.opinion_score_3darray.T
                 num_obs = mtx.shape[0]
                 mtx = mtx - np.tile(quality_scores, (num_obs, 1))
                 im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest',
@@ -154,7 +154,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 else:
                     _, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(5, 2.5))
 
-                mtx = dataset_reader.opinion_score_2darray.T
+                mtx = dataset_reader.opinion_score_3darray.T
                 num_obs = mtx.shape[0]
                 num_pvs = mtx.shape[1]
                 mtx = mtx - np.tile(quality_scores, (num_obs, 1))
@@ -171,7 +171,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     if do_plot == 'all' or 'quality_scores_vs_raw_scores' in do_plot:
 
-        mtx = dataset_reader.opinion_score_2darray.T
+        mtx = dataset_reader.opinion_score_3darray.T
         num_obs = mtx.shape[0]
         assert num_obs > 1, 'need snum_subj > 1 for subplots to work'
 
