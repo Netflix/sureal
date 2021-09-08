@@ -100,7 +100,7 @@ class SubjectiveModel(TypeVersionEnabled):
                 content_id_is_refvideo[1] and content_id_is_refvideo[0] == curr_content_id
             )
             assert len(ref_indices) == 1, \
-                'Should have only and one ref video for a dis video, ' \
+                'Should have only one ref video for a dis video, ' \
                 'but got {}'.format(len(ref_indices))
             ref_idx = ref_indices[0]
 
@@ -108,11 +108,43 @@ class SubjectiveModel(TypeVersionEnabled):
         return np.array(ref_mos)
 
     @staticmethod
+    def stack_repetitions_along_axis(s_esr, axis):
+        """
+            Take the 3D input matrix, slice it along the 3rd axis and stack the resulting 2D matrices
+            along the selected matrix while maintaining the correct order.
+            :param s_esr: 3D array of the shape [E, S, R]
+            :param axis: 0 or 1
+            :return: 2D array containing the values
+                - if axis=0, the new shape is [R*E, S]
+                - if axis = 1, the new shape is [E, R*S]
+        """
+
+        assert len(s_esr.shape) == 3
+        E, S, R = s_esr.shape
+
+        if axis == 0:
+            o = np.zeros([R * E, S])
+
+            for r in range(R):
+                o[r * E:(r + 1) * E, :] = s_esr[:, :, r]
+
+        elif axis == 1:
+            o = np.zeros([E, R * S])
+
+            for r in range(R):
+                o[:, r * S:(r + 1) * S] = s_esr[:, :, r]
+
+        else:
+            assert False
+
+        return o
+
+    @staticmethod
     def _get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs):
 
-        s_es = dataset_reader.opinion_score_3darray
+        s_esr = dataset_reader.opinion_score_3darray
 
-        original_opinion_score_3darray = copy.deepcopy(s_es)
+        original_opinion_score_3darray = copy.deepcopy(s_esr)
 
         ret = dict()
 
@@ -140,40 +172,40 @@ class SubjectiveModel(TypeVersionEnabled):
             assert dataset_reader.dataset.ref_score is not None, \
                 "For differential score, dataset must have attribute ref_score."
 
-            E, S, RR = s_es.shape
-            s_e = pd.DataFrame(s_es).mean(axis=1) # mean along s
+            E, S, R = s_esr.shape
+            s_e = np.nanmean(DmosModel.stack_repetitions_along_axis(s_esr, axis=1), axis=1)  # mean along s
             s_e_ref = DmosModel._get_ref_mos(dataset_reader, s_e)
-            s_es = s_es + dataset_reader.ref_score - np.tile(s_e_ref, (S, 1)).T
+            s_esr = s_esr + dataset_reader.ref_score - np.tile(s_e_ref, (S, 1)).T[:, :, None]
 
         if zscore_mode is True:
-            E, S, RR = s_es.shape
-            mu_s = pd.DataFrame(s_es).mean(axis=0) # mean along e
-            simga_s = pd.DataFrame(s_es).std(ddof=1, axis=0) # std along e
-            s_es = (s_es - np.tile(mu_s, (E, 1))) / np.tile(simga_s, (E, 1))
+            E, S, R = s_esr.shape
+            mu_s = np.nanmean(DmosModel.stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # mean along e
+            simga_s = np.nanstd(DmosModel.stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # std along e
+            s_esr = (s_esr - np.tile(mu_s, (E, 1))[:, :, None]) / np.tile(simga_s, (E, 1))[:, :, None]
 
         if bias_offset is True:
-            E, S = s_es.shape
+            E, S, R = s_esr.shape
 
             # video-by-video, estimate MOS by averageing over subjects
-            s_e = pd.DataFrame(s_es).mean(axis=1) # mean along s
+            s_e = np.nanmean(DmosModel.stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # mean along s
 
             # subject by subject, estimate subject bias by comparing
             # against MOS
-            delta_es = s_es - np.tile(s_e, (S, 1)).T
-            delta_s = pd.DataFrame(delta_es).mean(axis=0)  # mean along e
+            delta_es = s_esr - np.tile(s_e, (S, 1)).T[:, :, None]
+            delta_s = np.nanmean(DmosModel.stack_repetitions_along_axis(delta_es, axis=0), axis=0)  # mean along e
 
             # remove bias from opinion scores
-            s_es = s_es - np.tile(delta_s, (E, 1))
+            s_esr = s_esr - np.tile(delta_s, (E, 1))[:, :, None]
 
             ret['bias_offset_estimate'] = delta_s
 
         if subject_rejection is True:
-            E, S, RR = s_es.shape
+            E, S, R = s_esr.shape
 
             ps = np.zeros(S)
             qs = np.zeros(S)
 
-            for s_e in s_es:
+            for s_e in s_esr:
                 s_e_notnan = s_e[~np.isnan(s_e)]
                 mu = np.mean(s_e_notnan)
                 sigma = np.std(s_e_notnan)
@@ -213,7 +245,7 @@ class SubjectiveModel(TypeVersionEnabled):
                     acceptions.append(rejections[idx_rej])
                 rejections = []
 
-            s_es = s_es[:, acceptions, :]
+            s_esr = s_esr[:, acceptions, :]
 
             observer_rejected = [False for _ in range(S)]
             for rejection_idx in rejections:
@@ -223,7 +255,7 @@ class SubjectiveModel(TypeVersionEnabled):
             ret['observer_rejected_1st_stats'] = reject_1st_stats
             ret['observer_rejected_2nd_stats'] = reject_2nd_stats
 
-        ret['opinion_score_3darray'] = s_es
+        ret['opinion_score_3darray'] = s_esr
         ret['original_opinion_score_3darray'] = original_opinion_score_3darray
 
         return ret
