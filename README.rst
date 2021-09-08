@@ -31,7 +31,7 @@ To install SUREAL via ``pip``, run::
 Local installation
 ------------------
 
-To install locally, first, download the source. Under the root directory, (perferrably in a virtualenv_), install the requirements::
+To install locally, first, download the source. Under the root directory, (preferably in a virtualenv_), install the requirements::
 
     pip install -r requirements.txt
 
