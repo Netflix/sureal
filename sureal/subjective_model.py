@@ -108,7 +108,7 @@ class SubjectiveModel(TypeVersionEnabled):
         return np.array(ref_mos)
 
     @staticmethod
-    def stack_repetitions_along_axis(s_esr, axis):
+    def _stack_repetitions_along_axis(s_esr, axis):
         """
             Take the 3D input matrix, slice it along the 3rd axis and stack the resulting 2D matrices
             along the selected matrix while maintaining the correct order.
@@ -173,26 +173,26 @@ class SubjectiveModel(TypeVersionEnabled):
                 "For differential score, dataset must have attribute ref_score."
 
             E, S, R = s_esr.shape
-            s_e = np.nanmean(DmosModel.stack_repetitions_along_axis(s_esr, axis=1), axis=1)  # mean along s
-            s_e_ref = DmosModel._get_ref_mos(dataset_reader, s_e)
+            s_e = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=1), axis=1)  # mean along s
+            s_e_ref = SubjectiveModel._get_ref_mos(dataset_reader, s_e)
             s_esr = s_esr + dataset_reader.ref_score - np.tile(s_e_ref, (S, 1)).T[:, :, None]
 
         if zscore_mode is True:
             E, S, R = s_esr.shape
-            mu_s = np.nanmean(DmosModel.stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # mean along e
-            simga_s = np.nanstd(DmosModel.stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # std along e
+            mu_s = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # mean along e
+            simga_s = np.nanstd(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # std along e
             s_esr = (s_esr - np.tile(mu_s, (E, 1))[:, :, None]) / np.tile(simga_s, (E, 1))[:, :, None]
 
         if bias_offset is True:
             E, S, R = s_esr.shape
 
             # video-by-video, estimate MOS by averageing over subjects
-            s_e = np.nanmean(DmosModel.stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # mean along s
+            s_e = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # mean along s
 
             # subject by subject, estimate subject bias by comparing
             # against MOS
             delta_es = s_esr - np.tile(s_e, (S, 1)).T[:, :, None]
-            delta_s = np.nanmean(DmosModel.stack_repetitions_along_axis(delta_es, axis=0), axis=0)  # mean along e
+            delta_s = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(delta_es, axis=0), axis=0)  # mean along e
 
             # remove bias from opinion scores
             s_esr = s_esr - np.tile(delta_s, (E, 1))[:, :, None]
@@ -205,7 +205,7 @@ class SubjectiveModel(TypeVersionEnabled):
             ps = np.zeros(S)
             qs = np.zeros(S)
 
-            for s_e in s_esr:
+            for s_e in SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=1):
                 s_e_notnan = s_e[~np.isnan(s_e)]
                 mu = np.mean(s_e_notnan)
                 sigma = np.std(s_e_notnan)
@@ -215,22 +215,22 @@ class SubjectiveModel(TypeVersionEnabled):
                     for idx_s, s in enumerate(s_e):
                         if not np.isnan(s):
                             if s >= mu + 2 * sigma:
-                                ps[idx_s] += 1
+                                ps[np.mod(idx_s, S)] += 1  # mod to assign repetitions to the correct subject
                             if s <= mu - 2 * sigma:
-                                qs[idx_s] += 1
+                                qs[np.mod(idx_s, S)] += 1
                 else:
                     for idx_s, s in enumerate(s_e):
                         if not np.isnan(s):
                             if s >= mu + np.sqrt(20) * sigma:
-                                ps[idx_s] += 1
+                                ps[np.mod(idx_s, S)] += 1
                             if s <= mu - np.sqrt(20) * sigma:
-                                qs[idx_s] += 1
+                                qs[np.mod(idx_s, S)] += 1
             rejections = []
             acceptions = []
             reject_1st_stats = []
             reject_2nd_stats = []
             for idx_s, subject in zip(list(range(S)), list(range(S))):
-                reject_1st_stat = (ps[idx_s] + qs[idx_s]) / E
+                reject_1st_stat = (ps[idx_s] + qs[idx_s]) / (E * R)
                 reject_2nd_stat = np.abs((ps[idx_s] - qs[idx_s]) / (ps[idx_s] + qs[idx_s]))
                 reject_1st_stats.append(reject_1st_stat)
                 reject_2nd_stats.append(reject_2nd_stat)
