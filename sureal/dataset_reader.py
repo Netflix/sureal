@@ -240,7 +240,13 @@ class RawDatasetReader(DatasetReader):
             dis_video2 = copy.deepcopy(dis_video)
             if 'os' in dis_video2: # remove 'os' - opinion score
                 del dis_video2['os']
-            dis_video2['groundtruth'] = score
+            if isinstance(score, np.ndarray):
+                if len(score) == 1:
+                    dis_video2['groundtruth'] = float(score)
+                else:
+                    dis_video2['groundtruth'] = list(score)
+            else:
+                dis_video2['groundtruth'] = score
             dis_videos.append(dis_video2)
 
         # add scores std if available
@@ -311,7 +317,13 @@ class RawDatasetReader(DatasetReader):
                 dis_video2 = copy.deepcopy(dis_video)
                 if 'os' in dis_video2: # remove 'os' - opinion score
                     del dis_video2['os']
-                dis_video2['groundtruth'] = persubject_score
+                if isinstance(persubject_score, np.ndarray):
+                    if len(persubject_score) == 1:
+                        dis_video2['groundtruth'] = float(persubject_score)
+                    else:
+                        dis_video2['groundtruth'] = list(persubject_score)
+                else:
+                    dis_video2['groundtruth'] = persubject_score
                 dis_videos.append(dis_video2)
         newone.dis_videos = dis_videos
 

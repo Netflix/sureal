@@ -180,7 +180,7 @@ class SubjectiveModel(TypeVersionEnabled):
         if zscore_mode is True:
             E, S, R = s_esr.shape
             mu_s = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # mean along e
-            simga_s = np.nanstd(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # std along e
+            simga_s = np.nanstd(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=0), ddof=1, axis=0)  # std along e
             s_esr = (s_esr - np.tile(mu_s, (E, 1))[:, :, None]) / np.tile(simga_s, (E, 1))[:, :, None]
 
         if bias_offset is True:
@@ -713,7 +713,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 ls[cid] = ls[cid] + list(x_esr[idx_cid, :, :].ravel())
             stds = []
             for l in ls:
-                stds.append(np.std(l, ddof=0))
+                stds.append(np.nanstd(l, ddof=0))
             return np.array(stds)
 
         def one_or_nan(x):
