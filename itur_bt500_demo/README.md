@@ -111,7 +111,7 @@ vote is not available, a 'nan' is put in place. See `small_sample_data.csv` file
 
 To run the demo:
 ```bash
-python3 demo.py --input-csv sample_data.csv
+python3 demo_bt500.py --input-csv sample_data.csv
 ```
 
 The demo prints the MOS (mean opinion scores), SOS (standard deviation of scores), subject bias and inconsistency. You should expect results like:
