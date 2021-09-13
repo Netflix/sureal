@@ -187,7 +187,7 @@ class SubjectiveModel(TypeVersionEnabled):
             E, S, R = s_esr.shape
 
             # video-by-video, estimate MOS by averageing over subjects
-            s_e = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=0), axis=0)  # mean along s
+            s_e = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=1), axis=1)  # mean along s
 
             # subject by subject, estimate subject bias by comparing
             # against MOS
@@ -321,10 +321,10 @@ class MosModel(SubjectiveModel):
 
     @classmethod
     def _get_mos_and_stats(cls, os_3darray, original_os_3darray):
-        mos = np.nanmean(os_3darray, axis=1)  # mean along s, ignore NaN
-        std = np.nanstd(os_3darray, axis=1, ddof=1)  # sample std -- use ddof 1
+        mos = np.nanmean(MosModel._stack_repetitions_along_axis(os_3darray, axis=1), axis=1)  # mean along s, ignore NaN
+        std = np.nanstd(MosModel._stack_repetitions_along_axis(os_3darray, axis=1), axis=1, ddof=1)  # sample std -- use ddof 1
         mos_std = std / np.sqrt(
-            np.nansum(~np.isnan(os_3darray), axis=1)
+            np.nansum(~np.isnan(MosModel._stack_repetitions_along_axis(os_3darray, axis=1)), axis=1)
         )  # std / sqrt(N), ignoring NaN
         result = {'quality_scores': list(mos),
                   'quality_scores_std': list(mos_std),
@@ -339,13 +339,13 @@ class MosModel(SubjectiveModel):
 
         original_num_pvs, original_num_obs, original_max_reps = original_os_3darray.shape
         original_num_os = np.sum(~np.isnan(original_os_3darray))
-        dof = cls._get_dof(original_num_pvs, original_num_obs) / original_num_os  # dof per observation
+        dof = cls._get_dof(original_num_pvs, original_num_obs, original_max_reps) / original_num_os  # dof per observation
         result['dof'] = dof
 
         loglikelihood = np.nansum(np.log(vectorized_gaussian(
             os_3darray,
-            np.tile(mos, (num_obs, 1)).T,
-            np.tile(std, (num_obs, 1)).T,
+            np.tile(mos, (num_obs, 1)).T[:, :, None],
+            np.tile(std, (num_obs, 1)).T[:, :, None],
         ))) / num_os  # log-likelihood per observation
         result['loglikelihood'] = loglikelihood
 
@@ -363,7 +363,7 @@ class MosModel(SubjectiveModel):
         return x_es_hat
 
     @classmethod
-    def _get_dof(cls, E, S):
+    def _get_dof(cls, E, S, R):
         return E * 2
 
 
@@ -414,11 +414,11 @@ class LiveDmosModel(SubjectiveModel):
         kwargs2['zscore_mode'] = True
 
         ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs2)
-        s_es = ret['opinion_score_3darray']
+        s_esr = ret['opinion_score_3darray']
 
-        s_es = (s_es + 3.0) * 100.0 / 6.0
+        s_esr = (s_esr + 3.0) * 100.0 / 6.0
 
-        score = np.nanmean(s_es, axis=1) # mean along s
+        score = np.nanmean(LiveDmosModel._stack_repetitions_along_axis(s_esr, axis=1), axis=1)  # mean along s
         result = {
             'quality_scores': score
         }
@@ -445,9 +445,12 @@ class LeastSquaresModel(SubjectiveModel):
         ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
         score_mtx = ret['opinion_score_3darray']
 
-        num_video, num_subject, max_repetitions = score_mtx.shape
+        assert np.shape(score_mtx)[2] == 1, 'LeastSquareModel currently not supported for repeated votes'
+        score_mtx = score_mtx[:, :, 0]  # TODO: add repetitions
 
-        A = np.zeros([num_video * num_subject, num_video + num_subject]) # TODO: add repetitions
+        num_video, num_subject = score_mtx.shape
+
+        A = np.zeros([num_video * num_subject, num_video + num_subject])
         for idx_video in range(num_video):
             for idx_subject in range(num_subject):
                 cur_row = idx_video * num_subject + idx_subject
@@ -509,6 +512,9 @@ class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
 
         ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
         x_es = ret['opinion_score_3darray']
+
+        assert np.shape(x_es)[2] == 1, 'LegacyMaximumLikelihoodEstimationModel currently not supported for repeated votes'
+        x_es = x_es[:, :, 0]  # TODO: add repetitions
 
         E, S = x_es.shape
 
@@ -609,11 +615,11 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     """
     Generative model that considers individual subjective (or observer)'s bias
     and inconsistency, as well as content's bias and ambiguity.
-    The observed score is modeled by:
-    X_e,s = x_e + B_e,s + A_e,s
-    where x_e is the true quality of distorted video e, and B_e,s ~ N(b_s, v_s)
+    The observed score in each repetition is modeled by:
+    X_e,s,r = x_e + B_e,s,r + A_e,s,r
+    where x_e is the true quality of distorted video e, and B_e,s,r ~ N(b_s, v_s)
     is the term representing observer s's bias (b_s) and inconsistency (v_s).
-    A_e,s ~ N(0, a_c), where c is a function of e, or c = c(e), represents
+    A_e,s,r ~ N(0, a_c), where c is a function of e, or c = c(e), represents
     content c's ambiguity (a_c). The model is then solved via maximum
     likelihood estimation using belief propagation.
     """
@@ -630,37 +636,37 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     DEFAULT_FORCE_SUBJBIAS_ZEROMEAN = True
 
     @staticmethod
-    def loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis, numerical_pdf):
-        E, S = x_es.shape
+    def loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c, content_id_of_dis_videos, axis, numerical_pdf):
+        E, S, R = x_esr.shape
 
         if numerical_pdf == 'gaussian':
             # solution not unique
             a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
-            mu_es = np.tile(x_e, (S, 1)).T + np.tile(b_s, (E, 1))
-            vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-            ret = np.log(vectorized_gaussian(x_es, mu_es, np.sqrt(vs2_add_ace2)))
+            mu_esr = np.tile(x_e, (S, 1)).T[:, :, None] + np.tile(b_s, (E, 1))[:, :, None]
+            vs2_add_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+            ret = np.log(vectorized_gaussian(x_esr, mu_esr, np.sqrt(vs2_add_ace2)))
 
         elif numerical_pdf == 'logistic':
             a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
-            mu1 = np.tile(b_s, (E, 1))
-            mu2 = np.tile(x_e, (S, 1)).T
-            s1 = np.sqrt(np.tile((v_s / (np.pi / np.sqrt(3.0)))**2, (E, 1)))
-            s2 = np.sqrt(np.tile((a_c_e / (np.pi / np.sqrt(3.0)))**2, (S, 1)).T)
+            mu1 = np.tile(b_s, (E, 1))[:, :, None]
+            mu2 = np.tile(x_e, (S, 1)).T[:, :, None]
+            s1 = np.sqrt(np.tile((v_s / (np.pi / np.sqrt(3.0)))**2, (E, 1)))[:, :, None]
+            s2 = np.sqrt(np.tile((a_c_e / (np.pi / np.sqrt(3.0)))**2, (S, 1)).T)[:, :, None]
             # ret = np.log(vectorized_logistic(x_es, mu1 + mu2, np.sqrt(s1**2 + s2**2)))
-            ret = np.log(vectorized_convolution_of_two_logistics(x_es, mu1, s1, mu2, s2))
+            ret = np.log(vectorized_convolution_of_two_logistics(x_esr, mu1, s1, mu2, s2))
 
         elif numerical_pdf == 'uniform':
             # gradient descent won't work due to zero density
             a_c_e = np.array([a_c[i] for i in content_id_of_dis_videos])
-            mu1 = np.tile(b_s, (E, 1))
-            mu2 = np.tile(x_e, (S, 1)).T
-            s1 = np.sqrt(np.tile(v_s**2, (E, 1)) * 12.)
-            s2 = np.sqrt(np.tile(a_c_e**2, (S, 1)).T * 12.)
-            ret = np.log(vectorized_convolution_of_two_uniforms(x_es, mu1, s1, mu2, s2))
+            mu1 = np.tile(b_s, (E, 1))[:, :, None]
+            mu2 = np.tile(x_e, (S, 1)).T[:, :, None]
+            s1 = np.sqrt(np.tile(v_s**2, (E, 1)) * 12.)[:, :, None]
+            s2 = np.sqrt(np.tile(a_c_e**2, (S, 1)).T * 12.)[:, :, None]
+            ret = np.log(vectorized_convolution_of_two_uniforms(x_esr, mu1, s1, mu2, s2))
         else:
             assert False, 'Unknown numerical_pdf: {}'.format(numerical_pdf)
 
-        ret = pd.DataFrame(ret).sum(axis=axis)
+        ret = np.nansum(MaximumLikelihoodEstimationModel._stack_repetitions_along_axis(ret, axis=axis), axis=axis)
         return ret
 
     @classmethod
@@ -697,17 +703,17 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 sums[cid] += x
             return sums
 
-        def std_over_subject_and_content_id(x_es, cids, num_c):
-            assert x_es.shape[0] == len(cids)
+        def std_over_subject_and_content_id(x_esr, cids, num_c):
+            assert x_esr.shape[0] == len(cids)
             for cid in set(cids):
                 assert cid in range(num_c), \
                     'content id must be in [0, {num_c}), but is {cid}'.format(num_c=num_c, cid=cid)
             ls = [[] for _ in range(num_c)]
             for idx_cid, cid in enumerate(cids):
-                ls[cid] = ls[cid] + list(x_es[idx_cid, :])
+                ls[cid] = ls[cid] + list(x_esr[idx_cid, :, :].ravel())
             stds = []
             for l in ls:
-                stds.append(pd.Series(l).std(ddof=0))
+                stds.append(np.std(l, ddof=0))
             return np.array(stds)
 
         def one_or_nan(x):
@@ -716,19 +722,19 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             return y
 
         ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
-        x_es = ret['opinion_score_3darray']
-        x_es_original = ret['original_opinion_score_3darray']
+        x_esr = ret['opinion_score_3darray']
+        x_esr_original = ret['original_opinion_score_3darray']
 
-        E, S, RR = x_es.shape
+        E, S, R = x_esr.shape
         C = dataset_reader.max_content_id_of_ref_videos + 1
 
         # === initialization ===
 
         mos = np.array(MosModel(dataset_reader).run_modeling()['quality_scores'])
-        r_es = x_es - np.tile(mos, (S, 1)).T # r_es: residual at e, s
-        sigma_r_s = pd.DataFrame(r_es).std(axis=0, ddof=0) # along e
+        r_esr = x_esr - np.tile(mos, (S, 1)).T[:, :, None]  # r_esr: residual at e, s, r
+        sigma_r_s = np.nanstd(SubjectiveModel._stack_repetitions_along_axis(r_esr, axis=0), axis=0, ddof=0)  # along e
         assert len(sigma_r_s) == S
-        sigma_r_c = std_over_subject_and_content_id(r_es, dataset_reader.content_id_of_dis_videos, C)
+        sigma_r_c = std_over_subject_and_content_id(r_esr, dataset_reader.content_id_of_dis_videos, C)
         assert len(sigma_r_c) == C
 
         x_e = mos # use MOS as initial value for x_e
@@ -759,34 +765,40 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             if gradient_method == 'simplified':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
-                num_num = x_es - np.tile(x_e, (S, 1)).T
-                num_den = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                num = pd.DataFrame(num_num / num_den).sum(axis=0) # sum over e
-                den_num = one_or_nan(x_es) # 1 and nan
+                num_num = x_esr - np.tile(x_e, (S, 1)).T[:, :, None]
+                num_den = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                num = np.nansum(SubjectiveModel._stack_repetitions_along_axis(num_num / num_den, axis=0), axis=0)  # sum over e
+                den_num = one_or_nan(x_esr) # 1 and nan
                 den_den = num_den
-                den = pd.DataFrame(den_num / den_den).sum(axis=0) # sum over e
+                den = np.nansum(SubjectiveModel._stack_repetitions_along_axis(den_num / den_den, axis=0), axis=0)  # sum over e
                 b_s_new = num / den
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
                 b_s_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of x_e
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                order1 = (x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))) / vs2_add_ace2
-                order1 = pd.DataFrame(order1).sum(axis=0) # sum over e
-                order2 = - one_or_nan(x_es) / vs2_add_ace2
-                order2 = pd.DataFrame(order2).sum(axis=0) # sum over e
+                vs2_add_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                order1 = (x_esr - np.tile(x_e, (S, 1)).T[:, :, None] - np.tile(b_s, (E, 1))[:, :, None]) / vs2_add_ace2
+                order1 = np.nansum(SubjectiveModel._stack_repetitions_along_axis(order1, axis=0), axis=0)  # sum over e
+                order2 = - one_or_nan(x_esr) / vs2_add_ace2
+                order2 = np.nansum(SubjectiveModel._stack_repetitions_along_axis(order2, axis=0), axis=0)  # sum over e
                 b_s_new = b_s - order1 / order2
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
                 b_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             elif gradient_method == 'numerical':
-                axis = 0 # sum over e
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON / 2.0, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON / 2.0, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s + EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s - EPSILON, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
+                axis = 0  # sum over e
+                order1 = (cls.loglikelihood_fcn(x_esr, x_e, b_s + EPSILON / 2.0, v_s, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
+                          cls.loglikelihood_fcn(x_esr, x_e, b_s - EPSILON / 2.0, v_s, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_esr, x_e, b_s + EPSILON, v_s, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                          - 2 * cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos,
+                                                      axis, numerical_pdf)
+                          + cls.loglikelihood_fcn(x_esr, x_e, b_s - EPSILON, v_s, a_c,
+                                                  dataset_reader.content_id_of_dis_videos, axis,
+                                                  numerical_pdf)) / EPSILON ** 2
                 b_s_new = b_s - order1 / order2
                 b_s = b_s * (1.0 - REFRESH_RATE) + b_s_new * REFRESH_RATE
                 b_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
@@ -795,54 +807,62 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
                 assert False
 
             if cls.mode == 'SUBJECT_OBLIVIOUS':
-                b_s = np.zeros(S) # forcing zero, hence disabling
+                b_s = np.zeros(S)  # forcing zero, hence disabling
                 b_s_std = np.zeros(S)
 
             # ==== (14) v_s ====
 
             if gradient_method == 'simplified':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
-                num = - np.tile(v_s, (E, 1)) / vs2_add_ace2 + np.tile(v_s, (E, 1)) * a_es**2 / vs2_add_ace2**2
-                num = pd.DataFrame(num).sum(axis=0) # sum over e
-                poly_term = np.tile(a_c_e**4, (S, 1)).T \
-                      - 3 * np.tile(v_s**4, (E, 1)) \
-                      - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
-                den = vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                den = pd.DataFrame(den).sum(axis=0) # sum over e
+                a_esr = x_esr - np.tile(x_e, (S, 1)).T[:, :, None] - np.tile(b_s, (E, 1))[:, :, None]
+                vs2_add_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                vs2_minus_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] - np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                num = - np.tile(v_s, (E, 1))[:, :, None] / vs2_add_ace2 + np.tile(v_s, (E, 1))[:, :, None] * a_esr**2 \
+                      / vs2_add_ace2**2
+                num = np.nansum(SubjectiveModel._stack_repetitions_along_axis(num, axis=0), axis=0)  # sum over e
+                poly_term = np.tile(a_c_e**4, (S, 1)).T[:, :, None] \
+                      - 3 * np.tile(v_s**4, (E, 1))[:, :, None] \
+                      - 2 * np.tile(v_s**2, (E, 1))[:, :, None] * np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                den = vs2_minus_ace2 / vs2_add_ace2**2 + a_esr**2 * poly_term / vs2_add_ace2**4
+                den = np.nansum(SubjectiveModel._stack_repetitions_along_axis(den, axis=0), axis=0)  # sum over e
                 v_s_new = v_s - num / den
                 v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
                 # calculate std of v_s
-                lpp = pd.DataFrame(
-                    vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                ).sum(axis=0) # sum over e
+                lpp = np.nansum(SubjectiveModel._stack_repetitions_along_axis(
+                    vs2_minus_ace2 / vs2_add_ace2**2 + a_esr**2 * poly_term / vs2_add_ace2**4, axis=0),
+                    axis=0)  # sum over e
                 v_s_std = 1.0 / np.sqrt(np.maximum(0., -lpp))
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
-                poly_term = np.tile(a_c_e**4, (S, 1)).T \
-                      - 3 * np.tile(v_s**4, (E, 1)) \
-                      - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
-                order1 = - np.tile(v_s, (E, 1)) / vs2_add_ace2 + np.tile(v_s, (E, 1)) * a_es**2 / vs2_add_ace2**2
-                order1 = pd.DataFrame(order1).sum(axis=0) # sum over e
-                order2 = vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                order2 = pd.DataFrame(order2).sum(axis=0) # sum over e
+                a_esr = x_esr - np.tile(x_e, (S, 1)).T[:, :, None] - np.tile(b_s, (E, 1))[:, :, None]
+                vs2_add_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                vs2_minus_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] - np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                poly_term = np.tile(a_c_e**4, (S, 1)).T[:, :, None] \
+                      - 3 * np.tile(v_s**4, (E, 1))[:, :, None] \
+                      - 2 * np.tile(v_s**2, (E, 1))[:, :, None] * np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                order1 = - np.tile(v_s, (E, 1))[:, :, None] / vs2_add_ace2 + \
+                         np.tile(v_s, (E, 1))[:, :, None] * a_esr**2 / vs2_add_ace2 ** 2
+                order1 = np.nansum(SubjectiveModel._stack_repetitions_along_axis(order1, axis=0), axis=0)  # sum over e
+                order2 = vs2_minus_ace2 / vs2_add_ace2 ** 2 + a_esr ** 2 * poly_term / vs2_add_ace2 ** 4
+                order2 = np.nansum(SubjectiveModel._stack_repetitions_along_axis(order2, axis=0), axis=0)  # sum over e
                 v_s_new = v_s - order1 / order2
                 v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
                 v_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of v_s
 
             elif gradient_method == 'numerical':
-                axis = 0 # sum over e
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s + EPSILON / 2.0, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON / 2.0, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s + EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s - EPSILON, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
+                axis = 0  # sum over e
+                order1 = (cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s + EPSILON / 2.0, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
+                          cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s - EPSILON / 2.0, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s + EPSILON, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                          - 2 * cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos,
+                                                      axis, numerical_pdf)
+                          + cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s - EPSILON, a_c,
+                                                  dataset_reader.content_id_of_dis_videos, axis,
+                                                  numerical_pdf)) / EPSILON ** 2
                 v_s_new = v_s - order1 / order2
                 v_s = v_s * (1.0 - REFRESH_RATE) + v_s_new * REFRESH_RATE
                 v_s_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of v_s
@@ -861,26 +881,29 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             if gradient_method == 'simplified':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
-                num = - np.tile(a_c_e, (S, 1)).T / vs2_add_ace2 + np.tile(a_c_e, (S, 1)).T * a_es**2 / vs2_add_ace2**2
-                num = pd.DataFrame(num).sum(axis=1) # sum over s
+                a_esr = x_esr - np.tile(x_e, (S, 1)).T[:, :, None] - np.tile(b_s, (E, 1))[:, :, None]
+                vs2_add_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                vs2_minus_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] - np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                num = - np.tile(a_c_e, (S, 1)).T[:, :, None] / vs2_add_ace2 \
+                      + np.tile(a_c_e, (S, 1)).T[:, :, None] * a_esr ** 2 / vs2_add_ace2 ** 2
+                num = np.nansum(SubjectiveModel._stack_repetitions_along_axis(num, axis=1), axis=1)  # sum over s
                 num = sum_over_content_id(num, dataset_reader.content_id_of_dis_videos, C)  # sum over e:c(e)=c
-                poly_term = np.tile(v_s**4, (E, 1)) \
-                      - 3 * np.tile(a_c_e**4, (S, 1)).T \
-                      - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
-                den = - vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                den = pd.DataFrame(den).sum(axis=1) # sum over s
+                poly_term = np.tile(v_s**4, (E, 1))[:, :, None] \
+                      - 3 * np.tile(a_c_e**4, (S, 1)).T[:, :, None] \
+                      - 2 * np.tile(v_s**2, (E, 1))[:, :, None] * np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                den = - vs2_minus_ace2 / vs2_add_ace2 ** 2 + a_esr ** 2 * poly_term / vs2_add_ace2 ** 4
+                den = np.nansum(SubjectiveModel._stack_repetitions_along_axis(den, axis=1), axis=1)  # sum over s
                 den = sum_over_content_id(den, dataset_reader.content_id_of_dis_videos, C)  # sum over e:c(e)=c
                 # check: 'den' is 0 in test/subjective_model_test.py::SubjectiveModelPartialTest::test_observer_content_aware_subjective_model_nocontent
                 a_c_new = a_c - num / den
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
                 # calculate std of a_c
                 lpp = sum_over_content_id(
-                    pd.DataFrame(
-                        -vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                    ).sum(axis=1),
+                    np.nansum(
+                        SubjectiveModel._stack_repetitions_along_axis(
+                        -vs2_minus_ace2 / vs2_add_ace2 ** 2 + a_esr ** 2 * poly_term / vs2_add_ace2 ** 4,
+                            axis=1),
+                        axis=1),
                     dataset_reader.content_id_of_dis_videos,
                     C
                 )  # sum over e:c(e)=c
@@ -889,31 +912,38 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                vs2_minus_ace2 = np.tile(v_s**2, (E, 1)) - np.tile(a_c_e**2, (S, 1)).T
-                poly_term = np.tile(v_s**4, (E, 1)) \
-                      - 3 * np.tile(a_c_e**4, (S, 1)).T \
-                      - 2 * np.tile(v_s**2, (E, 1)) * np.tile(a_c_e**2, (S, 1)).T
-                order1 = - np.tile(a_c_e, (S, 1)).T / vs2_add_ace2 + np.tile(a_c_e, (S, 1)).T * a_es**2 / vs2_add_ace2**2
-                order1 = pd.DataFrame(order1).sum(axis=1) # sum over s
-                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
-                order2 = - vs2_minus_ace2 / vs2_add_ace2**2 + a_es**2 * poly_term / vs2_add_ace2**4
-                order2 = pd.DataFrame(order2).sum(axis=1) # sum over s
-                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
+                a_esr = x_esr - np.tile(x_e, (S, 1)).T[:, :, None] - np.tile(b_s, (E, 1))[:, :, None]
+                vs2_add_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                vs2_minus_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] - np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                poly_term = np.tile(v_s**4, (E, 1))[:, :, None] \
+                      - 3 * np.tile(a_c_e**4, (S, 1)).T[:, :, None] \
+                      - 2 * np.tile(v_s**2, (E, 1))[:, :, None] * np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                order1 = - np.tile(a_c_e, (S, 1)).T[:, :, None] / vs2_add_ace2 \
+                         + np.tile(a_c_e, (S, 1)).T[:, :, None] * a_esr ** 2 / vs2_add_ace2 ** 2
+                order1 = np.nansum(SubjectiveModel._stack_repetitions_along_axis(order1, axis=1), axis=1)  # sum over s
+                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos, C)  # sum over e:c(e)=c
+                order2 = - vs2_minus_ace2 / vs2_add_ace2 ** 2 + a_esr ** 2 * poly_term / vs2_add_ace2 ** 4
+                order2 = np.nansum(SubjectiveModel._stack_repetitions_along_axis(order2, axis=1), axis=1)  # sum over s
+                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C)  # sum over e:c(e)=c
                 a_c_new = a_c - order1 / order2
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
                 a_c_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of a_c
 
             elif gradient_method == 'numerical':
-                axis = 1 # sum over s
-                order1 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
-                         cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON / 2.0, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c + EPSILON, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
-                                  + cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c - EPSILON, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
-                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
-                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C) # sum over e:c(e)=c
+                axis = 1  # sum over s
+                order1 = (cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c + EPSILON / 2.0,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
+                          cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c - EPSILON / 2.0,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c + EPSILON,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                          - 2 * cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos,
+                                                      axis, numerical_pdf)
+                          + cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c - EPSILON,
+                                                  dataset_reader.content_id_of_dis_videos, axis,
+                                                  numerical_pdf)) / EPSILON ** 2
+                order1 = sum_over_content_id(order1, dataset_reader.content_id_of_dis_videos, C)  # sum over e:c(e)=c
+                order2 = sum_over_content_id(order2, dataset_reader.content_id_of_dis_videos, C)  # sum over e:c(e)=c
                 a_c_new = a_c - order1 / order2
                 a_c = a_c * (1.0 - REFRESH_RATE) + a_c_new * REFRESH_RATE
                 a_c_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of a_c
@@ -932,35 +962,41 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             if gradient_method == 'simplified':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
-                num_num = x_es - np.tile(b_s, (E, 1))
-                num_den = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                num = pd.DataFrame(num_num / num_den).sum(axis=1) # sum over s
-                den_num = one_or_nan(x_es) # 1 and nan
+                num_num = x_esr - np.tile(b_s, (E, 1))[:, :, None]
+                num_den = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                num = np.nansum(SubjectiveModel._stack_repetitions_along_axis(num_num / num_den, axis=1), axis=1)  # sum over s
+                den_num = one_or_nan(x_esr)  # 1 and nan
                 den_den = num_den
-                den = pd.DataFrame(den_num / den_den).sum(axis=1) # sum over s
+                den = np.nansum(SubjectiveModel._stack_repetitions_along_axis(den_num / den_den, axis=1), axis=1)  # sum over s
                 x_e_new = num / den
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
                 x_e_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of x_e
 
             elif gradient_method == 'original':
                 a_c_e = np.array([a_c[i] for i in dataset_reader.content_id_of_dis_videos])
-                a_es = x_es - np.tile(x_e, (S, 1)).T - np.tile(b_s, (E, 1))
-                vs2_add_ace2 = np.tile(v_s**2, (E, 1)) + np.tile(a_c_e**2, (S, 1)).T
-                order1 = a_es / vs2_add_ace2
-                order1 = pd.DataFrame(order1).sum(axis=1) # sum over s
-                order2 = - one_or_nan(x_es) / vs2_add_ace2
-                order2 = pd.DataFrame(order2).sum(axis=1) # sum over s
+                a_esr = x_esr - np.tile(x_e, (S, 1)).T[:, :, None] - np.tile(b_s, (E, 1))[:, :, None]
+                vs2_add_ace2 = np.tile(v_s**2, (E, 1))[:, :, None] + np.tile(a_c_e**2, (S, 1)).T[:, :, None]
+                order1 = a_esr / vs2_add_ace2
+                order1 = np.nansum(SubjectiveModel._stack_repetitions_along_axis(order1, axis=1), axis=1)  # sum over s
+                order2 = - one_or_nan(x_esr) / vs2_add_ace2
+                order2 = np.nansum(SubjectiveModel._stack_repetitions_along_axis(order2, axis=1), axis=1)  # sum over s
                 x_e_new = x_e - order1 / order2
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
                 x_e_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
 
             elif gradient_method == 'numerical':
-                axis = 1 # sum over s
-                order1 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON / 2.0, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
-                         cls.loglikelihood_fcn(x_es, x_e - EPSILON / 2.0, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
-                order2 = (cls.loglikelihood_fcn(x_es, x_e + EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
-                                  - 2 * cls.loglikelihood_fcn(x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
-                                  + cls.loglikelihood_fcn(x_es, x_e - EPSILON, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON**2
+                axis = 1  # sum over s
+                order1 = (cls.loglikelihood_fcn(x_esr, x_e + EPSILON / 2.0, b_s, v_s, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf) -
+                          cls.loglikelihood_fcn(x_esr, x_e - EPSILON / 2.0, b_s, v_s, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)) / EPSILON
+                order2 = (cls.loglikelihood_fcn(x_esr, x_e + EPSILON, b_s, v_s, a_c,
+                                                dataset_reader.content_id_of_dis_videos, axis, numerical_pdf)
+                          - 2 * cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos,
+                                                      axis, numerical_pdf)
+                          + cls.loglikelihood_fcn(x_esr, x_e - EPSILON, b_s, v_s, a_c,
+                                                  dataset_reader.content_id_of_dis_videos, axis,
+                                                  numerical_pdf)) / EPSILON ** 2
                 x_e_new = x_e - order1 / order2
                 x_e = x_e * (1.0 - REFRESH_RATE) + x_e_new * REFRESH_RATE
                 x_e_std = 1.0 / np.sqrt(np.maximum(0., -order2))  # calculate std of x_e
@@ -972,8 +1008,9 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
             delta_x_e = linalg.norm(x_e_prev - x_e)
 
-            loglikelihood = np.sum(cls.loglikelihood_fcn(
-                x_es, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, 1, numerical_pdf))
+            loglikelihood = np.sum(
+                cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, 1,
+                                      numerical_pdf))
 
             now = time.time()
             elapsed = now - then
@@ -1009,7 +1046,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
             x_e += mean_b_s
 
         result = {
-            'raw_scores': x_es,
+            'raw_scores': x_esr,
 
             'quality_scores': list(x_e),
             'quality_scores_std': list(x_e_std),
@@ -1020,7 +1057,7 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
 
 
         if cls.mode != 'SUBJECT_OBLIVIOUS':
-            cnt_s = np.sum(~np.isnan(x_es), axis=0)  # number of samples along i
+            cnt_s = np.sum(~np.isnan(SubjectiveModel._stack_repetitions_along_axis(x_esr, axis=0)), axis=0)  # number of samples along i
             result['observer_bias'] = list(b_s)
             result['observer_bias_std'] = list(b_s_std)
             result['observer_bias_ci95'] = [list(1.95996 * b_s_std),
@@ -1046,20 +1083,20 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         except AssertionError:
             pass
 
-        result['reconstructions'] = cls._get_reconstructions(x_es, x_e, b_s)
+        result['reconstructions'] = cls._get_reconstructions(x_esr, x_e, b_s)
 
-        original_E, original_S = x_es_original.shape
-        original_num_os = np.sum(~np.isnan(x_es_original))
+        original_E, original_S, original_R = x_esr_original.shape
+        original_num_os = np.sum(~np.isnan(x_esr_original))
         original_C = dataset_reader.max_content_id_of_ref_videos + 1
 
-        num_os = np.sum(~np.isnan(x_es))
+        num_os = np.sum(~np.isnan(x_esr))
 
-        dof = cls._get_dof(original_E, original_S, original_C) / original_num_os  # dof per observation
+        dof = cls._get_dof(original_E, original_S, original_C, original_R) / original_num_os  # dof per observation
         result['dof'] = dof
 
-        loglikelihood = np.sum(cls.loglikelihood_fcn(
-            x_es, x_e, b_s, v_s, a_c,
-            dataset_reader.content_id_of_dis_videos, 1, numerical_pdf)) / num_os  # log-likelihood per observation
+        loglikelihood = np.sum(
+            cls.loglikelihood_fcn(x_esr, x_e, b_s, v_s, a_c, dataset_reader.content_id_of_dis_videos, 1,
+                                  numerical_pdf)) / num_os  # log-likelihood per observation
         result['loglikelihood'] = loglikelihood
 
         aic = 2 * dof - 2 * loglikelihood  # aic per observation
@@ -1071,17 +1108,17 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
         return result
 
     @classmethod
-    def _get_reconstructions(cls, x_es, x_e, b_s):
-        E, S = x_es.shape
-        x_es_hat = np.tile(x_e, (S, 1)).T + np.tile(b_s, (E, 1))
-        return x_es_hat
+    def _get_reconstructions(cls, x_esr, x_e, b_s):
+        E, S, R = x_esr.shape
+        x_esr_hat = np.tile(x_e, (S, 1)).T[:, :, None] + np.tile(b_s, (E, 1))[:, :, None]
+        return x_esr_hat
 
     @classmethod
-    def _get_dof(cls, E, S, C):
+    def _get_dof(cls, E, S, C, R):
         if cls.mode == 'DEFAULT':
-            dof = E + S * 2 + C
+            dof = E + S * R * 2 + C
         elif cls.mode == 'CONTENT_OBLIVIOUS':
-            dof = E + S * 2
+            dof = E + S * R * 2
         elif cls.mode == 'SUBJECT_OBLIVIOUS':
             dof = E + C
         else:
@@ -1265,9 +1302,9 @@ class BiasremvMosModel(MosModel):
         return result
 
     @classmethod
-    def _get_dof(cls, E, S):
+    def _get_dof(cls, E, S, R):
         # override MosModel._get_dof
-        return E * 2 + S
+        return E * 2 + S * R
 
 
 class BiasremvSubjrejMosModel(BiasremvMosModel):
@@ -1308,18 +1345,18 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
         assert isinstance(force_subjbias_zeromean, bool)
 
         ret = cls._get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs)
-        x_ji = ret['opinion_score_3darray']
-        x_ji_original = ret['original_opinion_score_3darray']
-        J, I, RR = x_ji.shape
-        cnt_i = np.sum(~np.isnan(x_ji), axis=0)  # number of samples along i
-        cnt_j = np.sum(~np.isnan(x_ji), axis=1)  # number of samples along j
+        x_jir = ret['opinion_score_3darray']
+        x_jir_original = ret['original_opinion_score_3darray']
+        J, I, R = x_jir.shape
+        cnt_i = np.sum(~np.isnan(SubjectiveModel._stack_repetitions_along_axis(x_jir, axis=0)), axis=0)  # number of samples along i
+        cnt_j = np.sum(~np.isnan(SubjectiveModel._stack_repetitions_along_axis(x_jir, axis=1)), axis=1)  # number of samples along j
 
         # video by video, estimate MOS by averaging over subjects
-        s_j = np.nanmean(x_ji, axis=1)  # mean marginalized over i
+        s_j = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(x_jir, axis=1), axis=1)  # mean marginalized over i
 
         # subject by subject, estimate subject bias by comparing with MOS
-        b_ji = x_ji - np.tile(s_j, (I, 1)).T
-        b_i = np.nanmean(b_ji, axis=0)  # mean marginalized over j
+        b_jir = x_jir - np.tile(s_j, (I, 1)).T[:, :, None]
+        b_i = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(b_jir, axis=0), axis=0)  # mean marginalized over j
 
         MAX_ITR = 1000
         DELTA_THR = 1e-8
@@ -1331,18 +1368,21 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
             s_j_prev = s_j
 
             # subject by subject, estimate subject inconsistency by averaging the residue over stimuli
-            r_ji = x_ji - np.tile(s_j, (I, 1)).T - np.tile(b_i, (J, 1))
-            v_i = np.nanstd(r_ji, axis=0)
-            v_j = np.nanstd(r_ji, axis=1)
+            r_jir = x_jir - np.tile(s_j, (I, 1)).T[:, :, None] - np.tile(b_i, (J, 1))[:, :, None]
+            v_i = np.nanstd(SubjectiveModel._stack_repetitions_along_axis(r_jir, axis=0), axis=0)
+            v_j = np.nanstd(SubjectiveModel._stack_repetitions_along_axis(r_jir, axis=1), axis=1)
 
             # video by video, estimate MOS by averaging over subjects, inversely weighted by residue variance
-            s_ji = x_ji - np.tile(b_i, (J, 1))
+            s_jir = x_jir - np.tile(b_i, (J, 1))[:, :, None]
             w_i = 1.0 / (v_i ** 2 + EPSILON)
-            s_j = weighed_nanmean_2d(s_ji, weights=w_i, axis=1)  # mean marginalized over i
+            s_j = weighed_nanmean_2d(
+                SubjectiveModel._stack_repetitions_along_axis(s_jir, axis=1),
+                weights=np.tile(w_i, R),
+                axis=1)  # mean marginalized over i
 
             # subject by subject, estimate subject bias by comparing with MOS, inversely weighted by residue variance
-            b_ji = x_ji - np.tile(s_j, (I, 1)).T
-            b_i = np.nanmean(b_ji, axis=0)  # mean marginalized over j
+            b_jir = x_jir - np.tile(s_j, (I, 1)).T[:, :, None]
+            b_i = np.nanmean(SubjectiveModel._stack_repetitions_along_axis(b_jir, axis=0), axis=0)  # mean marginalized over j
 
             itr += 1
 
@@ -1359,15 +1399,23 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
 
             if itr >= MAX_ITR:
                 break
-        s_j_std = cls._get_s_j_std(v_i, v_j, x_ji)
+        s_j_std = cls._get_s_j_std(v_i, v_j, x_jir)
 
-        den = np.nansum(cls._one_or_nan(x_ji) / np.tile(v_i ** 2, (x_ji.shape[0], 1)), axis=0)  # sum over e
+        den = np.nansum(
+            SubjectiveModel._stack_repetitions_along_axis(
+                cls._one_or_nan(x_jir) / np.tile(v_i ** 2, (x_jir.shape[0], 1))[:, :, None],
+                axis=0),
+            axis=0)  # sum over e
         b_i_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of b_i
 
-        r_ji = x_ji - np.tile(s_j, (I, 1)).T - np.tile(b_i, (J, 1))
-        v_i2 = np.tile(v_i ** 2, (J, 1))
-        poly_term = - 3 * np.tile(v_i ** 4, (J, 1))
-        lpp = np.nansum(1.0 / v_i2 + r_ji ** 2 * poly_term / v_i2 ** 4, axis=0)  # sum over e
+        r_jir = x_jir - np.tile(s_j, (I, 1)).T[:, :, None] - np.tile(b_i, (J, 1))[:, :, None]
+        v_i2 = np.tile(v_i ** 2, (J, 1))[:, :, None]
+        poly_term = - 3 * np.tile(v_i ** 4, (J, 1))[:, :, None]
+        lpp = np.nansum(
+            SubjectiveModel._stack_repetitions_along_axis(
+                1.0 / v_i2 + r_jir ** 2 * poly_term / v_i2 ** 4,
+                axis=0),
+            axis=0)  # sum over e
         v_i_std = 1.0 / np.sqrt(np.maximum(0., -lpp))
 
         sys.stdout.write("\n")
@@ -1377,7 +1425,7 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
             b_i -= mean_b_i
             s_j += mean_b_i
 
-        result = {'raw_scores': x_ji,
+        result = {'raw_scores': x_jir,
                   'quality_scores': list(s_j),
                   'quality_scores_std': list(s_j_std),
                   'quality_scores_ci95': [list(1.95996 * s_j_std),
@@ -1393,19 +1441,19 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
                       # list(1.95996 * v_i_std),
                       # list(1.95996 * v_i_std),
                   ],
-                  'reconstructions': cls._get_reconstructions(x_ji, s_j, b_i),
+                  'reconstructions': cls._get_reconstructions(x_jir, s_j, b_i),
                   'num_iter': itr,
                   }
 
-        original_J, original_I = x_ji_original.shape
-        original_num_os = np.sum(~np.isnan(x_ji_original))
+        original_J, original_I, original_R = x_jir_original.shape
+        original_num_os = np.sum(~np.isnan(x_jir_original))
 
-        num_os = np.sum(~np.isnan(x_ji))
+        num_os = np.sum(~np.isnan(x_jir))
 
-        dof = (original_J + original_I * 2) / original_num_os
+        dof = (original_J + original_I * original_R * 2) / original_num_os
         result['dof'] = dof
 
-        loglikelihood = cls.loglikelihood_function(np.hstack([s_j, b_i, v_i]), x_ji) / num_os
+        loglikelihood = cls.loglikelihood_function(np.hstack([s_j, b_i, v_i]), x_jir) / num_os
         result['loglikelihood'] = loglikelihood
 
         aic = 2 * dof - 2 * loglikelihood  # aic per observation
@@ -1417,40 +1465,48 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
         return result
 
     @classmethod
-    def _get_s_j_std(cls, v_i, v_j, x_ji):
-        den = np.nansum(cls._one_or_nan(x_ji) / np.tile(v_i ** 2, (x_ji.shape[0], 1)), axis=1)  # sum over s
+    def _get_s_j_std(cls, v_i, v_j, x_jir):
+        den = np.nansum(
+            SubjectiveModel._stack_repetitions_along_axis(
+                cls._one_or_nan(x_jir) / np.tile(v_i ** 2, (x_jir.shape[0], 1))[:, :, None],
+                axis=1),
+            axis=1)  # sum over s
         s_j_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of s_j
         return s_j_std
 
     @classmethod
-    def _get_reconstructions(cls, x_ji, s_j, b_i):
-        J, I = x_ji.shape
-        x_ji_hat = np.tile(s_j, (I, 1)).T + np.tile(b_i, (J, 1))
+    def _get_reconstructions(cls, x_jir, s_j, b_i):
+        J, I, R = x_jir.shape
+        x_ji_hat = np.tile(s_j, (I, 1)).T[:, :, None] + np.tile(b_i, (J, 1))[:, :, None]
         return x_ji_hat
 
     @staticmethod
-    def loglikelihood_function(x, x_ji):
-        J, I = x_ji.shape
+    def loglikelihood_function(x, x_jir):
+        J, I, R = x_jir.shape
         assert len(x) == J + I + I
         x_j, b_i, v_i = x[0: J], x[J: J + I], x[J + I: J + 2 * I]
 
         mtx = np.log(norm.pdf(
-            x_ji,
-            loc=np.tile(x_j, (I, 1)).T + np.tile(b_i, (J, 1)),
-            scale=np.tile(v_i, (J, 1))
+            x_jir,
+            loc=np.tile(x_j, (I, 1)).T[:, :, None] + np.tile(b_i, (J, 1))[:, :, None],
+            scale=np.tile(v_i, (J, 1))[:, :, None]
         ))
         # --- can be simplified as: ---
         # a_ji = x_ji - np.tile(x_j, (I, 1)).T - np.tile(b_i, (J, 1))
         # mtx = - 0.5 * np.tile(np.log(v_i**2), (J, 1)) - 0.5 * (a_ji) ** 2 / np.tile(v_i**2, (J, 1))
 
-        ll = mtx[~np.isnan(x_ji)].sum()
+        ll = mtx[~np.isnan(x_jir)].sum()
         return ll
 
 
 class SubjectMLEModelProjectionSolverAltSubjStdMixin(object):
     @classmethod
-    def _get_s_j_std(cls, v_i, v_j, x_ji):
-        den = np.nansum(cls._one_or_nan(x_ji) / np.tile(v_j ** 2, (x_ji.shape[1], 1)).T, axis=1)  # sum over s
+    def _get_s_j_std(cls, v_i, v_j, x_jir):
+        den = np.nansum(
+            SubjectiveModel._stack_repetitions_along_axis(
+                cls._one_or_nan(x_jir) / np.tile(v_j ** 2, (x_jir.shape[1], 1)).T[:, :, None],
+                axis=1),
+            axis=1)  # sum over s
         s_j_std = 1.0 / np.sqrt(np.maximum(0., den))  # calculate std of s_j
         return s_j_std
 
