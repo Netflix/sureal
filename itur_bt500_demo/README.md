@@ -1,7 +1,7 @@
-ITU-T P.913 Demo
+ITU-R BT.500 Demo
 ===================
 
-This directory contains reference Python code for ITU-T P.913 clause 12.6.
+This directory contains reference Python code for ITU-R BT.500.
 
 Python3 is required. Install dependency (numpy and scipy) by
 ```bash
