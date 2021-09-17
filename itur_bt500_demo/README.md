@@ -94,7 +94,7 @@ The `sample_data.csv` file contains the raw subjective scores, organized in a 2D
 ```
 If some subjects evaluated a PVS multiple times, another 2D matrix of the
 same size [num_PVS, num_subjects] can be added under the first one. A row
-of -1 should be placed before the repetition matrix. Where the repeated
+with a single comma (,) should be placed before the repetition matrix. Where the repeated
 vote is not available, a 'nan' is put in place. See `small_sample_data.csv` file for an example:
 
 ```
@@ -102,7 +102,7 @@ vote is not available, a 'nan' is put in place. See `small_sample_data.csv` file
 4.0,1.0,3.0,5.0,3.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0
 3.0,3.0,1.0,3.0,1.0,1.0,2.0,3.0,1.0,3.0,1.0,3.0,1.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0
 5.0,3.0,2.0,2.0,5.0,3.0,1.0,3.0,1.0,4.0,3.0,4.0,3.0,4.0,3.0,3.0,3.0,2.0,1.0,2.0
--1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0
+,
 5.0,nan,5.0,4.0,2.0,5.0,3.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0
 1.0,3.0,5.0,2.0,5.0,5.0,5.0,5.0,4.0,5.0,4.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0
 3.0,5.0,5.0,5.0,4.0,5.0,4.0,5.0,3.0,4.0,4.0,5.0,5.0,5.0,5.0,5.0,5.0,4.0,4.0,5.0

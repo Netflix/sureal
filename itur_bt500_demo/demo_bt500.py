@@ -17,8 +17,8 @@ def read_csv_into_3darray(csv_filepath):
 
     If some subjects evaluated a PVS multiple times, another 2D matrix of the
     same size [num_PVS, num_subjects] can be added under the first one. A row
-    of -1 should be placed before the repetition matrix. Where the repeated
-    vote is not available, a 'nan' is put in place.
+    with a single comma (,) should be placed before the repetition matrix.
+    Where the repeated vote is not available, a 'nan' is put in place.
 
     :param csv_filepath: filepath to the CSV file.
     :return: the numpy array in 3D [num_PVS, num_subjects, num_repetitions].
@@ -30,9 +30,8 @@ def read_csv_into_3darray(csv_filepath):
         datareader = csv.reader(datafile, delimiter=',')
 
         for row in datareader:
-            row_np = np.array(row, dtype=np.float64)
-            if np.nanmean(row_np) != -1 and np.nanmax(row_np) != -1:
-                data.append(row_np)
+            if row != ["", ""]:
+                data.append(np.array(row, dtype=np.float64))
             else:
                 data3dlist.append(data)
                 data = []
