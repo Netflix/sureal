@@ -335,7 +335,7 @@ class MosModel(SubjectiveModel):
         num_pvs, num_obs, max_reps = os_3darray.shape
         num_os = np.sum(~np.isnan(os_3darray))
 
-        result['reconstructions'] = cls._get_reconstructions(mos, num_obs)
+        result['reconstructions'] = cls._get_reconstructions(mos, num_obs, max_reps)
 
         original_num_pvs, original_num_obs, original_max_reps = original_os_3darray.shape
         original_num_os = np.sum(~np.isnan(original_os_3darray))
@@ -358,9 +358,11 @@ class MosModel(SubjectiveModel):
         return result
 
     @classmethod
-    def _get_reconstructions(cls, x_e, S):
-        x_es_hat = np.tile(x_e, (S, 1)).T
-        return x_es_hat
+    def _get_reconstructions(cls, x_e, S, R):
+        x_esr_hat = np.zeros([len(x_e), S, R])
+        for r in range(R):
+            x_esr_hat[:, :, r] = np.tile(x_e, (S, 1)).T
+        return x_esr_hat
 
     @classmethod
     def _get_dof(cls, E, S, R):
@@ -1110,7 +1112,9 @@ class MaximumLikelihoodEstimationModel(SubjectiveModel):
     @classmethod
     def _get_reconstructions(cls, x_esr, x_e, b_s):
         E, S, R = x_esr.shape
-        x_esr_hat = np.tile(x_e, (S, 1)).T[:, :, None] + np.tile(b_s, (E, 1))[:, :, None]
+        x_esr_hat = np.zeros(x_esr.shape)
+        for r in range(R):
+            x_esr_hat[:, :, r] = np.tile(x_e, (S, 1)).T + np.tile(b_s, (E, 1))
         return x_esr_hat
 
     @classmethod
@@ -1477,8 +1481,10 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
     @classmethod
     def _get_reconstructions(cls, x_jir, s_j, b_i):
         J, I, R = x_jir.shape
-        x_ji_hat = np.tile(s_j, (I, 1)).T[:, :, None] + np.tile(b_i, (J, 1))[:, :, None]
-        return x_ji_hat
+        x_jir_hat = np.zeros(x_jir.shape)
+        for r in range(R):
+            x_jir_hat[:, :, r] = np.tile(s_j, (I, 1)).T + np.tile(b_i, (J, 1))
+        return x_jir_hat
 
     @staticmethod
     def loglikelihood_function(x, x_jir):
