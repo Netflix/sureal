@@ -161,24 +161,67 @@ class RawDatasetReader(DatasetReader):
 
         return get_unique_sorted_list(list_observers)
 
+    def _get_max_repetitions(self):
+        """get the maximum number of times any observer evaluated any stimulus. For example, if all of the observers
+        evaluated each stimulus only once, the function returns 1.
+        """
+        max_reps = 1
+        if (
+                    isinstance(self.dataset.dis_videos[0]['os'], list) or
+                    isinstance(self.dataset.dis_videos[0]['os'], tuple)
+        ):
+            for dis_video in self.dataset.dis_videos:
+                for idx_obs in range(self.num_observers):
+                    scores = dis_video['os'][idx_obs]
+                    if isinstance(scores, list) or isinstance(scores, tuple):
+                        if len(scores) > max_reps:
+                            max_reps = len(scores)
+
+        elif isinstance(self.dataset.dis_videos[0]['os'], dict):
+            for dis_video in self.dataset.dis_videos:
+                list_observers = dis_video['os'].keys()
+
+                for observer in list_observers:
+                    scores = dis_video['os'][observer]
+                    if isinstance(scores, list) or isinstance(scores, tuple):
+                        if len(scores) > max_reps:
+                            max_reps = len(scores)
+        else:
+            assert False, ''
+
+        return max_reps
+
     @property
-    def opinion_score_2darray(self):
+    def max_repetitions(self):
+        return self._get_max_repetitions()
+
+    @property
+    def opinion_score_3darray(self):
         """
-        2darray storing raw opinion scores, with first dimension the number of
-        distorted videos, second dimension the number of observers
+        3darray storing raw opinion scores, with first dimension the number of
+        distorted videos, second dimension the number of observers, and third the maximum number of repetitions
         """
-        score_mtx = float('NaN') * np.ones([self.num_dis_videos, self._get_num_observers()])
+        score_mtx = float('NaN') * np.ones([self.num_dis_videos, self._get_num_observers(), self._get_max_repetitions()])
 
         if isinstance(self.dataset.dis_videos[0]['os'], list) \
                 or isinstance(self.dataset.dis_videos[0]['os'], tuple):
             for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
-                score_mtx[i_dis_video, :] = dis_video['os']
+                for i_observer in range(self.num_observers):
+                    if isinstance(dis_video['os'][i_observer], list) or isinstance(dis_video['os'][i_observer], tuple):
+                        reps = len(dis_video['os'][i_observer])
+                    else:
+                        reps = 1
+                    score_mtx[i_dis_video, i_observer, :reps] = dis_video['os'][i_observer]
         elif isinstance(self.dataset.dis_videos[0]['os'], dict):
             list_observers = self._get_list_observers()
             for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
                 for i_observer, observer in enumerate(list_observers):
                     if observer in dis_video['os']:
-                        score_mtx[i_dis_video, i_observer] = dis_video['os'][observer]
+                        if isinstance(dis_video['os'][observer], list) or isinstance(dis_video['os'][observer], tuple):
+                            reps = len(dis_video['os'][observer])
+                        else:
+                            reps = 1
+                        score_mtx[i_dis_video, i_observer, :reps] = dis_video['os'][observer]
         else:
             assert False
         return score_mtx
@@ -197,7 +240,13 @@ class RawDatasetReader(DatasetReader):
             dis_video2 = copy.deepcopy(dis_video)
             if 'os' in dis_video2: # remove 'os' - opinion score
                 del dis_video2['os']
-            dis_video2['groundtruth'] = score
+            if isinstance(score, np.ndarray):
+                if len(score) == 1:
+                    dis_video2['groundtruth'] = float(score)
+                else:
+                    dis_video2['groundtruth'] = list(score)
+            else:
+                dis_video2['groundtruth'] = score
             dis_videos.append(dis_video2)
 
         # add scores std if available
@@ -268,7 +317,13 @@ class RawDatasetReader(DatasetReader):
                 dis_video2 = copy.deepcopy(dis_video)
                 if 'os' in dis_video2: # remove 'os' - opinion score
                     del dis_video2['os']
-                dis_video2['groundtruth'] = persubject_score
+                if isinstance(persubject_score, np.ndarray):
+                    if len(persubject_score) == 1:
+                        dis_video2['groundtruth'] = float(persubject_score)
+                    else:
+                        dis_video2['groundtruth'] = list(persubject_score)
+                else:
+                    dis_video2['groundtruth'] = persubject_score
                 dis_videos.append(dis_video2)
         newone.dis_videos = dis_videos
 
@@ -486,8 +541,8 @@ class MockedRawDatasetReader(RawDatasetReader):
         newone.dis_videos = copy.deepcopy(self.dataset.dis_videos)
 
         # overwrite dis_video['os']
-        score_mtx = self.opinion_score_2darray
-        num_videos, num_subjects = score_mtx.shape
+        score_mtx = self.opinion_score_3darray
+        num_videos, num_subjects, max_repetitions = score_mtx.shape
         assert num_videos == len(newone.dis_videos)
         for scores, dis_video in zip(score_mtx, newone.dis_videos):
             dis_video['os'] = list(scores)
@@ -498,7 +553,7 @@ class MockedRawDatasetReader(RawDatasetReader):
 class SyntheticRawDatasetReader(MockedRawDatasetReader):
     """
     Dataset reader that generates synthetic data. It reads a dataset as baseline,
-    and override the opinion_score_2darray based on input_dict.
+    and override the opinion_score_3darray based on input_dict.
     """
 
     @property
@@ -529,9 +584,9 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
             assert self.input_dict['seed'] is None or isinstance(self.input_dict['seed'], int)
 
     @property
-    def opinion_score_2darray(self):
+    def opinion_score_3darray(self):
         """
-        Override DatasetReader.opinion_score_2darray(self), based on input
+        Override DatasetReader.opinion_score_3darray(self), based on input
         synthetic_result.
         It follows the generative model:
         Z_e,s = Q_e + X_s + Y_[c(e)]
@@ -567,15 +622,18 @@ class SyntheticRawDatasetReader(MockedRawDatasetReader):
             assert len(phi_e) == E
             z_es += np.random.normal(0, 1, [E, S]) * np.tile(phi_e, (S, 1)).T
 
-        return z_es
+        z_es_3d = np.zeros([E, S, 1])
+        z_es_3d[:, :, 0] = z_es
+
+        return z_es_3d
 
 
 class SyntheticLogisticRawDatasetReader(SyntheticRawDatasetReader):
 
     @property
-    def opinion_score_2darray(self):
+    def opinion_score_3darray(self):
         """
-        Override DatasetReader.opinion_score_2darray(self), based on input
+        Override DatasetReader.opinion_score_3darray(self), based on input
         synthetic_result.
         use logistic instead of
         """
@@ -600,20 +658,23 @@ class SyntheticLogisticRawDatasetReader(SyntheticRawDatasetReader):
 
         assert 'quality_ambiguity' not in self.input_dict
 
-        return z_es
+        z_es_3d = np.zeros([E, S, 1])
+        z_es_3d[:, :, 0] = z_es
+
+        return z_es_3d
 
 
 class MissingDataRawDatasetReader(MockedRawDatasetReader):
     """
     Dataset reader that simulates random missing data. It reads a dataset as
-    baseline, and override the opinion_score_2darray based on input_dict.
+    baseline, and override the opinion_score_3darray based on input_dict.
     """
     def _assert_input_dict(self):
         assert 'missing_probability' in self.input_dict
 
     @property
-    def opinion_score_2darray(self):
-        score_mtx = super(MissingDataRawDatasetReader, self).opinion_score_2darray
+    def opinion_score_3darray(self):
+        score_mtx = super(MissingDataRawDatasetReader, self).opinion_score_3darray
 
         if 'seed' in self.input_dict:
             np.random.seed(self.input_dict['seed'])
@@ -627,7 +688,7 @@ class MissingDataRawDatasetReader(MockedRawDatasetReader):
 class SelectSubjectRawDatasetReader(MockedRawDatasetReader):
     """
     Dataset reader that only output selected subjects. It reads a dataset as a
-    baseline, and override the opinion_score_2darray and other fields based on
+    baseline, and override the opinion_score_3darray and other fields based on
     input_dict.
     """
     def _assert_input_dict(self):
@@ -645,14 +706,14 @@ class SelectSubjectRawDatasetReader(MockedRawDatasetReader):
         return len(self.input_dict['selected_subjects'])
 
     @property
-    def opinion_score_2darray(self):
+    def opinion_score_3darray(self):
         """
-        2darray storing raw opinion scores, with first dimension the number of
-        distorted videos, second dimension the number of observers
+        3darray storing raw opinion scores, with first dimension the number of
+        distorted videos, second dimension the number of observers, and third the maximum number of repetitions
         """
         selected_subjects = self.input_dict['selected_subjects']
-        score_mtx = super().opinion_score_2darray
-        score_mtx = score_mtx[:, selected_subjects]
+        score_mtx = super().opinion_score_3darray
+        score_mtx = score_mtx[:, selected_subjects, :]
         return score_mtx
 
 
@@ -672,11 +733,43 @@ class SelectDisVideoRawDatasetReader(MockedRawDatasetReader):
         return len(self.input_dict['selected_dis_videos'])
 
     @property
-    def opinion_score_2darray(self):
+    def opinion_score_3darray(self):
         selected_dis_videos = self.input_dict['selected_dis_videos']
-        score_mtx = np.zeros([self.num_dis_videos, self.num_observers])
+        score_mtx = float('NaN') * np.ones([self.num_dis_videos, self.num_observers, self.max_repetitions])
         for i_dis_video, dis_video in enumerate(selected_dis_videos):
-            score_mtx[i_dis_video, :] = np.array(self.dataset.dis_videos[dis_video]['os'])
+
+            if isinstance(self.dataset.dis_videos[dis_video]['os'], list) or \
+                    isinstance(self.dataset.dis_videos[dis_video]['os'], tuple):
+
+                for i_observer in range(self.num_observers):
+
+                    if isinstance(self.dataset.dis_videos[dis_video]['os'][i_observer], list) or \
+                            isinstance(self.dataset.dis_videos[dis_video]['os'][i_observer], tuple):
+
+                        reps = len(self.dataset.dis_videos[dis_video]['os'][i_observer])
+
+                    else:
+                        reps = 1
+                    score_mtx[i_dis_video, i_observer, :reps] = self.dataset.dis_videos[dis_video]['os'][i_observer]
+
+            elif isinstance(self.dataset.dis_videos[dis_video]['os'], dict):
+                list_observers = self._get_list_observers()
+
+                for i_observer, observer in enumerate(list_observers):
+                    if observer in self.dataset.dis_videos[dis_video]['os']:
+
+                        if isinstance(self.dataset.dis_videos[dis_video]['os'][observer], list) or \
+                                isinstance(self.dataset.dis_videos[dis_video]['os'][observer], tuple):
+
+                            reps = len(self.dataset.dis_videos[dis_video]['os'][observer])
+
+                        else:
+                            reps = 1
+                        score_mtx[i_dis_video, i_observer, :reps] = self.dataset.dis_videos[dis_video]['os'][observer]
+
+            else:
+                assert False
+
         return score_mtx
 
     def to_dataset(self):
@@ -686,7 +779,7 @@ class SelectDisVideoRawDatasetReader(MockedRawDatasetReader):
 class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
     """
     Dataset reader that have scores of selected subjects shuffled. It reads a
-    dataset as a baseline, and override the opinion_score_2darray and other
+    dataset as a baseline, and override the opinion_score_3darray and other
     fields based on input_dict.
     """
 
@@ -708,13 +801,13 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
             assert subject in observer_idxs
 
     @property
-    def opinion_score_2darray(self):
+    def opinion_score_3darray(self):
         """
-        2darray storing raw opinion scores, with first dimension the number of
-        distorted videos, second dimension the number of observers
+        3darray storing raw opinion scores, with first dimension the number of
+        distorted videos, second dimension the number of observers, and third the maximum of repetitions
         """
-        score_mtx = super(CorruptSubjectRawDatasetReader, self).opinion_score_2darray
-        num_video, num_subject = score_mtx.shape
+        score_mtx = super(CorruptSubjectRawDatasetReader, self).opinion_score_3darray
+        num_video, num_subject, max_repetitions = score_mtx.shape
 
         # for selected subjects, shuffle its score
         selected_subjects = self._get_selected_subjects()
@@ -727,9 +820,9 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
 
                 if corrupt_probability is not None:
                     videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
-                    score_mtx[videos, subject] = np.random.permutation(score_mtx[videos, subject])
+                    score_mtx[videos, subject, :] = np.random.permutation(score_mtx[videos, subject, :])
                 else:
-                    np.random.shuffle(score_mtx[:, subject])
+                    np.random.shuffle(score_mtx[:, subject, :])
 
         elif corrupt_behavior == 'flip':
 
@@ -740,9 +833,9 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
 
                 if corrupt_probability is not None:
                     videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
-                    score_mtx[videos, subject] = max_score + min_score - score_mtx[videos, subject]
+                    score_mtx[videos, subject, :] = max_score + min_score - score_mtx[videos, subject, :]
                 else:
-                    score_mtx[:, subject] = max_score + min_score - score_mtx[:, subject]
+                    score_mtx[:, subject, :] = max_score + min_score - score_mtx[:, subject, :]
 
         elif corrupt_behavior == 'min':
 
@@ -751,9 +844,9 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
 
                 if corrupt_probability is not None:
                     videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
-                    score_mtx[videos, subject] = min_score
+                    score_mtx[videos, subject, :] = min_score
                 else:
-                    score_mtx[:, subject] = min_score
+                    score_mtx[:, subject, :] = min_score
 
         elif corrupt_behavior == 'mid':
 
@@ -765,9 +858,9 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
 
                 if corrupt_probability is not None:
                     videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
-                    score_mtx[videos, subject] = mid_score
+                    score_mtx[videos, subject, :] = mid_score
                 else:
-                    score_mtx[:, subject] = mid_score
+                    score_mtx[:, subject, :] = mid_score
 
         elif corrupt_behavior == 'max':
 
@@ -776,9 +869,9 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
 
                 if corrupt_probability is not None:
                     videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
-                    score_mtx[videos, subject] = max_score
+                    score_mtx[videos, subject, :] = max_score
                 else:
-                    score_mtx[:, subject] = max_score
+                    score_mtx[:, subject, :] = max_score
 
         elif corrupt_behavior == 'constant':
 
@@ -791,9 +884,9 @@ class CorruptSubjectRawDatasetReader(MockedRawDatasetReader):
 
                 if corrupt_probability is not None:
                     videos = list(np.where(np.random.uniform(size=num_video) < corrupt_probability)[0])
-                    score_mtx[videos, subject] = const_score
+                    score_mtx[videos, subject, :] = const_score
                 else:
-                    score_mtx[:, subject] = const_score
+                    score_mtx[:, subject, :] = const_score
 
         else:
             assert False
@@ -819,14 +912,14 @@ class CorruptDataRawDatasetReader(MockedRawDatasetReader):
 
     """
     Dataset reader that simulates random corrupted data. It reads a dataset as
-    baseline, and override the opinion_score_2darray based on input_dict.
+    baseline, and override the opinion_score_3darray based on input_dict.
     """
     def _assert_input_dict(self):
         assert 'corrupt_probability' in self.input_dict
 
     @property
-    def opinion_score_2darray(self):
-        score_mtx = super(CorruptDataRawDatasetReader, self).opinion_score_2darray
+    def opinion_score_3darray(self):
+        score_mtx = super(CorruptDataRawDatasetReader, self).opinion_score_3darray
 
         mask = np.random.uniform(size=score_mtx.shape)
         mask[mask > self.input_dict['corrupt_probability']] = 1.0
@@ -897,11 +990,6 @@ class PairedCompDatasetReader(RawDatasetReader):
 
     @property
     def ref_score(self):
-        raise NotImplementedError
-
-    @property
-    def opinion_score_2darray(self):
-        # return np.nansum(self.opinion_score_3darray, axis=1)
         raise NotImplementedError
 
     def to_persubject_dataset(self, quality_scores, **kwargs):

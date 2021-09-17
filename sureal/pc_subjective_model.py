@@ -31,7 +31,7 @@ class PairedCompSubjectiveModel(SubjectiveModel):
         raise NotImplementedError
 
     @staticmethod
-    def _get_opinion_score_2darray_with_preprocessing(dataset_reader, **kwargs):
+    def _get_opinion_score_3darray_with_preprocessing(dataset_reader, **kwargs):
         raise NotImplementedError
 
 
