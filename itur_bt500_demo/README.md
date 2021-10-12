@@ -8,7 +8,7 @@ Python3 is required. Install dependency (numpy and scipy) by
 python3 -m pip install -r ./requirements.txt
 ```
 
-The `sample_data.csv` file contains the raw subjective scores, organized in a 2D matrix, separated by comma. Each row corresponds to a PVS; each column corresponds to a subject. If a vote is missing, a 'nan' is put in place.
+The `sample_data.csv` file contains the raw subjective scores, organized in a 2D matrix, separated by comma. Each row corresponds to a presentation (jk); each column corresponds to a subject (i). If a vote is missing, a 'nan' is put in place.
 
 ```
 5.0,5.0,5.0,4.0,2.0,5.0,3.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0
@@ -92,8 +92,8 @@ The `sample_data.csv` file contains the raw subjective scores, organized in a 2D
 3.0,4.0,3.0,2.0,5.0,5.0,4.0,5.0,4.0,5.0,5.0,4.0,5.0,3.0,5.0,4.0,5.0,5.0,5.0,5.0,5.0,4.0,5.0,4.0,5.0,4.0
 
 ```
-If some subjects evaluated a PVS multiple times, another 2D matrix of the
-same size [num_PVS, num_subjects] can be added under the first one. A row
+If some subjects evaluated a presentation multiple times, another 2D matrix of the
+same size [num_presentations, num_subjects] can be added under the first one. A row
 with a single comma (,) should be placed before the repetition matrix. Where the repeated
 vote is not available, a 'nan' is put in place. See `small_sample_data.csv` file for an example:
 
