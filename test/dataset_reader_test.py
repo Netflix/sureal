@@ -761,8 +761,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 8242)
-        self.assertEqual(np.nanmean(opinion_score_3darray), 0.816039603960396)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertEqual(np.nanmean(opinion_score_3darray), 0.5)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.44004808808275164, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_within_subject(self):
@@ -770,8 +771,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 80106)
-        self.assertEqual(np.nanmean(opinion_score_3darray), 0.8050935185278244)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertEqual(np.nanmean(opinion_score_3darray), 0.5)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.4352896367765402, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_coin_toss(self):
@@ -779,8 +781,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 8242)
-        self.assertEqual(np.nanmean(opinion_score_3darray), 1.0)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 1.0)
+        self.assertEqual(np.nanmean(opinion_score_3darray), 0.5)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.5, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_random(self):
@@ -791,8 +794,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 8242)
         # check: python2 values seem to fluctuate quite a bit
-        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.8966492602262838, delta=0.01)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.5, delta=0.0001)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.4703022204895782, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_sampling_rate(self):
@@ -802,8 +806,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 844)
-        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.8107588856868396, delta=0.0001)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.5, delta=0.0001)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.43777496437242686, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_sampling_rate_greater_than_1(self):
@@ -813,8 +818,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 8242)
-        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.816039603960396, delta=0.0001)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.5, delta=0.0001)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.44004808808275164, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_per_asset_sampling_rates(self):
@@ -824,8 +830,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 4546)
-        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.8116303960042811, delta=0.01)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.5, delta=0.01)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.4376551324481469, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_per_asset_cointoss_rates(self):
@@ -835,8 +842,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 8242)
-        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.91102022769979, delta=0.01)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 0.5)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.5, delta=0.01)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.47495513779384235, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_per_asset_noise_levels(self):
@@ -846,8 +854,9 @@ class RawDatasetReaderPCTest(unittest.TestCase):
         pc_dataset_reader = PairedCompDatasetReader(pc_dataset)
         opinion_score_3darray = pc_dataset_reader.opinion_score_3darray
         self.assertEqual(np.nansum(opinion_score_3darray), 8242)
-        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 1.0, delta=0.0001)
-        self.assertEqual(np.nanmin(opinion_score_3darray), 1.0)
+        self.assertAlmostEqual(float(np.nanmean(opinion_score_3darray)), 0.5, delta=0.0001)
+        self.assertAlmostEqual(float(np.nanstd(opinion_score_3darray)), 0.5, delta=0.0001)
+        self.assertEqual(np.nanmin(opinion_score_3darray), 0.0)
         self.assertEqual(np.nanmax(opinion_score_3darray), 1.0)
 
     def test_dataset_to_pc_dataset_within_subject_per_asset_mean_scores(self):

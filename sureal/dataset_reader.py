@@ -970,9 +970,12 @@ class PairedCompDatasetReader(RawDatasetReader):
 
         for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
             for key, value in dis_video['os'].items():
+                assert value in [0, 0.5, 1], \
+                    f"expect value in [0, 0.5, 1], but got: {value}"
                 subject, pvs_j = key
                 pvs_i = i_dis_video
-                score_3darray[pvs_i][pvs_j][dict_observer_to_iobserver[subject]] = value # CAUTION: note the dimension change!
+                score_3darray[pvs_i][pvs_j][dict_observer_to_iobserver[subject]] = value  # CAUTION: note the dimension change!
+                score_3darray[pvs_j][pvs_i][dict_observer_to_iobserver[subject]] = 1.0 - value
 
         return score_3darray
 
