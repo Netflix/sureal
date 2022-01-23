@@ -97,6 +97,12 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         if 'raw_scores' in result and 'reconstructions' in result:
             result['reconstruction_stats'] = _get_reconstruction_stats(result['raw_scores'], result['reconstructions'])
 
+    # Store in the <<results>> dictionary the list of observers (in the order consistent with the one used in
+    #  lists with per-observer results)
+    if isinstance(dataset_reader, RawDatasetReader) or isinstance(dataset_reader, PairedCompDatasetReader):
+        # For now, only the RawDatasetReader and PairedCompDatasetReader implement the _get_list_observers() method
+        result["observer_identifier"] = dataset_reader._get_list_observers()
+
     if do_plot == 'all' or 'raw_scores' in do_plot:
 
         if 'ax_raw_scores' in ax_dict:
