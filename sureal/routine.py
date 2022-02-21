@@ -90,7 +90,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     if show_dis_video_names:
         for result in results:
-            dis_video_names = [dis_video['path'] for dis_video in dataset_reader.dataset.dis_videos]
+            dis_video_names = [dis_video['path'] for dis_video in dataset_reader.dis_videos]
             result['dis_video_names'] = dis_video_names
 
     for subjective_model, result in zip(subjective_models, results):

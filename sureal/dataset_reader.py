@@ -30,14 +30,18 @@ class DatasetReader(object):
                     format(self.num_ref_videos, cid)
 
         # assert dis_video content_id is content_ids
-        for dis_video in self.dataset.dis_videos:
+        for dis_video in self.dis_videos:
             assert dis_video['content_id'] in cids, \
                 "dis_video of content_id {content_id}, asset_id {asset_id} must have content_id in {cids}".format(
                     content_id=dis_video['content_id'], asset_id=dis_video['asset_id'], cids=cids)
 
     @property
+    def dis_videos(self):
+        return self.dataset.dis_videos
+
+    @property
     def num_dis_videos(self):
-        return len(self.dataset.dis_videos)
+        return len(self.dis_videos)
 
     @property
     def num_ref_videos(self):
@@ -53,11 +57,11 @@ class DatasetReader(object):
 
     @property
     def asset_ids(self):
-        return list(set(map(lambda dis_video: dis_video['asset_id'], self.dataset.dis_videos)))
+        return list(set(map(lambda dis_video: dis_video['asset_id'], self.dis_videos)))
 
     @property
     def content_id_of_dis_videos(self):
-        return list(map(lambda dis_video: dis_video['content_id'], self.dataset.dis_videos))
+        return list(map(lambda dis_video: dis_video['content_id'], self.dis_videos))
 
     @property
     def _contentid_to_refvideo_map(self):
@@ -71,7 +75,7 @@ class DatasetReader(object):
         d = self._contentid_to_refvideo_map
         return list(map(
             lambda dis_video: d[dis_video['content_id']]['path'] == dis_video['path'],
-            self.dataset.dis_videos
+            self.dis_videos
         ))
 
     @property
@@ -119,28 +123,28 @@ class RawDatasetReader(DatasetReader):
 
         # assert each dis_video dict has key 'os' (opinion score), and must
         # be iterable (list, tuple or dictionary)
-        for dis_video in self.dataset.dis_videos:
+        for dis_video in self.dis_videos:
             assert 'os' in dis_video, "dis_video must have key 'os' (opinion score)"
             assert isinstance(dis_video['os'], (list, tuple, dict))
 
         # make sure each dis video has equal number of observers
         if (
-                    isinstance(self.dataset.dis_videos[0]['os'], list) or
-                    isinstance(self.dataset.dis_videos[0]['os'], tuple)
+                    isinstance(self.dis_videos[0]['os'], list) or
+                    isinstance(self.dis_videos[0]['os'], tuple)
         ):
-            num_observers = len(self.dataset.dis_videos[0]['os'])
-            for dis_video in self.dataset.dis_videos[1:]:
+            num_observers = len(self.dis_videos[0]['os'])
+            for dis_video in self.dis_videos[1:]:
                 assert num_observers == len(dis_video['os']), \
                     "expect number of observers {expected} but got {actual} for {dis_video}".format(
                         expected=num_observers, actual=len(dis_video['os']), dis_video=str(dis_video))
 
     def _get_num_observers(self):
         if (
-                    isinstance(self.dataset.dis_videos[0]['os'], list) or
-                    isinstance(self.dataset.dis_videos[0]['os'], tuple)
+                    isinstance(self.dis_videos[0]['os'], list) or
+                    isinstance(self.dis_videos[0]['os'], tuple)
         ):
-            return len(self.dataset.dis_videos[0]['os'])
-        elif isinstance(self.dataset.dis_videos[0]['os'], dict):
+            return len(self.dis_videos[0]['os'])
+        elif isinstance(self.dis_videos[0]['os'], dict):
             list_observers = self._get_list_observers()
             return len(list_observers)
         else:
@@ -152,11 +156,11 @@ class RawDatasetReader(DatasetReader):
 
     def _get_list_observers(self):
 
-        for dis_video in self.dataset.dis_videos:
+        for dis_video in self.dis_videos:
             assert isinstance(dis_video['os'], dict)
 
         list_observers = []
-        for dis_video in self.dataset.dis_videos:
+        for dis_video in self.dis_videos:
             list_observers += dis_video['os'].keys()
 
         return get_unique_sorted_list(list_observers)
@@ -167,18 +171,18 @@ class RawDatasetReader(DatasetReader):
         """
         max_reps = 1
         if (
-                    isinstance(self.dataset.dis_videos[0]['os'], list) or
-                    isinstance(self.dataset.dis_videos[0]['os'], tuple)
+                    isinstance(self.dis_videos[0]['os'], list) or
+                    isinstance(self.dis_videos[0]['os'], tuple)
         ):
-            for dis_video in self.dataset.dis_videos:
+            for dis_video in self.dis_videos:
                 for idx_obs in range(self.num_observers):
                     scores = dis_video['os'][idx_obs]
                     if isinstance(scores, list) or isinstance(scores, tuple):
                         if len(scores) > max_reps:
                             max_reps = len(scores)
 
-        elif isinstance(self.dataset.dis_videos[0]['os'], dict):
-            for dis_video in self.dataset.dis_videos:
+        elif isinstance(self.dis_videos[0]['os'], dict):
+            for dis_video in self.dis_videos:
                 list_observers = dis_video['os'].keys()
 
                 for observer in list_observers:
@@ -203,18 +207,18 @@ class RawDatasetReader(DatasetReader):
         """
         score_mtx = float('NaN') * np.ones([self.num_dis_videos, self._get_num_observers(), self._get_max_repetitions()])
 
-        if isinstance(self.dataset.dis_videos[0]['os'], list) \
-                or isinstance(self.dataset.dis_videos[0]['os'], tuple):
-            for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
+        if isinstance(self.dis_videos[0]['os'], list) \
+                or isinstance(self.dis_videos[0]['os'], tuple):
+            for i_dis_video, dis_video in enumerate(self.dis_videos):
                 for i_observer in range(self.num_observers):
                     if isinstance(dis_video['os'][i_observer], list) or isinstance(dis_video['os'][i_observer], tuple):
                         reps = len(dis_video['os'][i_observer])
                     else:
                         reps = 1
                     score_mtx[i_dis_video, i_observer, :reps] = dis_video['os'][i_observer]
-        elif isinstance(self.dataset.dis_videos[0]['os'], dict):
+        elif isinstance(self.dis_videos[0]['os'], dict):
             list_observers = self._get_list_observers()
-            for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
+            for i_dis_video, dis_video in enumerate(self.dis_videos):
                 for i_observer, observer in enumerate(list_observers):
                     if observer in dis_video['os']:
                         if isinstance(dis_video['os'][observer], list) or isinstance(dis_video['os'][observer], tuple):
@@ -235,8 +239,8 @@ class RawDatasetReader(DatasetReader):
 
         # dis_videos: use input aggregate scores
         dis_videos = []
-        assert len(self.dataset.dis_videos) == len(aggregate_scores)
-        for dis_video, score in zip(self.dataset.dis_videos, aggregate_scores):
+        assert len(self.dis_videos) == len(aggregate_scores)
+        for dis_video, score in zip(self.dis_videos, aggregate_scores):
             dis_video2 = copy.deepcopy(dis_video)
             if 'os' in dis_video2: # remove 'os' - opinion score
                 del dis_video2['os']
@@ -300,7 +304,7 @@ class RawDatasetReader(DatasetReader):
 
         # dis_videos: use input aggregate scores
         dis_videos = []
-        for dis_video, quality_score in zip(self.dataset.dis_videos, quality_scores):
+        for dis_video, quality_score in zip(self.dis_videos, quality_scores):
             assert 'os' in dis_video
 
             # quality_score should be a 1-D array with (processed) per-subject scores
@@ -363,7 +367,7 @@ class RawDatasetReader(DatasetReader):
         if sampling_rate is not None:
             assert np.isscalar(sampling_rate) and 0.0 <= sampling_rate
         if per_asset_sampling_rates is not None:
-            assert len(per_asset_sampling_rates) == len(self.dataset.dis_videos)
+            assert len(per_asset_sampling_rates) == len(self.dis_videos)
             for per_asset_sampling_rate in per_asset_sampling_rates:
                 assert np.isscalar(per_asset_sampling_rate) and 0.0 <= per_asset_sampling_rate
 
@@ -371,7 +375,7 @@ class RawDatasetReader(DatasetReader):
         if cointoss_rate is not None:
             assert np.isscalar(cointoss_rate) and 0.0 <= cointoss_rate <= 1.0
         if per_asset_cointoss_rates is not None:
-            assert len(per_asset_cointoss_rates) == len(self.dataset.dis_videos)
+            assert len(per_asset_cointoss_rates) == len(self.dis_videos)
             for cointoss_rate_ in per_asset_cointoss_rates:
                 assert np.isscalar(cointoss_rate_) and 0.0 <= cointoss_rate_ <= 1.0
 
@@ -379,16 +383,16 @@ class RawDatasetReader(DatasetReader):
         if noise_level is not None:
             assert np.isscalar(noise_level) and 0.0 <= noise_level
         if per_asset_noise_levels is not None:
-            assert len(per_asset_noise_levels) == len(self.dataset.dis_videos)
+            assert len(per_asset_noise_levels) == len(self.dis_videos)
             for noise_level_ in per_asset_noise_levels:
                 assert np.isscalar(noise_level_) and 0.0 <= noise_level_
 
         if per_asset_mean_scores is not None:
-            assert len(per_asset_mean_scores) == len(self.dataset.dis_videos)
+            assert len(per_asset_mean_scores) == len(self.dis_videos)
             for mean_score_ in per_asset_mean_scores:
                 assert np.isscalar(mean_score_)
 
-        dis_videos = self.dataset.dis_videos
+        dis_videos = self.dis_videos
         if isinstance(dis_videos[0]['os'], dict):
             pass
         elif isinstance(dis_videos[0]['os'], (list, tuple)):
@@ -538,7 +542,7 @@ class MockedRawDatasetReader(RawDatasetReader):
 
         # deep copy ref_videos and dis_videos
         newone.ref_videos = copy.deepcopy(self.dataset.ref_videos)
-        newone.dis_videos = copy.deepcopy(self.dataset.dis_videos)
+        newone.dis_videos = copy.deepcopy(self.dis_videos)
 
         # overwrite dis_video['os']
         score_mtx = self.opinion_score_3darray
@@ -724,53 +728,14 @@ class SelectDisVideoRawDatasetReader(MockedRawDatasetReader):
 
         selected_dis_videos = self.input_dict['selected_dis_videos']
 
-        dis_video_idxs = range(super(SelectDisVideoRawDatasetReader, self).num_dis_videos)
+        dis_video_idxs = range(len(super().dis_videos))
         for dis_video in selected_dis_videos:
             assert dis_video in dis_video_idxs
 
+    # @override()
     @property
-    def num_dis_videos(self):
-        return len(self.input_dict['selected_dis_videos'])
-
-    @property
-    def opinion_score_3darray(self):
-        selected_dis_videos = self.input_dict['selected_dis_videos']
-        score_mtx = float('NaN') * np.ones([self.num_dis_videos, self.num_observers, self.max_repetitions])
-        for i_dis_video, dis_video in enumerate(selected_dis_videos):
-
-            if isinstance(self.dataset.dis_videos[dis_video]['os'], list) or \
-                    isinstance(self.dataset.dis_videos[dis_video]['os'], tuple):
-
-                for i_observer in range(self.num_observers):
-
-                    if isinstance(self.dataset.dis_videos[dis_video]['os'][i_observer], list) or \
-                            isinstance(self.dataset.dis_videos[dis_video]['os'][i_observer], tuple):
-
-                        reps = len(self.dataset.dis_videos[dis_video]['os'][i_observer])
-
-                    else:
-                        reps = 1
-                    score_mtx[i_dis_video, i_observer, :reps] = self.dataset.dis_videos[dis_video]['os'][i_observer]
-
-            elif isinstance(self.dataset.dis_videos[dis_video]['os'], dict):
-                list_observers = self._get_list_observers()
-
-                for i_observer, observer in enumerate(list_observers):
-                    if observer in self.dataset.dis_videos[dis_video]['os']:
-
-                        if isinstance(self.dataset.dis_videos[dis_video]['os'][observer], list) or \
-                                isinstance(self.dataset.dis_videos[dis_video]['os'][observer], tuple):
-
-                            reps = len(self.dataset.dis_videos[dis_video]['os'][observer])
-
-                        else:
-                            reps = 1
-                        score_mtx[i_dis_video, i_observer, :reps] = self.dataset.dis_videos[dis_video]['os'][observer]
-
-            else:
-                assert False
-
-        return score_mtx
+    def dis_videos(self):
+        return [dv for dv in self.dataset.dis_videos if dv['asset_id'] in self.input_dict['selected_dis_videos']]
 
     def to_dataset(self):
         raise NotImplementedError
@@ -941,7 +906,7 @@ class PairedCompDatasetReader(RawDatasetReader):
         super(PairedCompDatasetReader, self)._assert_dataset()
 
         num_dis_videos = self.num_dis_videos
-        for dis_video in self.dataset.dis_videos:
+        for dis_video in self.dis_videos:
             # e.g. 'os': {(' Diana Pena Alas', 120): 1, ...
             assert 'os' in dis_video
             assert isinstance(dis_video['os'], dict)
@@ -968,7 +933,7 @@ class PairedCompDatasetReader(RawDatasetReader):
 
         score_3darray = float("NaN") * np.ones([self.num_dis_videos, self.num_dis_videos, self.num_observers])
 
-        for i_dis_video, dis_video in enumerate(self.dataset.dis_videos):
+        for i_dis_video, dis_video in enumerate(self.dis_videos):
             for key, value in dis_video['os'].items():
                 assert value in [0, 0.5, 1], \
                     f"expect value in [0, 0.5, 1], but got: {value}"
@@ -980,11 +945,11 @@ class PairedCompDatasetReader(RawDatasetReader):
         return score_3darray
 
     def _get_list_observers(self):
-        for dis_video in self.dataset.dis_videos:
+        for dis_video in self.dis_videos:
             assert isinstance(dis_video['os'], dict)
 
         list_observers = []
-        for dis_video in self.dataset.dis_videos:
+        for dis_video in self.dis_videos:
             observers = map(lambda x: x[0], dis_video['os'].keys())
             observers = list(set(observers))
             list_observers += observers
