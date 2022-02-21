@@ -74,7 +74,8 @@ Below are two example usages::
         --output-dir ./output/NFLX_dataset_public_raw_last4outliers
     sureal MLE_CO_AP2 resource/dataset/VQEGHD3_dataset_raw.py --print \
         --output-dir \./output/VQEGHD3_dataset_raw
-
+    sureal MLE_CO_AP2 resource/dataset/vqeg_frtv_p1_525_line_high_dataset.py --print \
+        --output-dir \./output/vqeg_frtv_p1_525_line_high_dataset
 
 Here ``subjective_model`` are the available subjective models offered in the package, including:
 

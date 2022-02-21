@@ -1466,6 +1466,12 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
         bic = np.log(original_num_os) * dof - 2 * loglikelihood  # bic per observation
         result['bic'] = bic
 
+        try:
+            observers = dataset_reader._get_list_observers() # may not exist
+            result['observers'] = observers
+        except AssertionError:
+            pass
+
         return result
 
     @classmethod
