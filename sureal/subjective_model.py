@@ -317,6 +317,13 @@ class MosModel(SubjectiveModel):
             assert 'observer_rejected_2nd_stats' in ret
             result['observer_rejected_1st_stats'] = ret['observer_rejected_1st_stats']
             result['observer_rejected_2nd_stats'] = ret['observer_rejected_2nd_stats']
+
+        try:
+            observers = dataset_reader._get_list_observers() # may not exist
+            result['observers'] = observers
+        except AssertionError:
+            pass
+
         return result
 
     @classmethod
