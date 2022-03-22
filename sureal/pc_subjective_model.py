@@ -165,7 +165,8 @@ class BradleyTerryNewtonRaphsonPairedCompSubjectiveModel(PairedCompSubjectiveMod
         # std = np.diagonal(cov)
         # std = np.hstack([std, np.array([0])])
 
-        zscore_output = kwargs['zscore_output'] if 'zscore_output' in kwargs and 'zscore_output' is not None else False
+        zscore_output = kwargs['zscore_output'] \
+            if 'zscore_output' in kwargs and kwargs['zscore_output'] is not None else False
 
         if zscore_output:
             scores_mean = np.mean(scores)
@@ -297,7 +298,8 @@ class ThurstoneMlePairedCompSubjectiveModel(PairedCompSubjectiveModel):
 
         scores, std, cov = cls.resolve_model(alpha, **kwargs)
 
-        zscore_output = kwargs['zscore_output'] if 'zscore_output' in kwargs and 'zscore_output' is not None else False
+        zscore_output = kwargs['zscore_output'] \
+            if 'zscore_output' in kwargs and kwargs['zscore_output'] is not None else False
 
         if zscore_output:
             scores_mean = np.mean(scores)
