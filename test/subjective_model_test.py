@@ -13,15 +13,16 @@ from sureal.subjective_model import MosModel, DmosModel, \
     ZscoringSubjrejDmosModel, PerSubjectModel, \
     MaximumLikelihoodEstimationModelContentOblivious, \
     MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel, BiasremvMosModel, BiasremvSubjrejMosModel, SubjectMLEModelProjectionSolver, SubjectMLEModelProjectionSolver2
-from sureal.tools.misc import import_python_file
+from sureal.tools.misc import import_python_file, MyTestCase
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
 
 
-class SubjectiveModelTest(unittest.TestCase):
+class SubjectiveModelTest(MyTestCase):
 
     def setUp(self):
+        super().setUp()
         self.dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
         self.output_dataset_filepath = SurealConfig.workdir_path('NFLX_dataset_public_test.py')
         self.output_dataset_pyc_filepath = SurealConfig.workdir_path('NFLX_dataset_public_test.pyc')
@@ -31,6 +32,7 @@ class SubjectiveModelTest(unittest.TestCase):
             os.remove(self.output_dataset_filepath)
         if os.path.exists(self.output_dataset_pyc_filepath):
             os.remove(self.output_dataset_pyc_filepath)
+        super().tearDown()
 
     def test_mos_subjective_model(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -39,6 +41,7 @@ class SubjectiveModelTest(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             result = subjective_model.run_modeling()
+        self.assertTrue('observers' not in result)
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 4.884615384615385, places=4)
         self.assertAlmostEqual(scores[10], 2.0769230769230771, places=4)
@@ -110,7 +113,8 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(SurealConfig.test_resource_path('test_dataset_os_as_dict.py'))
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        subjective_model.run_modeling()
+        result = subjective_model.run_modeling()
+        self.assertTrue('observers' in result)
         subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath)
         self.assertTrue(os.path.exists(self.output_dataset_filepath))
         dataset2 = import_python_file(self.output_dataset_filepath)
@@ -121,6 +125,9 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertTrue('os' not in dis_video)
         self.assertAlmostEqual(dis_video['groundtruth'], 2.6666666666666665, places=4)
         self.assertAlmostEqual(dis_video['groundtruth_std'], 0.881917103688197, places=4)
+
+        self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 7.333333333333332, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores'])), 0.09876543209876538, places=4)
 
     def test_mos_subjective_model_output_custom_resampling(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -196,6 +203,7 @@ class SubjectiveModelTest(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             result = subjective_model.run_modeling()
+        self.assertTrue('observers' not in result)
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 5.0, places=4)
         self.assertAlmostEqual(scores[10], 2.1923076923076921, places=4)
@@ -227,6 +235,7 @@ class SubjectiveModelTest(unittest.TestCase):
         subjective_model = LegacyMaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
         result = subjective_model.run_modeling(dscore_mode=True, force_subjbias_zeromean=False)
+        self.assertTrue('observers' not in result)
 
         self.assertAlmostEqual(float(np.sum(result['observer_bias'])), -0.090840910829083799, places=4)
         self.assertAlmostEqual(float(np.var(result['observer_bias'])), 0.089032585621095089, places=4)
@@ -285,6 +294,7 @@ class SubjectiveModelTest(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        self.assertTrue('observers' not in result)
 
         self.assertAlmostEqual(float(np.sum(result['content_ambiguity'])), 3.8972884776604402, places=4)
         self.assertAlmostEqual(float(np.var(result['content_ambiguity'])), 0.0041122094732031289, places=4)
@@ -787,6 +797,7 @@ class SubjectiveModelTest(unittest.TestCase):
         result = subjective_model.run_modeling()
         scores = result['quality_scores']
         bias = result['observer_bias']
+        self.assertTrue('observers' not in result)
 
         self.assertAlmostEqual(float(np.mean(scores)), 3.5447906523855885, places=8)
         self.assertAlmostEqual(float(np.var(scores)), 0.9589330529453537, places=8)
@@ -899,6 +910,7 @@ class SubjectiveModelTest(unittest.TestCase):
         scores = result['quality_scores']
         bias = result['observer_bias']
         inconsistency = result['observer_inconsistency']
+        self.assertTrue('observers' not in result)
 
         self.assertAlmostEqual(float(np.mean(scores)), 3.5447906523855877, places=8)
         self.assertAlmostEqual(float(np.var(scores)), 1.3559834679453553, places=8)
@@ -1049,9 +1061,10 @@ class SubjectiveModelTest(unittest.TestCase):
         self.assertAlmostEqual(float(np.sum(result['quality_scores_std'])), 13.712083371807026, places=4)
 
 
-class SubjectiveModelPartialTest(unittest.TestCase):
+class SubjectiveModelPartialTest(MyTestCase):
 
     def setUp(self):
+        super().setUp()
         self.dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw_PARTIAL.py')
         self.output_dataset_filepath = SurealConfig.workdir_path('NFLX_dataset_public_test_PARTIAL.py')
         self.output_dataset_pyc_filepath = SurealConfig.workdir_path('NFLX_dataset_public_test_PARTIAL.pyc')
@@ -1061,6 +1074,7 @@ class SubjectiveModelPartialTest(unittest.TestCase):
             os.remove(self.output_dataset_filepath)
         if os.path.exists(self.output_dataset_pyc_filepath):
             os.remove(self.output_dataset_pyc_filepath)
+        super().tearDown()
 
     def test_mos_subjective_model(self):
         dataset = import_python_file(self.dataset_filepath)
@@ -1167,6 +1181,30 @@ class SubjectiveModelPartialTest(unittest.TestCase):
         self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 177.90318944102833, places=4)
         self.assertAlmostEqual(float(np.var(result['quality_scores'])), 1.4830610455789057, places=4)
 
+    def test_observer_aware_subjective_model_output_os_is_dict_style(self):
+        dataset = import_python_file(SurealConfig.test_resource_path('test_dataset_os_as_dict.py'))
+        dataset_reader = RawDatasetReader(dataset)
+        subjective_model = LegacyMaximumLikelihoodEstimationModel(dataset_reader)
+        result = subjective_model.run_modeling()
+        self.assertTrue('observers' in result)
+        subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath)
+        self.assertTrue(os.path.exists(self.output_dataset_filepath))
+        dataset2 = import_python_file(self.output_dataset_filepath)
+        dis_video = dataset2.dis_videos[0]
+        print(dataset2.dis_videos)
+        self.assertTrue('groundtruth' in dis_video)
+        self.assertTrue('os' not in dis_video)
+        self.assertAlmostEqual(dis_video['groundtruth'], 2.444444460976023, places=4)
+
+        self.assertAlmostEqual(float(np.sum(result['observer_bias'])), 0.0, places=4)
+        self.assertAlmostEqual(float(np.var(result['observer_bias'])), 0.17283950617283952, places=4)
+
+        self.assertAlmostEqual(float(np.sum(result['observer_inconsistency'])), 2.8802122896041467, places=4)
+        self.assertAlmostEqual(float(np.var(result['observer_inconsistency'])), 0.4856715281793693, places=4)
+
+        self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 7.333333333333334, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores'])), 0.6666666530952383, places=4)
+
     def test_observer_content_aware_subjective_model(self):
         subjective_model = MaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
@@ -1206,6 +1244,30 @@ class SubjectiveModelPartialTest(unittest.TestCase):
 
         self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 177.92139983454805, places=4)
         self.assertAlmostEqual(float(np.var(result['quality_scores'])), 1.4830610442685492, places=4)
+
+    def test_ap_subjective_model_output_os_is_dict_style(self):
+        dataset = import_python_file(SurealConfig.test_resource_path('test_dataset_os_as_dict.py'))
+        dataset_reader = RawDatasetReader(dataset)
+        subjective_model = SubjectMLEModelProjectionSolver(dataset_reader)
+        result = subjective_model.run_modeling()
+        self.assertTrue('observers' in result)
+        subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath)
+        self.assertTrue(os.path.exists(self.output_dataset_filepath))
+        dataset2 = import_python_file(self.output_dataset_filepath)
+        dis_video = dataset2.dis_videos[0]
+        print(dataset2.dis_videos)
+        self.assertTrue('groundtruth' in dis_video)
+        self.assertTrue('os' not in dis_video)
+        self.assertAlmostEqual(dis_video['groundtruth'], 2.444444460976023, places=4)
+
+        self.assertAlmostEqual(float(np.sum(result['observer_bias'])), 0.0, places=4)
+        self.assertAlmostEqual(float(np.var(result['observer_bias'])), 0.17283950617283952, places=4)
+
+        self.assertAlmostEqual(float(np.sum(result['observer_inconsistency'])), 2.8802122896041467, places=4)
+        self.assertAlmostEqual(float(np.var(result['observer_inconsistency'])), 0.4856715281793693, places=4)
+
+        self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 7.333333333333334, places=4)
+        self.assertAlmostEqual(float(np.var(result['quality_scores'])), 0.6666666530952383, places=4)
 
 
 if __name__ == '__main__':

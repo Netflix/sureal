@@ -1,5 +1,6 @@
 import os
 import time
+import unittest
 from time import sleep
 import multiprocessing
 
@@ -252,3 +253,19 @@ def weighed_nanmean_2d(a, weights, axis):
         )
     else:
         assert False
+
+
+class MyTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.verificationErrors = []
+        self.maxDiff = None
+
+    def tearDown(self):
+        self.assertEqual([], self.verificationErrors)
+
+    def assertAlmostEqual(self, first, second, places=None, msg=None, delta=None):
+        try:
+            super().assertAlmostEqual(first, second, places, msg, delta)
+        except AssertionError as e:
+            self.verificationErrors.append(str(e))
