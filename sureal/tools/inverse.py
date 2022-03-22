@@ -162,7 +162,7 @@ def inversefunc(func,
                                  (yin[mask], ymax))
 
         results = yin.copy() * np.nan
-        resultsmask = np.zeros(yin.shape, dtype=np.bool)
+        resultsmask = np.zeros(yin.shape, dtype=bool)
 
         for j in range(yin.size):
             if xmax is not None:
