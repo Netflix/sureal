@@ -2,7 +2,7 @@ __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
 
 import unittest
-import six
+import warnings
 
 import numpy as np
 
@@ -90,9 +90,13 @@ class RawDatasetReaderTest2(unittest.TestCase):
         self.assertAlmostEqual(float(np.mean(os_3darray1)), 2.4444444444444446, places=4)
         self.assertAlmostEqual(float(np.mean(np.std(os_3darray1, axis=1))), 1.1036449462590066, places=4)
         self.assertAlmostEqual(float(np.nanmean(os_3darray2)), 2.3076923076923075, places=4)
-        self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_3darray2, axis=1))), 0.6351558064628366, places=4)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_3darray2, axis=1))), 0.6351558064628366, places=4)
         self.assertAlmostEqual(float(np.nanmean(os_3darray3)), 2.3076923076923075, places=4)
-        self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_3darray3, axis=1))), 0.6351558064628366, places=4)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_3darray3, axis=1))), 0.6351558064628366, places=4)
 
 
 class RawDatasetReaderPartialTest(unittest.TestCase):

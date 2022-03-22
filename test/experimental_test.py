@@ -1,5 +1,7 @@
 import os
 import unittest
+import warnings
+
 import numpy as np
 
 from sureal.config import SurealConfig
@@ -22,7 +24,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_bootstrapping_nocontent(self):
         subjective_model = MaximumLikelihoodEstimationModelContentObliviousWithBootstrapping.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False, n_bootstrap=3)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False, n_bootstrap=3)
 
         self.assertAlmostEqual(float(np.sum(result['observer_bias'])), -0.090840910829083799, places=4)
         self.assertAlmostEqual(float(np.var(result['observer_bias'])), 0.089032585621095089, places=4)
@@ -45,7 +49,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_bootstrapping_nocontent_subjbias_zeromean(self):
         subjective_model = MaximumLikelihoodEstimationModelContentObliviousWithBootstrapping.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(n_bootstrap=3)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(n_bootstrap=3)
 
         self.assertAlmostEqual(float(np.sum(result['observer_bias'])), 0.0, places=4)
         self.assertAlmostEqual(float(np.var(result['observer_bias'])), 0.089032585621095089, places=4)

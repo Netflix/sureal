@@ -1,5 +1,7 @@
 import os
 import unittest
+import warnings
+
 import numpy as np
 from sureal.config import SurealConfig
 from sureal.dataset_reader import RawDatasetReader, MissingDataRawDatasetReader, \
@@ -34,7 +36,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 4.884615384615385, places=4)
         self.assertAlmostEqual(scores[10], 2.0769230769230771, places=4)
@@ -55,7 +59,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            subjective_model.run_modeling()
         subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath)
         self.assertTrue(os.path.exists(self.output_dataset_filepath))
         dataset2 = import_python_file(self.output_dataset_filepath)
@@ -70,7 +76,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            subjective_model.run_modeling()
         subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath, aggregate_content_ids=[0, 2])
         self.assertTrue(os.path.exists(self.output_dataset_filepath))
         dataset2 = import_python_file(self.output_dataset_filepath)
@@ -85,7 +93,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            subjective_model.run_modeling()
         subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath, aggregate_asset_ids=[0, 2])
         self.assertTrue(os.path.exists(self.output_dataset_filepath))
         dataset2 = import_python_file(self.output_dataset_filepath)
@@ -116,7 +126,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            subjective_model.run_modeling()
         subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath, resampling_type='lanczos')
         self.assertTrue(os.path.exists(self.output_dataset_filepath))
         dataset2 = import_python_file(self.output_dataset_filepath)
@@ -134,7 +146,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            subjective_model.run_modeling()
         dataset2 = subjective_model.to_aggregated_dataset()
         dis_video = dataset2.dis_videos[0]
         self.assertTrue('groundtruth' in dis_video)
@@ -147,7 +161,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        result = subjective_model.run_modeling(normalize_final=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(normalize_final=True)
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 1.1318646945818083, places=4)
         self.assertAlmostEqual(scores[10], -1.2400334499143002, places=4)
@@ -157,7 +173,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        result = subjective_model.run_modeling(transform_final={'p1': 10, 'p0': 1})
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(transform_final={'p1': 10, 'p0': 1})
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 49.84615384615385, places=4)
         self.assertAlmostEqual(scores[10], 21.769230769230771, places=4)
@@ -165,7 +183,9 @@ class SubjectiveModelTest(unittest.TestCase):
 
     def test_from_dataset_file(self):
         subjective_model = MosModel.from_dataset_file(self.dataset_filepath)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 4.884615384615385, places=4)
         self.assertAlmostEqual(scores[10], 2.0769230769230771, places=4)
@@ -173,7 +193,9 @@ class SubjectiveModelTest(unittest.TestCase):
 
     def test_dmos_subjective_model(self):
         subjective_model = DmosModel.from_dataset_file(self.dataset_filepath)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 5.0, places=4)
         self.assertAlmostEqual(scores[10], 2.1923076923076921, places=4)
@@ -183,7 +205,9 @@ class SubjectiveModelTest(unittest.TestCase):
 
     def test_dmos_subjective_model_normalize_final(self):
         subjective_model = DmosModel.from_dataset_file(self.dataset_filepath)
-        result = subjective_model.run_modeling(normalize_final=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(normalize_final=True)
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 1.0440613892053001, places=4)
         self.assertAlmostEqual(scores[10], -1.3452648137895296, places=4)
@@ -191,7 +215,9 @@ class SubjectiveModelTest(unittest.TestCase):
 
     def test_dmos_subjective_model_dscore_mode_same(self):
         subjective_model = DmosModel.from_dataset_file(self.dataset_filepath)
-        result = subjective_model.run_modeling(normalize_final=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(normalize_final=True)
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 1.0440613892053001, places=4)
         self.assertAlmostEqual(scores[10], -1.3452648137895296, places=4)
@@ -256,7 +282,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model(self):
         subjective_model = MaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['content_ambiguity'])), 3.8972884776604402, places=4)
         self.assertAlmostEqual(float(np.var(result['content_ambiguity'])), 0.0041122094732031289, places=4)
@@ -285,7 +313,10 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_subjbias_zeromean(self):
         subjective_model = MaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
 
         self.assertAlmostEqual(float(np.sum(result['content_ambiguity'])), 3.8972884776604402, places=4)
         self.assertAlmostEqual(float(np.var(result['content_ambiguity'])), 0.0041122094732031289, places=4)
@@ -307,7 +338,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_original(self):
         subjective_model = MaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(gradient_method='original', force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(gradient_method='original', force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['content_ambiguity'])), 3.8972884776604402, places=4)
         self.assertAlmostEqual(float(np.var(result['content_ambiguity'])), 0.0041122094732031289, places=4)
@@ -329,7 +362,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_numerical(self):
         subjective_model = MaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(gradient_method='numerical', force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(gradient_method='numerical', force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['content_ambiguity'])), 3.8972884776604402, places=4)
         self.assertAlmostEqual(float(np.var(result['content_ambiguity'])), 0.0041122094732031289, places=4)
@@ -359,7 +394,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset_reader = MissingDataRawDatasetReader(dataset, input_dict=info_dict)
 
         subjective_model = MaximumLikelihoodEstimationModel(dataset_reader)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['content_ambiguity'])), 3.9104244772977128, places=4)
         self.assertAlmostEqual(float(np.var(result['content_ambiguity'])), 0.0037713583509767193, places=4)
@@ -380,7 +417,9 @@ class SubjectiveModelTest(unittest.TestCase):
         dataset_reader = MissingDataRawDatasetReader(dataset, input_dict=info_dict)
 
         subjective_model = MaximumLikelihoodEstimationModel(dataset_reader)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['content_ambiguity'])), 2.63184284168883, places=4)
         self.assertAlmostEqual(float(np.var(result['content_ambiguity'])), 0.019164097909450246, places=4)
@@ -397,7 +436,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_nocontent(self):
         subjective_model = MaximumLikelihoodEstimationModelContentOblivious.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['observer_bias'])), -0.090840910829083799, places=4)
         self.assertAlmostEqual(float(np.var(result['observer_bias'])), 0.089032585621095089, places=4)
@@ -426,7 +467,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_nocontent_subjbias_zeromean(self):
         subjective_model = MaximumLikelihoodEstimationModelContentOblivious.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
 
         self.assertAlmostEqual(float(np.sum(result['observer_bias'])), 0.0, places=4)
         self.assertAlmostEqual(float(np.var(result['observer_bias'])), 0.089032585621095089, places=4)
@@ -447,7 +490,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_nosubject(self):
         subjective_model = MaximumLikelihoodEstimationModelSubjectOblivious.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 280.0384615384616, places=4)
         self.assertAlmostEqual(float(np.var(result['quality_scores'])), 1.4012220200639218, places=4)
@@ -595,7 +640,9 @@ class SubjectiveModelTest(unittest.TestCase):
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
         subjective_model = MosModel(dataset_reader)
-        result = subjective_model.run_modeling(subject_rejection=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(subject_rejection=True)
         scores = result['quality_scores']
 
         self.assertAlmostEqual(float(np.mean(scores)), 3.5611814345991566, places=4)
@@ -609,7 +656,9 @@ class SubjectiveModelTest(unittest.TestCase):
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
         subjective_model = MosModel(dataset_reader)
-        result = subjective_model.run_modeling(zscore_mode=True, subject_rejection=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(zscore_mode=True, subject_rejection=True)
         scores = result['quality_scores']
 
         self.assertAlmostEqual(float(np.mean(scores)), 0.0, places=4)
@@ -640,7 +689,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_observer_content_aware_subjective_dmos_model(self):
         subjective_model = MaximumLikelihoodEstimationDmosModel.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 288.56842946051466, places=4)
         self.assertAlmostEqual(float(np.var(result['quality_scores'])), 1.4166132275824235, places=4)
@@ -657,7 +708,9 @@ class SubjectiveModelTest(unittest.TestCase):
     def test_dmos_mle_co_model(self):
         subjective_model = MaximumLikelihoodEstimationModelContentOblivious.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['quality_scores'])), 280.31447815213642, places=4)
         self.assertAlmostEqual(float(np.var(result['quality_scores'])), 1.4355485462027884, places=4)
@@ -687,7 +740,9 @@ class SubjectiveModelTest(unittest.TestCase):
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
         subjective_model = SubjrejMosModel(dataset_reader)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
 
         self.assertAlmostEqual(float(np.mean(scores)), 3.5611814345991566, places=4)
@@ -753,7 +808,9 @@ class SubjectiveModelTest(unittest.TestCase):
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
         subjective_model = BiasremvSubjrejMosModel(dataset_reader)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
         bias = result['observer_bias']
 
@@ -777,7 +834,9 @@ class SubjectiveModelTest(unittest.TestCase):
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
         subjective_model = ZscoringSubjrejMosModel(dataset_reader)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
 
         self.assertAlmostEqual(float(np.mean(scores)), 0, places=4)
@@ -791,7 +850,9 @@ class SubjectiveModelTest(unittest.TestCase):
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
         subjective_model = SubjrejDmosModel(dataset_reader)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
 
         self.assertAlmostEqual(float(np.mean(scores)), 4.0246673158065542, places=4)
@@ -805,7 +866,9 @@ class SubjectiveModelTest(unittest.TestCase):
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
         subjective_model = ZscoringSubjrejDmosModel(dataset_reader)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
 
         self.assertAlmostEqual(float(np.mean(scores)), 0, places=4)
@@ -887,7 +950,9 @@ class SubjectiveModelTest(unittest.TestCase):
         }
         dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
         subjective_model = MaximumLikelihoodEstimationModelContentOblivious(dataset_reader)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
         scores = result['quality_scores']
         bias = result['observer_bias']
         inconsistency = result['observer_inconsistency']
@@ -1001,7 +1066,9 @@ class SubjectiveModelPartialTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 4.884615384615385, places=4)
         self.assertAlmostEqual(scores[10], 2.8076923076923075, places=4)
@@ -1013,7 +1080,9 @@ class SubjectiveModelPartialTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            subjective_model.run_modeling()
         subjective_model.to_aggregated_dataset_file(self.output_dataset_filepath)
         self.assertTrue(os.path.exists(self.output_dataset_filepath))
         dataset2 = import_python_file(self.output_dataset_filepath)
@@ -1028,7 +1097,9 @@ class SubjectiveModelPartialTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        result = subjective_model.run_modeling(normalize_final=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(normalize_final=True)
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 1.1666952279897338, places=4)
         self.assertAlmostEqual(scores[10], -0.56729217507757768, places=4)
@@ -1038,7 +1109,9 @@ class SubjectiveModelPartialTest(unittest.TestCase):
         dataset = import_python_file(self.dataset_filepath)
         dataset_reader = RawDatasetReader(dataset)
         subjective_model = MosModel(dataset_reader)
-        result = subjective_model.run_modeling(transform_final={'p1': 10, 'p0': 1})
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(transform_final={'p1': 10, 'p0': 1})
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 49.84615384615385, places=4)
         self.assertAlmostEqual(scores[10], 29.076923076923073, places=4)
@@ -1046,7 +1119,9 @@ class SubjectiveModelPartialTest(unittest.TestCase):
 
     def test_from_dataset_file(self):
         subjective_model = MosModel.from_dataset_file(self.dataset_filepath)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 4.884615384615385, places=4)
         self.assertAlmostEqual(scores[10], 2.8076923076923075, places=4)
@@ -1054,7 +1129,9 @@ class SubjectiveModelPartialTest(unittest.TestCase):
 
     def test_dmos_subjective_model(self):
         subjective_model = DmosModel.from_dataset_file(self.dataset_filepath)
-        result = subjective_model.run_modeling()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
         scores = result['quality_scores']
         self.assertAlmostEqual(scores[0], 5.0, places=4)
         self.assertAlmostEqual(scores[10], 2.9230769230769225, places=4)
@@ -1093,7 +1170,9 @@ class SubjectiveModelPartialTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model(self):
         subjective_model = MaximumLikelihoodEstimationModel.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.nansum(result['content_ambiguity'])), 2.653508643860357, places=4)
         self.assertAlmostEqual(float(np.nanvar(result['content_ambiguity'])), 0.0092892978862108271, places=4)
@@ -1115,7 +1194,9 @@ class SubjectiveModelPartialTest(unittest.TestCase):
     def test_observer_content_aware_subjective_model_nocontent(self):
         subjective_model = MaximumLikelihoodEstimationModelContentOblivious.from_dataset_file(
             self.dataset_filepath)
-        result = subjective_model.run_modeling(force_subjbias_zeromean=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling(force_subjbias_zeromean=False)
 
         self.assertAlmostEqual(float(np.sum(result['observer_bias'])), -0.038360699965624648, places=4)
         self.assertAlmostEqual(float(np.var(result['observer_bias'])), 0.095605013092265753, places=4)

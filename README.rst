@@ -39,7 +39,7 @@ Under Ubuntu, you may also need to install the ``python-tk`` (Python 2) or ``pyt
 
 To test the source code before installing, run::
 
-    python -m unittest discover -s test -p '*_test.py'
+    python -m unittest discover --start test --pattern '*_test.py' --verbose
 
 The code thus far has been tested on Ubuntu 16.04 LTS and macOS 10.13.
 
