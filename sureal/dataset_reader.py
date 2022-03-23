@@ -5,7 +5,7 @@ import random
 import numpy as np
 
 from sureal.tools.misc import empty_object, get_unique_sorted_list
-from sureal.tools.decorator import memoized as persist
+from sureal.tools.decorator import memoized as persist, override
 from sureal.tools.misc import get_unique_sorted_list
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -525,11 +525,11 @@ class RawDatasetReader(DatasetReader):
 class MockedRawDatasetReader(RawDatasetReader):
 
     def __init__(self, dataset, **kwargs):
-        super(MockedRawDatasetReader, self).__init__(dataset)
         if 'input_dict' in kwargs:
             self.input_dict = kwargs['input_dict']
         else:
             self.input_dict = {}
+        super().__init__(dataset)
         self._assert_input_dict()
 
     def to_dataset(self):
@@ -732,10 +732,13 @@ class SelectDisVideoRawDatasetReader(MockedRawDatasetReader):
         for dis_video in selected_dis_videos:
             assert dis_video in dis_video_idxs
 
-    # @override()
     @property
+    @override(DatasetReader)
     def dis_videos(self):
-        return [dv for dv in self.dataset.dis_videos if dv['asset_id'] in self.input_dict['selected_dis_videos']]
+        d_assetid_disvideo = dict()  # build dict: asset_id -> dis_video
+        for dv in self.dataset.dis_videos:
+            d_assetid_disvideo[dv['asset_id']] = dv
+        return [d_assetid_disvideo[asset_id] for asset_id in self.input_dict['selected_dis_videos']]
 
     def to_dataset(self):
         raise NotImplementedError
