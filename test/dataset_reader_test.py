@@ -26,6 +26,7 @@ class RawDatasetReaderTest(unittest.TestCase):
         self.assertEqual(self.dataset_reader.num_dis_videos, 79)
         self.assertEqual(self.dataset_reader.num_observers, 26)
         self.assertEqual(self.dataset_reader.max_repetitions, 1)
+        self.assertEqual(len(self.dataset_reader.dis_videos), 79)
 
     def test_opinion_score_3darray(self):
         os_3darray = self.dataset_reader.opinion_score_3darray
@@ -347,6 +348,9 @@ class SelectDisVideoDatasetReaderTest(unittest.TestCase):
         self.assertEqual(self.dataset_reader.num_dis_videos, 15)
         self.assertEqual(self.dataset_reader.num_observers, 26)
         self.assertEqual(self.dataset_reader.max_repetitions, 1)
+
+        self.assertEqual(len(self.dataset_reader.dataset.dis_videos), 79)
+        self.assertEqual(len(self.dataset_reader.dis_videos), 15)
 
     def test_to_dataset(self):
         with self.assertRaises(NotImplementedError):

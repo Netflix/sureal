@@ -112,3 +112,12 @@ class memoized(object):
     def __get__(self, obj, objtype):
         """ Support instance methods. """
         return partial(self.__call__, obj)
+
+
+def override(interface_class):
+    def overrider(method):
+        assert(method.__name__ in dir(interface_class)), \
+            f"{method.__name__} does not override any method " \
+            f"in {interface_class.__name__}"
+        return method
+    return overrider
