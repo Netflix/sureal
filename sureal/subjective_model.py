@@ -62,6 +62,15 @@ class SubjectiveModel(TypeVersionEnabled):
 
     def run_modeling(self, **kwargs):
         model_result = self._run_modeling(self.dataset_reader, **kwargs)
+
+        try:
+            observers = self.dataset_reader._get_list_observers()  # may not exist
+            model_result['observers'] = observers
+        except AssertionError:
+            pass
+        except AttributeError:
+            pass
+
         self._postprocess_model_result(model_result, **kwargs)
         self.model_result = model_result
         return model_result
@@ -317,12 +326,6 @@ class MosModel(SubjectiveModel):
             assert 'observer_rejected_2nd_stats' in ret
             result['observer_rejected_1st_stats'] = ret['observer_rejected_1st_stats']
             result['observer_rejected_2nd_stats'] = ret['observer_rejected_2nd_stats']
-
-        try:
-            observers = dataset_reader._get_list_observers() # may not exist
-            result['observers'] = observers
-        except AssertionError:
-            pass
 
         return result
 
@@ -610,12 +613,6 @@ class LegacyMaximumLikelihoodEstimationModel(SubjectiveModel):
             'observer_bias': list(b_s),
             'observer_inconsistency': list(v_s),
         }
-
-        try:
-            observers = dataset_reader._get_list_observers() # may not exist
-            result['observers'] = observers
-        except AssertionError:
-            pass
 
         return result
 
@@ -1472,12 +1469,6 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
 
         bic = np.log(original_num_os) * dof - 2 * loglikelihood  # bic per observation
         result['bic'] = bic
-
-        try:
-            observers = dataset_reader._get_list_observers() # may not exist
-            result['observers'] = observers
-        except AssertionError:
-            pass
 
         return result
 
