@@ -37,6 +37,7 @@ class DisplayConfig(object):
         if 'write_to_dir' in kwargs:
             format = kwargs['format'] if 'format' in kwargs else 'png'
             filedir = kwargs['write_to_dir'] if kwargs['write_to_dir'] is not None else SurealConfig.workspace_path('output')
+            os.makedirs(filedir, exist_ok=True)
             for fignum in plt.get_fignums():
                 fig = plt.figure(fignum)
                 fig.savefig(os.path.join(filedir, str(fignum) + '.' + format), format=format)
