@@ -106,17 +106,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         # TODO: visualize repetitions - currently taking mean over repetitions before plotting
         mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
-        # S, E = mtx.shape
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
-        # xs = np.array(range(S)) + 1
-        # my_xticks = list(map(lambda x: "#{}".format(x), xs))
-        # plt.yticks(np.array(xs), my_xticks, rotation=0)
         ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
         ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
         plt.colorbar(im, ax=ax_rawscores)
-
-        # plt.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores' in do_plot:
 
@@ -141,8 +135,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_raw_scores_minus_quality_scores.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores)
-
-                # plt.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores_and_observer_bias' in do_plot:
 
@@ -169,8 +161,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores_and_observer_bias)
-
-                # plt.tight_layout()
 
     if do_plot == 'all' or 'quality_scores_vs_raw_scores' in do_plot:
 
@@ -217,9 +207,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         else:
             _, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
 
-        # xs = None
         shift_count = 0
-        # my_xticks = None
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result:
                 quality = result['quality_scores']
@@ -365,7 +353,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
                 ax_inconsty.set_title(r'Subject Inconsistency ($\upsilon_i$)')
-                # ax_inconsty.legend(loc=2, ncol=2, frameon=True)
                 ax_inconsty.legend(ncol=1, frameon=True)
 
             if 'observer_rejected' in result and ax_rejected is not None:
@@ -452,75 +439,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             my_xticks = ['' for _ in range(len(xs))]
             for ref_video in dataset_reader.dataset.ref_videos:
                 my_xticks[ref_video['content_id']] = ref_video['content_name']
-            # rotation = 75
             rotation = 90
             plt.sca(ax_ambgty)
             plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=rotation)
-        # ax_ambgty.legend(loc=1, ncol=2, frameon=True)
         ax_ambgty.legend(ncol=2, frameon=True)
         plt.tight_layout()
-
-    # if do_plot == 'all' or 'data_fitness' in do_plot:
-    #     n_sigmas = 5
-    #     metric_keys = [
-    #         # 'CC',
-    #         # 'SROCC',
-    #         'RMSE',
-    #         # '%(std>$2\sigma)$',
-    #         # '%(pval<0.05)',
-    #         'std(std)',
-    #         'dof',
-    #     ]
-    #     if 'ax_data_fitness' in ax_dict:
-    #         ax_fitness = ax_dict['ax_data_fitness']
-    #     else:
-    #         _, ax_fitness = plt.subplots(figsize=[12, 4])
-    #
-    #     for subjective_model, result in zip(subjective_models, results):
-    #         if 'multiple_of_stds' in result:
-    #             n_stds = result['multiple_of_stds']
-    #             n_stds = n_stds[~np.isnan(n_stds)]
-    #             ys, xs = get_pdf(n_stds, bins=range(n_sigmas + 1), density=False)
-    #             ys = np.array(ys) / float(len(n_stds)) * 100.0
-    #
-    #             assert 'reconstructions' in result
-    #             assert 'raw_scores' in result
-    #             rec_scores = result['reconstructions']
-    #             rec_scores = rec_scores[~np.isnan(rec_scores)]
-    #             raw_scores = result['raw_scores']
-    #             raw_scores = raw_scores[~np.isnan(raw_scores)]
-    #             rmse = RmsePerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
-    #             cc = PccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
-    #             srocc = SrccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
-    #
-    #             perc_above_2sigma = 100.0 - stats.percentileofscore(n_stds, 2.0)
-    #             std_of_std = np.std(n_stds)
-    #
-    #             assert 'p_values' in result
-    #             p_values = result['p_values']
-    #             p_values = p_values[~np.isnan(p_values)]
-    #             perc_below_pval005 = stats.percentileofscore(p_values, (1 - 0.9545))
-    #
-    #             assert 'dof' in result
-    #             dof = result['dof']
-    #
-    #             metrics = {
-    #                 'CC': '{:.3f}'.format(cc),
-    #                 'SROCC': '{:.3f}'.format(srocc),
-    #                 'RMSE': '{:.3f}'.format(rmse),
-    #                 '%(std>$2\sigma)$': '{:.1f}%'.format(perc_above_2sigma),
-    #                 '%(pval<0.05)': '{:.1f}%)'.format(perc_below_pval005),
-    #                 'std(std)': '{:.3f}'.format(std_of_std),
-    #                 'dof': dof
-    #             }
-    #
-    #             label = '{} ({})'.format(subjective_model.TYPE, ', '.join(map(lambda key: '{} {}'.format(key, metrics[key]), metric_keys)))
-    #
-    #             ax_fitness.bar(list(map(lambda x: '${}\sigma$'.format(x), range(1, n_sigmas + 1))), ys, label=label, alpha=0.4)
-    #     ax_fitness.set_xlabel('Number of $\sigma$')
-    #     ax_fitness.set_ylabel('Percentage (%)')
-    #     ax_fitness.legend()
-    #     plt.tight_layout()
 
     return dataset, subjective_models, results
 
@@ -532,7 +455,6 @@ def visualize_pc_dataset(dataset_filepath):
     tensor_pvs_pvs_subject = dataset_reader.opinion_score_3darray
 
     plt.figure()
-    # plot the rate of winning x, 0 <= x <= 1.0, of one PVS compared against another PVS
     mtx_pvs_pvs = np.nansum(tensor_pvs_pvs_subject, axis=2) \
                   / (np.nansum(tensor_pvs_pvs_subject, axis=2) +
                      np.nansum(tensor_pvs_pvs_subject, axis=2).transpose())
