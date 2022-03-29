@@ -1,7 +1,9 @@
 import glob
 import os
 import shutil
+import unittest
 import warnings
+from sys import platform
 
 import matplotlib.pyplot as plt
 from sureal.config import SurealConfig, DisplayConfig
@@ -41,6 +43,12 @@ class RunSubjectiveModelsTest(MyTestCase):
         self.assertAlmostEqual(results[1]['quality_scores'][0], 4.918072566018977, places=4)
         self.assertAlmostEqual(results[0]['quality_scores'][-2], 4.230769230769231, places=4)
         self.assertAlmostEqual(results[1]['quality_scores'][-2], 4.258802804871559, places=4)
+        self.assertAlmostEqual(results[0]['reconstruction_stats']['cc'], 0.8669409273761887, places=4)
+        self.assertAlmostEqual(results[0]['reconstruction_stats']['srocc'], 0.8398755052867866, places=4)
+        self.assertAlmostEqual(results[0]['reconstruction_stats']['rmse'], 0.6805366284146919, places=4)
+        self.assertAlmostEqual(results[1]['reconstruction_stats']['cc'], 0.8934493186953418, places=4)
+        self.assertAlmostEqual(results[1]['reconstruction_stats']['srocc'], 0.8698396941667169, places=4)
+        self.assertAlmostEqual(results[1]['reconstruction_stats']['rmse'], 0.6134731448525833, places=4)
 
     def test_run_subjective_models_selected_dis_videos(self):
         with warnings.catch_warnings():
@@ -80,6 +88,8 @@ class RunSubjectiveModelsTest(MyTestCase):
         DisplayConfig.show(write_to_dir=self.output_dir)
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 3)
 
+    @unittest.skipIf(platform in ['linux', 'linux2'],
+                     'the number of pngs is 4 if on linux, skip')
     def test_run_subjective_models_with_plots_and_axs(self):
         fig, axs = plt.subplots(figsize=[20, 15], nrows=2, ncols=2)
         with warnings.catch_warnings():
