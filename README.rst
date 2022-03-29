@@ -89,13 +89,13 @@ Here ``subjective_model`` are the available subjective models offered in the pac
 
   - MLE_CO_AP2 - Alternative implementation of MLE_CO based on Alternate Projection and per-stimuli confidence interval calculation (AP2)
 
-  - DMOS - Differential MOS, as defined in [ITU-T P.910](https://www.itu.int/rec/T-REC-P.910)
+  - DMOS - Differential MOS, as defined in `ITU-T P.910 <https://www.itu.int/rec/T-REC-P.910>`_
 
   - DMOS_MLE - apply MLE on DMOS
 
   - DMOS_MLE_CO - apply MLE_CO on DMOS
 
-  - SR_MOS - Apply subject rejection (SR), as defined in [ITU-R BT.500](https://www.itu.int/rec/R-REC-BT.500), before calculating MOS
+  - SR_MOS - Apply subject rejection (SR), as defined in `ITU-R BT.500 <https://www.itu.int/rec/R-REC-BT.500>`_, before calculating MOS
 
   - ZS_SR_MOS - Apply z-score transformation, followed by SR, before calculating MOS
 
@@ -103,7 +103,7 @@ Here ``subjective_model`` are the available subjective models offered in the pac
 
   - ZS_SR_DMOS - Apply z-score transformation, followed by SR, before calculating DMOS
 
-  - BR_SR_MOS - Apply subject bias removal, followed by SR, before calculating MOS, as defined in [ITU-T P.913](https://www.itu.int/rec/T-REC-P.913)
+  - BR_SR_MOS - Apply subject bias removal, followed by SR, before calculating MOS, as defined in `ITU-T P.913 <https://www.itu.int/rec/T-REC-P.913>`_
 
 
 Dataset files
