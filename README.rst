@@ -56,15 +56,18 @@ Run::
 
 This will print usage information::
 
-    usage: sureal [-h] --dataset DATASET --models MODELS [MODELS ...] [--output-dir OUTPUT_DIR] [--plot-raw-data] [--plot-dis-videos] [--plot-observers]
+    usage: sureal [-h] --dataset DATASET --models MODELS [MODELS ...] [--output-dir OUTPUT_DIR]
+    [--plot-raw-data] [--plot-dis-videos] [--plot-observers]
 
     optional arguments:
       -h, --help            show this help message and exit
       --dataset DATASET     Path to the dataset file.
       --models MODELS [MODELS ...]
-                            Subjective models to use (can specify more than one), choosing from: MOS, P910, P913, BT500.
+                            Subjective models to use (can specify more than one), choosing from:
+                            MOS, P910, P913, BT500.
       --output-dir OUTPUT_DIR
-                            Path to the output directory (will force create is not existed). If not specified, plots will be displayed and output will be printed.
+                            Path to the output directory (will force create is not existed). If
+                            not specified, plots will be displayed and output will be printed.
       --plot-raw-data       Plot the raw data.
       --plot-dis-videos     Plot the subjective scores of the distorted videos.
       --plot-observers      Plot the scores of the observers.
