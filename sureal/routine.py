@@ -62,7 +62,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     if 'show_dis_video_names' in kwargs:
         show_dis_video_names = kwargs['show_dis_video_names']
     else:
-        show_dis_video_names = False
+        show_dis_video_names = True
     assert isinstance(show_dis_video_names, bool)
 
     raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else 'gray'
@@ -446,6 +446,103 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         plt.tight_layout()
 
     return dataset, subjective_models, results
+
+
+def format_output_of_run_subjective_models(dataset, subjective_models, results):
+
+    assert len(subjective_models) == len(results)
+    for result in results:
+        assert 'quality_scores' in result
+        assert 'dis_video_names' in result, \
+            'expect dis_video_names in result - show_dis_video_names must ' \
+            'not be False in run_subjective_models'
+        assert len(result['dis_video_names']) == len(result['quality_scores'])
+        if 'quality_scores_std' in result:
+            assert len(result['quality_scores']) == len(result['quality_scores_std'])
+        if 'quality_scores_ci95' in result:
+            assert len(result['quality_scores_ci95']) == 2
+            assert len(result['quality_scores']) == len(list(zip(*result['quality_scores_ci95'])))
+
+        if 'observer_bias' in result:
+            if 'observers' in result:
+                assert len(result['observers']) == len(result['observer_bias'])
+            else:
+                result['observers'] = [f'observer{o}' for o in range(len(result['observer_bias']))]
+            if 'observer_bias_std' in result:
+                assert len(result['observer_bias']) == len(result['observer_bias_std'])
+            if 'observer_bias_ci95' in result:
+                assert len(result['observer_bias_ci95']) == 2
+                assert len(result['observer_bias']) == len(list(zip(*result['observer_bias_ci95'])))
+
+        if 'content_ambiguity' in result:
+            dict_contentid_content = dict()
+            for ref_video in dataset.ref_videos:
+                dict_contentid_content[ref_video['content_id']] = \
+                    f"{ref_video['content_name']}"
+            result['contents'] = [dict_contentid_content[k] for k in sorted(dict_contentid_content.keys())]
+            assert len(result['contents']) == len(result['content_ambiguity'])
+            if 'content_ambiguity_std' in result:
+                assert len(result['content_ambiguity']) == len(result['content_ambiguity_std'])
+            if 'content_ambiguity_ci95' in result:
+                assert len(result['content_ambiguity_ci95']) == 2
+                assert len(result['content_ambiguity']) == len(list(zip(*result['content_ambiguity_ci95'])))
+
+    output = dict()
+    for subjective_model, result in zip(subjective_models, results):
+        for idx, dis_video_name in enumerate(result['dis_video_names']):
+            if 'dis_video_name' in output.setdefault('dis_videos', dict()).setdefault(idx, dict()):
+                assert output.setdefault('dis_videos', dict()).setdefault(idx, dict())['dis_video_name'] == dis_video_name
+            else:
+                output.setdefault('dis_videos', dict()).setdefault(idx, dict())['dis_video_name'] = dis_video_name
+        for idx, quality_score in enumerate(result['quality_scores']):
+            output.setdefault('dis_videos', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['quality_score'] = quality_score
+        if 'quality_scores_std' in result:
+            for idx, quality_score_std in enumerate(result['quality_scores_std']):
+                output.setdefault('dis_videos', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['quality_score_std'] = quality_score_std
+        if 'quality_scores_ci95' in result:
+            for idx, quality_score_ci95 in enumerate(list(zip(*result['quality_scores_ci95']))):
+                output.setdefault('dis_videos', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['quality_score_ci95'] = quality_score_ci95
+
+        if 'observer_bias' in result:
+            if 'observers' in result:
+                for idx, observer in enumerate(result['observers']):
+                    if 'observer' in output.setdefault('observers', dict()).setdefault(idx, dict()):
+                        assert output.setdefault('observers', dict()).setdefault(idx, dict())['observer'] == observer
+                    else:
+                        output.setdefault('observers', dict()).setdefault(idx, dict())['observer'] = observer
+            for idx, observer_bias in enumerate(result['observer_bias']):
+                output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_bias'] = observer_bias
+            if 'observer_bias_std' in result:
+                for idx, observer_bias_std in enumerate(result['observer_bias_std']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_bias_std'] = observer_bias_std
+            if 'observer_bias_ci95' in result:
+                for idx, observer_bias_ci95 in enumerate(list(zip(*result['observer_bias_ci95']))):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_bias_ci95'] = observer_bias_ci95
+
+        if 'content_ambiguity' in result:
+            if 'contents' in result:
+                for idx, content in enumerate(result['contents']):
+                    if 'content' in output.setdefault('contents', dict()).setdefault(idx, dict()):
+                        assert output.setdefault('contents', dict()).setdefault(idx, dict())['content'] == content
+                    else:
+                        output.setdefault('contents', dict()).setdefault(idx, dict())['content'] = content
+            for idx, content_ambiguity in enumerate(result['content_ambiguity']):
+                output.setdefault('contents', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['content_ambiguity'] = content_ambiguity
+            if 'content_ambiguity_std' in result:
+                for idx, content_ambiguity_std in enumerate(result['content_ambiguity_std']):
+                    output.setdefault('contents', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['content_ambiguity_std'] = content_ambiguity_std
+            if 'content_ambiguity_ci95' in result:
+                for idx, content_ambiguity_ci95 in enumerate(list(zip(*result['content_ambiguity_ci95']))):
+                    output.setdefault('contents', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['content_ambiguity_ci95'] = content_ambiguity_ci95
+
+    if 'dis_videos' in output:
+        output['dis_videos'] = list(output['dis_videos'].values())
+    if 'observers' in output:
+        output['observers'] = list(output['observers'].values())
+    if 'contents' in output:
+        output['contents'] = list(output['contents'].values())
+
+    return output
 
 
 def visualize_pc_dataset(dataset_filepath):

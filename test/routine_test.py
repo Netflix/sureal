@@ -11,8 +11,11 @@ from sureal.dataset_reader import PairedCompDatasetReader, \
     SelectDisVideoRawDatasetReader
 from sureal.pc_subjective_model import ThurstoneMlePairedCompSubjectiveModel, \
     BradleyTerryMlePairedCompSubjectiveModel
-from sureal.routine import run_subjective_models
-from sureal.subjective_model import MosModel, SubjectMLEModelProjectionSolver
+from sureal.routine import run_subjective_models, \
+    format_output_of_run_subjective_models
+from sureal.subjective_model import MosModel, SubjectMLEModelProjectionSolver, \
+    MaximumLikelihoodEstimationModel, SubjrejMosModel, BiasremvSubjrejMosModel, \
+    LegacyMaximumLikelihoodEstimationModel
 from sureal.tools.misc import MyTestCase
 
 
@@ -107,6 +110,20 @@ class RunSubjectiveModelsTest(MyTestCase):
         DisplayConfig.show(write_to_dir=self.output_dir)
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
 
+    def test_run_subjective_models_with_processed_output(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            dataset, subjective_models, results = run_subjective_models(
+                dataset_filepath=self.dataset_filepath,
+                subjective_model_classes=[
+                    MosModel, SubjrejMosModel, BiasremvSubjrejMosModel,
+                    SubjectMLEModelProjectionSolver,
+                    LegacyMaximumLikelihoodEstimationModel,
+                    MaximumLikelihoodEstimationModel],
+            )
+        _ = format_output_of_run_subjective_models(dataset, subjective_models, results)
+        # import pprint; pprint.pprint(_)
+
 
 class RunSubjectiveModelsTestDictStyle(MyTestCase):
 
@@ -135,6 +152,20 @@ class RunSubjectiveModelsTestDictStyle(MyTestCase):
         self.assertTrue('observers' in results[0])
         self.assertTrue('observers' in results[1])
 
+    def test_run_subjective_models_with_processed_output(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            dataset, subjective_models, results = run_subjective_models(
+                dataset_filepath=self.dataset_filepath,
+                subjective_model_classes=[
+                    MosModel, SubjrejMosModel, BiasremvSubjrejMosModel,
+                    SubjectMLEModelProjectionSolver,
+                    LegacyMaximumLikelihoodEstimationModel,
+                    MaximumLikelihoodEstimationModel],
+            )
+        _ = format_output_of_run_subjective_models(dataset, subjective_models, results)
+        import pprint; pprint.pprint(_)
+
 
 class RunPCSubjectiveModelsTest(MyTestCase):
 
@@ -160,3 +191,14 @@ class RunPCSubjectiveModelsTest(MyTestCase):
         self.assertAlmostEqual(results[1]['quality_scores'][-2], -4.3964501689472275, places=4)
         self.assertTrue('observers' in results[0])
         self.assertTrue('observers' in results[1])
+
+    def test_run_pc_subjective_models_with_processed_output(self):
+        dataset, subjective_models, results = run_subjective_models(
+            dataset_filepath=self.dataset_filepath,
+            subjective_model_classes=[
+                ThurstoneMlePairedCompSubjectiveModel,
+                BradleyTerryMlePairedCompSubjectiveModel],
+            dataset_reader_class=PairedCompDatasetReader,
+        )
+        _ = format_output_of_run_subjective_models(dataset, subjective_models, results)
+        import pprint; pprint.pprint(_)
