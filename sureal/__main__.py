@@ -88,6 +88,7 @@ def main():
         with open(os.path.join(output_dir, 'output.json'), 'w') as fp:
             json.dump(output, fp, indent=4)
         DisplayConfig.show(write_to_dir=output_dir)
+        print(f'output is written to directory {output_dir}.')
 
     return 0
 
