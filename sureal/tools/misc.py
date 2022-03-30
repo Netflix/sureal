@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 import unittest
 from time import sleep
@@ -269,3 +270,11 @@ class MyTestCase(unittest.TestCase):
             super().assertAlmostEqual(first, second, places, msg, delta)
         except AssertionError as e:
             self.verificationErrors.append(str(e))
+
+
+def run_process(cmd, **kwargs):
+    try:
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT, **kwargs)
+    except subprocess.CalledProcessError as e:
+        raise AssertionError(f'Process returned {e.returncode}, cmd: {cmd}, msg: {str(e.output)}')
+    return 0

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import json
 import os
@@ -72,11 +74,16 @@ def main():
         ModelClass = SubjectiveModel.find_subclass(model)
         ModelClasses.append(ModelClass)
 
+    def is_subj_model_class(ModelClass):
+        superclasses = ModelClass.__mro__
+        return SubjectiveModel in superclasses and PairedCompSubjectiveModel not in superclasses
+
+    def is_pc_subj_model_class(ModelClass):
+        return PairedCompSubjectiveModel in ModelClass.__mro__
+
     # ModelClass should be either SubjectiveModel or PairedCompSubjectiveModel
-    is_all_subjective_model = \
-        all([(SubjectiveModel in ModelClass.__bases__) for ModelClass in ModelClasses])
-    is_all_pc_subjective_model = \
-        all([PairedCompSubjectiveModel in ModelClass.__bases__ for ModelClass in ModelClasses])
+    is_all_subjective_model = all([is_subj_model_class(ModelClass) for ModelClass in ModelClasses])
+    is_all_pc_subjective_model = all([is_pc_subj_model_class(ModelClass) for ModelClass in ModelClasses])
     assert (is_all_subjective_model and not is_all_pc_subjective_model) or \
            (not is_all_subjective_model and is_all_pc_subjective_model), \
         f'is_all_subjective_model: {is_all_subjective_model}, ' \
