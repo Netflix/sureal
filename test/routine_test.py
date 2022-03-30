@@ -61,7 +61,6 @@ class RunSubjectiveModelsTest(MyTestCase):
                 subjective_model_classes=[MosModel, SubjectMLEModelProjectionSolver],
                 dataset_reader_class=SelectDisVideoRawDatasetReader,
                 dataset_reader_info_dict={'selected_dis_videos': range(78)},
-                show_dis_video_names=True,
             )
         self.assertEqual(len(dataset.dis_videos), 79)  # returned dis_videos not filtered
         self.assertEqual(len(dataset.ref_videos), 9)
@@ -91,25 +90,6 @@ class RunSubjectiveModelsTest(MyTestCase):
         DisplayConfig.show(write_to_dir=self.output_dir)
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 3)
 
-    @unittest.skipIf(platform in ['linux', 'linux2'],
-                     'the number of pngs is 4 if on linux, skip')
-    def test_run_subjective_models_with_plots_and_axs(self):
-        fig, axs = plt.subplots(figsize=[20, 15], nrows=2, ncols=2)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            run_subjective_models(
-                dataset_filepath=self.dataset_filepath,
-                subjective_model_classes=[MosModel, SubjectMLEModelProjectionSolver],
-                do_plot=['raw_scores', 'quality_scores', 'subject_scores'],
-                ax_dict={
-                    'ax_raw_scores': axs[0][0],
-                    'ax_quality_scores': axs[0][1],
-                    'ax_observer_bias': axs[1][0],
-                    'ax_observer_inconsistency': axs[1][1],
-                })
-        DisplayConfig.show(write_to_dir=self.output_dir)
-        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
-
     def test_run_subjective_models_with_processed_output(self):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -121,8 +101,7 @@ class RunSubjectiveModelsTest(MyTestCase):
                     LegacyMaximumLikelihoodEstimationModel,
                     MaximumLikelihoodEstimationModel],
             )
-        _ = format_output_of_run_subjective_models(dataset, subjective_models, results)
-        # import pprint; pprint.pprint(_)
+        format_output_of_run_subjective_models(dataset, subjective_models, results)
 
 
 class RunSubjectiveModelsTestDictStyle(MyTestCase):
@@ -135,7 +114,6 @@ class RunSubjectiveModelsTestDictStyle(MyTestCase):
         dataset, subjective_models, results = run_subjective_models(
             dataset_filepath=self.dataset_filepath,
             subjective_model_classes=[MosModel, SubjectMLEModelProjectionSolver],
-            show_dis_video_names=True,
         )
         self.assertEqual(len(dataset.dis_videos), 3)
         self.assertEqual(len(dataset.ref_videos), 2)
@@ -163,8 +141,7 @@ class RunSubjectiveModelsTestDictStyle(MyTestCase):
                     LegacyMaximumLikelihoodEstimationModel,
                     MaximumLikelihoodEstimationModel],
             )
-        _ = format_output_of_run_subjective_models(dataset, subjective_models, results)
-        import pprint; pprint.pprint(_)
+        format_output_of_run_subjective_models(dataset, subjective_models, results)
 
 
 class RunPCSubjectiveModelsTest(MyTestCase):
@@ -200,5 +177,4 @@ class RunPCSubjectiveModelsTest(MyTestCase):
                 BradleyTerryMlePairedCompSubjectiveModel],
             dataset_reader_class=PairedCompDatasetReader,
         )
-        _ = format_output_of_run_subjective_models(dataset, subjective_models, results)
-        import pprint; pprint.pprint(_)
+        format_output_of_run_subjective_models(dataset, subjective_models, results)

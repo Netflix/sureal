@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 
+from sureal.config import DisplayConfig
 from sureal.routine import run_subjective_models, \
     format_output_of_run_subjective_models
 from sureal.subjective_model import SubjectMLEModelProjectionSolver2, \
@@ -36,11 +37,33 @@ def main():
         help="Path to the output directory (will force create is not existed). "
              "If not specified, plots will be displayed and output will be printed.",
         required=False)
-    parser
+    parser.add_argument(
+        "--plot-raw-data", dest="plot_raw_data", action='store_true',
+        help="Plot the raw data.",
+        required=False)
+    parser.add_argument(
+        "--plot-dis-videos", dest="plot_dis_videos", action='store_true',
+        help="Plot the subjective scores of the distorted videos.",
+        required=False)
+    parser.add_argument(
+        "--plot-observers", dest="plot_observers", action='store_true',
+        help="Plot the scores of the observers.",
+        required=False)
     args = parser.parse_args()
     dataset = args.dataset[0]
     models = args.models
     output_dir = args.output_dir[0] if args.output_dir else None
+    plot_raw_data = args.plot_raw_data
+    plot_dis_videos = args.plot_dis_videos
+    plot_observers = args.plot_observers
+
+    do_plot = []
+    if plot_raw_data:
+        do_plot.append('raw_scores')
+    if plot_dis_videos:
+        do_plot.append('quality_scores')
+    if plot_observers:
+        do_plot.append('subject_scores')
 
     ModelClasses = list()
     for model in models:
@@ -50,6 +73,7 @@ def main():
     dataset, subjective_models, results = run_subjective_models(
         dataset_filepath=dataset,
         subjective_model_classes=ModelClasses,
+        do_plot=do_plot,
     )
 
     output = format_output_of_run_subjective_models(
@@ -58,10 +82,12 @@ def main():
     if output_dir is None:
         json_output = json.dumps(output, indent=4)
         print(json_output)
+        DisplayConfig.show()
     else:
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, 'output.json'), 'w') as fp:
             json.dump(output, fp, indent=4)
+        DisplayConfig.show(write_to_dir=output_dir)
 
     return 0
 

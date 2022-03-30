@@ -59,12 +59,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     else:
         ax_dict = {}
 
-    if 'show_dis_video_names' in kwargs:
-        show_dis_video_names = kwargs['show_dis_video_names']
-    else:
-        show_dis_video_names = True
-    assert isinstance(show_dis_video_names, bool)
-
     raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else 'gray'
 
     raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
@@ -88,10 +82,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         s.run_modeling(**kwargs) for s in subjective_models
     ]
 
-    if show_dis_video_names:
-        for result in results:
-            dis_video_names = [dis_video['path'] for dis_video in dataset_reader.dis_videos]
-            result['dis_video_names'] = dis_video_names
+    for result in results:
+        dis_video_names = [dis_video['path'] for dis_video in dataset_reader.dis_videos]
+        result['dis_video_names'] = dis_video_names
 
     for subjective_model, result in zip(subjective_models, results):
         if 'raw_scores' in result and 'reconstructions' in result:
@@ -247,13 +240,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_quality.set_title(r'Recovered Quality Score ($\psi_j$)')
                 ax_quality.set_xlim([min(xs), max(xs)+1])
                 shift_count += 1
-
-                if 'dis_video_names' in result:
-                    dis_video_names = result['dis_video_names']
-                    assert len(dis_video_names) == len(quality)
-                    my_xticks = dis_video_names
-                    plt.sca(ax_quality)
-                    plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
 
         ax_quality.grid()
         ax_quality.legend(ncol=2, frameon=True)
@@ -453,9 +439,7 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
     assert len(subjective_models) == len(results)
     for result in results:
         assert 'quality_scores' in result
-        assert 'dis_video_names' in result, \
-            'expect dis_video_names in result - show_dis_video_names must ' \
-            'not be False in run_subjective_models'
+        assert 'dis_video_names' in result
         assert len(result['dis_video_names']) == len(result['quality_scores'])
         if 'quality_scores_std' in result:
             assert len(result['quality_scores']) == len(result['quality_scores_std'])
