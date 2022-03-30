@@ -3,6 +3,8 @@ import json
 import os
 
 from sureal.config import DisplayConfig
+from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
+from sureal.pc_subjective_model import PairedCompSubjectiveModel
 from sureal.routine import run_subjective_models, \
     format_output_of_run_subjective_models
 from sureal.subjective_model import SubjectMLEModelProjectionSolver2, \
@@ -70,10 +72,25 @@ def main():
         ModelClass = SubjectiveModel.find_subclass(model)
         ModelClasses.append(ModelClass)
 
+    # ModelClass should be either SubjectiveModel or PairedCompSubjectiveModel
+    is_all_subjective_model = \
+        all([(SubjectiveModel in ModelClass.__bases__) for ModelClass in ModelClasses])
+    is_all_pc_subjective_model = \
+        all([PairedCompSubjectiveModel in ModelClass.__bases__ for ModelClass in ModelClasses])
+    assert (is_all_subjective_model and not is_all_pc_subjective_model) or \
+           (not is_all_subjective_model and is_all_pc_subjective_model), \
+        f'is_all_subjective_model: {is_all_subjective_model}, ' \
+        f'is_all_pc_subjective_model: {is_all_pc_subjective_model}'
+    if is_all_subjective_model:
+        DatasetReaderClass = RawDatasetReader
+    else:
+        DatasetReaderClass = PairedCompDatasetReader
+
     dataset, subjective_models, results = run_subjective_models(
         dataset_filepath=dataset,
         subjective_model_classes=ModelClasses,
         do_plot=do_plot,
+        dataset_reader_class=DatasetReaderClass,
     )
 
     output = format_output_of_run_subjective_models(
