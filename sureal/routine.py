@@ -260,6 +260,16 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         else:
             ax_rejected = None
 
+        if 'ax_rejected_1st_stats' in ax_dict:
+            ax_rejected_1st_stats = ax_dict['ax_rejected_1st_stats']
+        else:
+            ax_rejected_1st_stats = None
+
+        if 'ax_rejected_2nd_stats' in ax_dict:
+            ax_rejected_2nd_stats = ax_dict['ax_rejected_2nd_stats']
+        else:
+            ax_rejected_2nd_stats = None
+
         xs = None
         shift_count = 0
         my_xticks = None
@@ -343,12 +353,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
             if 'observer_rejected' in result and ax_rejected is not None:
 
-                assert 'observer_rejected_1st_stats' in result
-                assert 'observer_rejected_2nd_stats' in result
-
                 rejected = np.array(result['observer_rejected']).astype(int)
-                # rejected = result['observer_rejected_1st_stats']
-                # rejected = result['observer_rejected_2nd_stats']
 
                 xs = range(len(rejected))
                 ax_rejected.bar(np.array(xs) + shift_count * bar_width, rejected,
@@ -358,6 +363,32 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_rejected.set_xlim([min(xs), max(xs)+1])
                 ax_rejected.set_title(r'Subject Rejected')
                 ax_rejected.legend(ncol=1, frameon=True)
+
+            if 'observer_rejected_1st_stats' in result and ax_rejected_1st_stats is not None:
+
+                rejected = result['observer_rejected_1st_stats']
+
+                xs = range(len(rejected))
+                ax_rejected_1st_stats.bar(np.array(xs) + shift_count * bar_width, rejected,
+                                width=bar_width,
+                                color=colors[shift_count],
+                                label=subjective_model.TYPE)
+                ax_rejected_1st_stats.set_xlim([min(xs), max(xs)+1])
+                ax_rejected_1st_stats.set_title(r'Subject Rejected (1st stats)')
+                ax_rejected_1st_stats.legend(ncol=1, frameon=True)
+
+            if 'observer_rejected_2nd_stats' in result and ax_rejected_2nd_stats is not None:
+
+                rejected = result['observer_rejected_2nd_stats']
+
+                xs = range(len(rejected))
+                ax_rejected_2nd_stats.bar(np.array(xs) + shift_count * bar_width, rejected,
+                                width=bar_width,
+                                color=colors[shift_count],
+                                label=subjective_model.TYPE)
+                ax_rejected_2nd_stats.set_xlim([min(xs), max(xs)+1])
+                ax_rejected_2nd_stats.set_title(r'Subject Rejected (2nd stats)')
+                ax_rejected_2nd_stats.legend(ncol=1, frameon=True)
 
             if 'observer_bias' in result or 'observer_inconsistency' in result or 'observer_rejected' in result:
                 shift_count += 1
@@ -369,11 +400,21 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             if ax_rejected is not None:
                 plt.sca(ax_rejected)
                 plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
+            if ax_rejected_1st_stats is not None:
+                plt.sca(ax_rejected_1st_stats)
+                plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
+            if ax_rejected_2nd_stats is not None:
+                plt.sca(ax_rejected_2nd_stats)
+                plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
 
         ax_bias.grid()
         ax_inconsty.grid()
         if ax_rejected is not None:
             ax_rejected.grid()
+        if ax_rejected_1st_stats is not None:
+            ax_rejected_1st_stats.grid()
+        if ax_rejected_2nd_stats is not None:
+            ax_rejected_2nd_stats.grid()
         plt.tight_layout()
 
     if do_plot == 'all' or 'content_scores' in do_plot:
