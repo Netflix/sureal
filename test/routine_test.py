@@ -101,7 +101,8 @@ class RunSubjectiveModelsTest(MyTestCase):
                     LegacyMaximumLikelihoodEstimationModel,
                     MaximumLikelihoodEstimationModel],
             )
-        format_output_of_run_subjective_models(dataset, subjective_models, results)
+        output = format_output_of_run_subjective_models(dataset, subjective_models, results)
+        self.assertAlmostEqual(output['stats']['models']['BR_SR_MOS']['aic'], 1.863316331686836, places=4)
 
 
 class RunSubjectiveModelsTestDictStyle(MyTestCase):
@@ -142,6 +143,7 @@ class RunSubjectiveModelsTestDictStyle(MyTestCase):
                     MaximumLikelihoodEstimationModel],
             )
         format_output_of_run_subjective_models(dataset, subjective_models, results)
+
 
 
 class RunSubjectiveModelsTestWithSubjReject(MyTestCase):

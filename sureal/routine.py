@@ -560,6 +560,11 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
                 for idx, content_ambiguity_ci95 in enumerate(list(zip(*result['content_ambiguity_ci95']))):
                     output.setdefault('contents', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['content_ambiguity_ci95'] = content_ambiguity_ci95
 
+        if 'aic' in result:
+            output.setdefault('stats', dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['aic'] = result['aic']
+        if 'bic' in result:
+            output.setdefault('stats', dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['bic'] = result['bic']
+
     if 'dis_videos' in output:
         output['dis_videos'] = list(output['dis_videos'].values())
     if 'observers' in output:
