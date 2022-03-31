@@ -695,7 +695,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                         yerr = None
                         ci_perc=None
                     if do_errorbar is True and 'quality_scores_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
+                        ax.errorbar(x, y, yerr=yerr, color=color, capsize=2, marker=marker, linestyle='None',
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
@@ -742,7 +742,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = x[:min_xy]
                     y = y[:min_xy]
                     if do_errorbar is True and 'observer_bias_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
+                        ax.errorbar(x, y, yerr=yerr, color=color, capsize=2, marker=marker, linestyle='None',
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
@@ -776,7 +776,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = x[:min_xy]
                     y = y[:min_xy]
                     if do_errorbar is True and 'observer_inconsistency_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
+                        ax.errorbar(x, y, yerr=yerr, color=color, capsize=2, marker=marker, linestyle='None',
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
