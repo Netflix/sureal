@@ -308,6 +308,9 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
         self.assertAlmostEqual(np.mean(ret['results']['Subject_MLE_Projection']['quality_scores']), 3.5495806672757197, places=4)
         self.assertAlmostEqual(np.mean(np.mean(self.synthetic_result_dict['quality_scores'])), 3.5447906524050636, places=4)
+        self.assertAlmostEqual(ret['results']['Subject_MLE_Projection']['quality_scores_ci_perc'], 94.9367088607595, places=4)
+        self.assertAlmostEqual(ret['results']['Subject_MLE_Projection']['observer_bias_ci_perc'], 100.0, places=4)
+        self.assertAlmostEqual(ret['results']['Subject_MLE_Projection']['observer_inconsistency_ci_perc'], 92.3076923076923, places=4)
 
     def test_validate_with_synthetic_dataset_no_errorbar(self):
 
@@ -333,5 +336,3 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
         )
         DisplayConfig.show(write_to_dir=self.output_dir)
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
-        self.assertAlmostEqual(np.mean(ret['results']['Subject_MLE_Projection']['quality_scores']), 3.5495806672757197, places=4)
-        self.assertAlmostEqual(np.mean(np.mean(self.synthetic_result_dict['quality_scores'])), 3.5447906524050636, places=4)
