@@ -9,13 +9,10 @@ SUREAL - Subjective Recovery Analysis
     :target: https://travis-ci.com/Netflix/sureal
     :alt: Build Status
 
-SUREAL is a toolbox developed by Netflix for recovering quality scores from noisy measurements obtained by subjective tests.
-Read `this <resource/doc/dcc17v3.pdf>`_ paper and `this latest <resource/doc/hvei2020.pdf>`_ paper for some background. SUREAL is being imported by the VMAF_ package.
+SUREAL is a toolbox developed by Netflix that includes a number of models for the recovery of mean opinion scores (MOS) from noisy measurements obtained in psychovisual subjective experiments.
+Read `this <resource/doc/dcc17v3.pdf>`_ paper and `this latest <resource/doc/hvei2020.pdf>`_ paper for some background.
 
-Currently, SUREAL supports Python 3.7.
-
-.. _VMAF: https://github.com/Netflix/vmaf
-
+SUREAL also includes models to recover MOS from paired comparison (PC) subjective data, such as `Thurstone (Case V) <https://en.wikipedia.org/wiki/Thurstonian_model>`_ and `Bradley-Terry <https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model>`_.
 
 Installation
 ============
@@ -41,7 +38,6 @@ To test the source code before installing, run::
 
     python -m unittest discover --start test --pattern '*_test.py' --verbose
 
-The code thus far has been tested on Ubuntu 16.04 LTS and macOS 10.13.
 
 Lastly, install SUREAL by::
 
@@ -58,58 +54,58 @@ Usage in command line
 
 Run::
 
-    sureal
+    sureal --help
 
 This will print usage information::
 
-    usage: subjective_model dataset_filepath [--output-dir output_dir] [--print]
+    usage: sureal [-h] --dataset DATASET --models MODELS [MODELS ...] [--output-dir OUTPUT_DIR]
+    [--plot-raw-data] [--plot-dis-videos] [--plot-observers]
 
-If ``--output-dir`` is given, plots will be written to the output directory.
-
-If ``--print`` is enabled, output statistics will be printed on the command-line and / or the output directory.
+    optional arguments:
+      -h, --help            show this help message and exit
+      --dataset DATASET     Path to the dataset file.
+      --models MODELS [MODELS ...]
+                            Subjective models to use (can specify more than one), choosing from:
+                            MOS, P910, P913, BT500.
+      --output-dir OUTPUT_DIR
+                            Path to the output directory (will force create is not existed). If
+                            not specified, plots will be displayed and output will be printed.
+      --plot-raw-data       Plot the raw data.
+      --plot-dis-videos     Plot the subjective scores of the distorted videos.
+      --plot-observers      Plot the scores of the observers.
 
 Below are two example usages::
 
-    sureal MLE_CO_AP2 resource/dataset/NFLX_dataset_public_raw_last4outliers.py --print \
-        --output-dir ./output/NFLX_dataset_public_raw_last4outliers
-    sureal MLE_CO_AP2 resource/dataset/VQEGHD3_dataset_raw.py --print \
-        --output-dir \./output/VQEGHD3_dataset_raw
-    sureal MLE_CO_AP2 resource/dataset/vqeg_frtv_p1_525_line_high_dataset.py --print \
-        --output-dir \./output/vqeg_frtv_p1_525_line_high_dataset
+    sureal --dataset resource/dataset/NFLX_dataset_public_raw_last4outliers.py --models MOS P910 \
+        --plot-dis-videos --plot-observers --output-dir ./output/NFLX_dataset_public_raw_last4outliers
+    sureal --dataset resource/dataset/VQEGHD3_dataset_raw.py --models MOS P910 \
+        --plot-dis-videos --plot-observers --output-dir ./output/VQEGHD3_dataset_raw
 
-Here ``subjective_model`` are the available subjective models offered in the package, including:
+Here ``--models`` are the available subjective models offered in the package, including:
 
-  - MOS - Standard mean opinion score
+  - MOS - Standard mean opinion score.
 
-  - MLE - Full maximum likelihood estimation (MLE) model that takes into account both subjects and contents
+  - P910 - Model based on subject bias/inconsistency modeling and maximum likelihood estimation (MLE), newly standardized in `ITU-T P.910 (11/21) Annex E <https://www.itu.int/rec/T-REC-P.910>`_ (also in `ITU-T P.913 (06/21) 12.6 <https://www.itu.int/rec/T-REC-P.913>`_). The details of the algorithm is covered by the two papers aforementioned (`paper 1 <resource/doc/dcc17v3.pdf>`_ and `paper 2 <resource/doc/hvei2020.pdf>`_).
 
-  - MLE_CO - MLE model that takes into account only subjects ("Content-Oblivious")
+  - P913 - Model based on subject bias removal, standardized in `ITU-T P.913 (06/21) 12.4 <https://www.itu.int/rec/T-REC-P.913>`_.
 
-  - MLE_CO_AP - Alternative implementation of MLE_CO based on Alternate Projection (AP)
+  - BT500 - Model based on subject rejection, standardized in `ITU-R BT.500-14 (10/2019) A1-2.3.1 <https://www.itu.int/rec/R-REC-BT.500>`_.
 
-  - MLE_CO_AP2 - Alternative implementation of MLE_CO based on Alternate Projection and per-stimuli confidence interval calculation (AP2)
+The `sureal` command can also invoke subjective models for paired comparison (PC) subjective data. Below is one example::
 
-  - DMOS - Differential MOS, as defined in `ITU-T P.910 <https://www.itu.int/rec/T-REC-P.910>`_
+    sureal --dataset resource/dataset/lukas_pc_dataset.py --models THURSTONE_MLE BT_MLE \
+    --plot-dis-videos --output-dir ./output/lukas_pc_dataset
 
-  - DMOS_MLE - apply MLE on DMOS
+Here ``--models`` are the available PC subjective models offered in the package:
 
-  - DMOS_MLE_CO - apply MLE_CO on DMOS
+  - THURSTONE_MLE - `Thurstone (Case V) <https://en.wikipedia.org/wiki/Thurstonian_model>`_ model, with a MLE solver.
 
-  - SR_MOS - Apply subject rejection (SR), as defined in `ITU-R BT.500 <https://www.itu.int/rec/R-REC-BT.500>`_, before calculating MOS
-
-  - ZS_SR_MOS - Apply z-score transformation, followed by SR, before calculating MOS
-
-  - SR_DMOS - Apply SR, before calculating DMOS
-
-  - ZS_SR_DMOS - Apply z-score transformation, followed by SR, before calculating DMOS
-
-  - BR_SR_MOS - Apply subject bias removal, followed by SR, before calculating MOS, as defined in `ITU-T P.913 <https://www.itu.int/rec/T-REC-P.913>`_
-
+  - BT_MLE - `Bradley-Terry <https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model>`_ model, with a MLE solver.
 
 Dataset files
 -------------
 
-``dataset_filepath`` is the path to a dataset file.
+``--dataset`` is the path to a dataset file.
 Dataset files may be ``.py`` or ``.json`` files.
 The following examples use ``.py`` files, but JSON-formatted files can be constructed in a similar fashion.
 
@@ -163,8 +159,7 @@ The value of ``os`` is a list of scores, reach voted by a subject, and must have
 for example, in DMOS.
 
 The second way is more general, and can be used when the test is full sampling or partial sampling
-(i.e. not every subject views every distorted video).
-The only difference from the first way is that, the value of ``os`` is now a dictionary, with the key being a subject ID,
+(i.e. not every subject views every distorted video). The only difference from the first way is that, the value of ``os`` is now a dictionary, with the key being a subject ID,
 and the value being his/her voted score for particular distorted video. For example::
 
     'os': {'Alice': 40, 'Bob': 45, 'Charlie': 50, 'David': 55, 'Elvis': 60}
@@ -172,6 +167,25 @@ and the value being his/her voted score for particular distorted video. For exam
 
 Since partial sampling is allowed, it is not required that every subject ID is present in every ``os`` dictionary.
 
+In case a subject has voted a distorted video twice or more (repetitions), the votes can be logged by having a list in lieu of single vote. For example::
+
+    'os': {'Alice': 40, 'Bob': [45, 45], 'Charlie': [50, 60], 'David': 55, 'Elvis': 60}
+
+
+In case of a PC dataset, a distorted video is compared against another distorted video, and a vote is recorded. In this case, the key is a tuple of the subject name and the `asset_id` of the distorted video compared against. For example::
+
+    'os': {('Alice', 1): 40, ('Bob', 3): 45}
+
+where 1 and 3 are the `asset_id` of the distorted videos compared against. For an example PC dataset, refer to `lukas_pc_dataset.py <resource/dataset/lukas_pc_dataset.py>`_.
+
+Note that for PC models, we current do not yet support repetitions.
+
+Deprecated command line
+================================
+
+The deprecated version of the command line can still be invoked by::
+
+    PYTHONPATH=. python ./sureal/cmd_deprecated.py
 
 Usage in Python code
 ====================

@@ -1,82 +1,119 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import os
-import sys
+import argparse
 import json
+import os
 
-from sureal.subjective_model import SubjectiveModel
-from sureal.routine import run_subjective_models
-from sureal.tools.misc import get_file_name_with_extension, get_cmd_option, cmd_option_exists
 from sureal.config import DisplayConfig
+from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
+from sureal.pc_subjective_model import PairedCompSubjectiveModel
+from sureal.routine import run_subjective_models, \
+    format_output_of_run_subjective_models
+from sureal.subjective_model import SubjectMLEModelProjectionSolver2, \
+    SubjrejMosModel, BiasremvSubjrejMosModel, SubjectiveModel
 
-__copyright__ = "Copyright 2016-2018, Netflix, Inc."
-__license__ = "Apache, Version 2.0"
 
-SUBJECTIVE_MODELS = ['MOS', 'MLE', 'MLE_CO', 'MLE_CO_AP', 'MLE_CO_AP2', 'DMOS', 'DMOS_MLE', 'DMOS_MLE_CO', 'SR_MOS', 'ZS_SR_MOS', 'SR_DMOS', 'ZS_SR_DMOS']
+class BT500Model(SubjrejMosModel):
+    TYPE = 'BT500'
 
 
-def print_usage():
-    print("usage: " + os.path.basename(sys.argv[0]) + " subjective_model dataset_filepath [--output-dir output_dir]\n")
-    print("subjective_model:\n\t" + "\n\t".join(SUBJECTIVE_MODELS) + "\n")
+class P913124Model(BiasremvSubjrejMosModel):
+    TYPE = 'P913'
+
+
+class P910AnnexEModel(SubjectMLEModelProjectionSolver2):
+    TYPE = 'P910'
 
 
 def main():
-    if len(sys.argv) < 3:
-        print_usage()
-        return 2
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dataset", dest="dataset", nargs=1, type=str,
+        help="Path to the dataset file.",
+        required=True)
+    parser.add_argument(
+        "--models", dest="models", nargs="+", type=str,
+        help="Subjective models to use (can specify more than one), choosing "
+             "from: MOS, P910, P913, BT500.",
+        required=True)
+    parser.add_argument(
+        "--output-dir", dest="output_dir", nargs=1, type=str,
+        help="Path to the output directory (will force create is not existed). "
+             "If not specified, plots will be displayed and output will be printed.",
+        required=False)
+    parser.add_argument(
+        "--plot-raw-data", dest="plot_raw_data", action='store_true',
+        help="Plot the raw data.",
+        required=False)
+    parser.add_argument(
+        "--plot-dis-videos", dest="plot_dis_videos", action='store_true',
+        help="Plot the subjective scores of the distorted videos.",
+        required=False)
+    parser.add_argument(
+        "--plot-observers", dest="plot_observers", action='store_true',
+        help="Plot the scores of the observers.",
+        required=False)
+    args = parser.parse_args()
+    dataset = args.dataset[0]
+    models = args.models
+    output_dir = args.output_dir[0] if args.output_dir else None
+    plot_raw_data = args.plot_raw_data
+    plot_dis_videos = args.plot_dis_videos
+    plot_observers = args.plot_observers
 
-    try:
-        subjective_model = sys.argv[1]
-        dataset_filepath = sys.argv[2]
-    except ValueError:
-        print_usage()
-        return 2
-
-    output_dir = get_cmd_option(sys.argv, 3, len(sys.argv), '--output-dir')
-    print_ = cmd_option_exists(sys.argv, 3, len(sys.argv), '--print')
-
-    do_plot = ['raw_scores', 'quality_scores']
-    if subjective_model in ['MLE', 'MLE_CO', 'MLE_CO_AP', 'MLE_CO_AP2', 'DMOS_MLE', 'DMOS_MLE_CO']:
+    do_plot = []
+    if plot_raw_data:
+        do_plot.append('raw_scores')
+    if plot_dis_videos:
+        do_plot.append('quality_scores')
+    if plot_observers:
         do_plot.append('subject_scores')
-    if subjective_model in ['MLE', 'DMOS_MLE']:
-        do_plot.append('content_scores')
 
-    try:
-        subjective_model_class = SubjectiveModel.find_subclass(subjective_model)
-    except Exception as e:
-        print("Error: " + str(e))
-        return 1
+    ModelClasses = list()
+    for model in models:
+        ModelClass = SubjectiveModel.find_subclass(model)
+        ModelClasses.append(ModelClass)
 
-    print("Run model {} on dataset {}".format(
-        subjective_model_class.__name__, get_file_name_with_extension(dataset_filepath)
-    ))
+    def is_subj_model_class(ModelClass):
+        superclasses = ModelClass.__mro__
+        return SubjectiveModel in superclasses and PairedCompSubjectiveModel not in superclasses
+
+    def is_pc_subj_model_class(ModelClass):
+        return PairedCompSubjectiveModel in ModelClass.__mro__
+
+    # ModelClass should be either SubjectiveModel or PairedCompSubjectiveModel
+    is_all_subjective_model = all([is_subj_model_class(ModelClass) for ModelClass in ModelClasses])
+    is_all_pc_subjective_model = all([is_pc_subj_model_class(ModelClass) for ModelClass in ModelClasses])
+    assert (is_all_subjective_model and not is_all_pc_subjective_model) or \
+           (not is_all_subjective_model and is_all_pc_subjective_model), \
+        f'is_all_subjective_model: {is_all_subjective_model}, ' \
+        f'is_all_pc_subjective_model: {is_all_pc_subjective_model}'
+    if is_all_subjective_model:
+        DatasetReaderClass = RawDatasetReader
+    else:
+        DatasetReaderClass = PairedCompDatasetReader
 
     dataset, subjective_models, results = run_subjective_models(
-        dataset_filepath=dataset_filepath,
-        subjective_model_classes = [subjective_model_class,],
-        normalize_final=False, # True or False
+        dataset_filepath=dataset,
+        subjective_model_classes=ModelClasses,
         do_plot=do_plot,
-        plot_type='errorbar',
-        gradient_method='simplified',
+        dataset_reader_class=DatasetReaderClass,
     )
 
-    if print_:
-        print(("Dataset: {}".format(dataset_filepath)))
-        print(("Subjective Model: {} {}".format(subjective_models[0].TYPE, subjective_models[0].VERSION)))
-        print("Result:")
-        printable_results = {k: list(v) for k, v in results[0].items() if isinstance(v, list)}
-        print(json.dumps(printable_results, indent=4, sort_keys=True))
+    output = format_output_of_run_subjective_models(
+        dataset, subjective_models, results)
 
     if output_dir is None:
+        json_output = json.dumps(output, indent=4)
+        print(json_output)
         DisplayConfig.show()
     else:
-        print(("Output wrote to {}.".format(output_dir)))
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
+        with open(os.path.join(output_dir, 'output.json'), 'w') as fp:
+            json.dump(output, fp, indent=4)
         DisplayConfig.show(write_to_dir=output_dir)
-        with open(os.path.join(output_dir, 'sureal.json'), 'w') as out_f:
-            json.dump(results[0], out_f, default=lambda o: '<not serializable>',
-                      indent=4, sort_keys=True)
+        print(f'output is written to directory {output_dir}.')
+
     return 0
 
 

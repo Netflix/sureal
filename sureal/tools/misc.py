@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 import unittest
 from time import sleep
@@ -8,6 +9,12 @@ import numpy as np
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
+
+
+try:
+    multiprocessing.set_start_method('fork')
+except ValueError:  # noqa, If platform does not support, just ignore
+    pass
 
 
 def empty_object():
@@ -217,7 +224,7 @@ def parallel_map(func, list_args, processes=None, pause_sec=0.01):
             sleep(pause_sec) # check every x sec
 
     # finally, collect results
-    rets = map(lambda idx: return_dict[idx], range(len(list_args)))
+    rets = list(map(lambda idx: return_dict[idx], range(len(list_args))))
 
     return rets
 
@@ -269,3 +276,11 @@ class MyTestCase(unittest.TestCase):
             super().assertAlmostEqual(first, second, places, msg, delta)
         except AssertionError as e:
             self.verificationErrors.append(str(e))
+
+
+def run_process(cmd, **kwargs):
+    try:
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT, **kwargs)
+    except subprocess.CalledProcessError as e:
+        raise AssertionError(f'Process returned {e.returncode}, cmd: {cmd}, msg: {str(e.output)}')
+    return 0

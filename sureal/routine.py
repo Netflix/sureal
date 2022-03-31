@@ -1,9 +1,14 @@
 import copy
 import math
+import os
 
 import numpy as np
+import scipy.stats
 
+from sureal.config import SurealConfig
 from sureal.perf_metric import PccPerfMetric, SrccPerfMetric, RmsePerfMetric
+from sureal.subjective_model import SubjectiveModel
+from sureal.tools.decorator import persist_to_dir
 
 try:
     from matplotlib import pyplot as plt
@@ -13,7 +18,8 @@ except (ImportError, RuntimeError):
     # OSX system python comes with an ancient matplotlib that triggers RuntimeError when imported in this way
     plt = None
 
-from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader, MissingDataRawDatasetReader
+from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader, \
+    MissingDataRawDatasetReader, SelectSubjectRawDatasetReader
 from sureal.tools.misc import import_python_file, import_json_file, Timer
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -59,12 +65,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     else:
         ax_dict = {}
 
-    if 'show_dis_video_names' in kwargs:
-        show_dis_video_names = kwargs['show_dis_video_names']
-    else:
-        show_dis_video_names = False
-    assert isinstance(show_dis_video_names, bool)
-
     raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else 'gray'
 
     raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
@@ -88,10 +88,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         s.run_modeling(**kwargs) for s in subjective_models
     ]
 
-    if show_dis_video_names:
-        for result in results:
-            dis_video_names = [dis_video['path'] for dis_video in dataset_reader.dis_videos]
-            result['dis_video_names'] = dis_video_names
+    for result in results:
+        dis_video_names = [dis_video['path'] for dis_video in dataset_reader.dis_videos]
+        result['dis_video_names'] = dis_video_names
 
     for subjective_model, result in zip(subjective_models, results):
         if 'raw_scores' in result and 'reconstructions' in result:
@@ -106,17 +105,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         # TODO: visualize repetitions - currently taking mean over repetitions before plotting
         mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
-        # S, E = mtx.shape
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
-        # xs = np.array(range(S)) + 1
-        # my_xticks = list(map(lambda x: "#{}".format(x), xs))
-        # plt.yticks(np.array(xs), my_xticks, rotation=0)
         ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
         ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
         plt.colorbar(im, ax=ax_rawscores)
-
-        # plt.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores' in do_plot:
 
@@ -141,8 +134,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_raw_scores_minus_quality_scores.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores)
-
-                # plt.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores_and_observer_bias' in do_plot:
 
@@ -169,8 +160,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores_and_observer_bias)
-
-                # plt.tight_layout()
 
     if do_plot == 'all' or 'quality_scores_vs_raw_scores' in do_plot:
 
@@ -217,9 +206,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         else:
             _, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
 
-        # xs = None
         shift_count = 0
-        # my_xticks = None
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result:
                 quality = result['quality_scores']
@@ -260,13 +247,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_quality.set_xlim([min(xs), max(xs)+1])
                 shift_count += 1
 
-                if 'dis_video_names' in result:
-                    dis_video_names = result['dis_video_names']
-                    assert len(dis_video_names) == len(quality)
-                    my_xticks = dis_video_names
-                    plt.sca(ax_quality)
-                    plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=90)
-
         ax_quality.grid()
         ax_quality.legend(ncol=2, frameon=True)
         plt.tight_layout()
@@ -285,6 +265,16 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rejected = ax_dict['ax_rejected']
         else:
             ax_rejected = None
+
+        if 'ax_rejected_1st_stats' in ax_dict:
+            ax_rejected_1st_stats = ax_dict['ax_rejected_1st_stats']
+        else:
+            ax_rejected_1st_stats = None
+
+        if 'ax_rejected_2nd_stats' in ax_dict:
+            ax_rejected_2nd_stats = ax_dict['ax_rejected_2nd_stats']
+        else:
+            ax_rejected_2nd_stats = None
 
         xs = None
         shift_count = 0
@@ -365,17 +355,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
                 ax_inconsty.set_xlim([min(xs), max(xs)+1])
                 ax_inconsty.set_title(r'Subject Inconsistency ($\upsilon_i$)')
-                # ax_inconsty.legend(loc=2, ncol=2, frameon=True)
                 ax_inconsty.legend(ncol=1, frameon=True)
 
             if 'observer_rejected' in result and ax_rejected is not None:
 
-                assert 'observer_rejected_1st_stats' in result
-                assert 'observer_rejected_2nd_stats' in result
-
                 rejected = np.array(result['observer_rejected']).astype(int)
-                # rejected = result['observer_rejected_1st_stats']
-                # rejected = result['observer_rejected_2nd_stats']
 
                 xs = range(len(rejected))
                 ax_rejected.bar(np.array(xs) + shift_count * bar_width, rejected,
@@ -385,6 +369,32 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_rejected.set_xlim([min(xs), max(xs)+1])
                 ax_rejected.set_title(r'Subject Rejected')
                 ax_rejected.legend(ncol=1, frameon=True)
+
+            if 'observer_rejected_1st_stats' in result and ax_rejected_1st_stats is not None:
+
+                rejected = result['observer_rejected_1st_stats']
+
+                xs = range(len(rejected))
+                ax_rejected_1st_stats.bar(np.array(xs) + shift_count * bar_width, rejected,
+                                width=bar_width,
+                                color=colors[shift_count],
+                                label=subjective_model.TYPE)
+                ax_rejected_1st_stats.set_xlim([min(xs), max(xs)+1])
+                ax_rejected_1st_stats.set_title(r'Subject Rejected (1st stats)')
+                ax_rejected_1st_stats.legend(ncol=1, frameon=True)
+
+            if 'observer_rejected_2nd_stats' in result and ax_rejected_2nd_stats is not None:
+
+                rejected = result['observer_rejected_2nd_stats']
+
+                xs = range(len(rejected))
+                ax_rejected_2nd_stats.bar(np.array(xs) + shift_count * bar_width, rejected,
+                                width=bar_width,
+                                color=colors[shift_count],
+                                label=subjective_model.TYPE)
+                ax_rejected_2nd_stats.set_xlim([min(xs), max(xs)+1])
+                ax_rejected_2nd_stats.set_title(r'Subject Rejected (2nd stats)')
+                ax_rejected_2nd_stats.legend(ncol=1, frameon=True)
 
             if 'observer_bias' in result or 'observer_inconsistency' in result or 'observer_rejected' in result:
                 shift_count += 1
@@ -396,11 +406,21 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             if ax_rejected is not None:
                 plt.sca(ax_rejected)
                 plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
+            if ax_rejected_1st_stats is not None:
+                plt.sca(ax_rejected_1st_stats)
+                plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
+            if ax_rejected_2nd_stats is not None:
+                plt.sca(ax_rejected_2nd_stats)
+                plt.xticks(np.array(xs) + 0.3, my_xticks, rotation=90)
 
         ax_bias.grid()
         ax_inconsty.grid()
         if ax_rejected is not None:
             ax_rejected.grid()
+        if ax_rejected_1st_stats is not None:
+            ax_rejected_1st_stats.grid()
+        if ax_rejected_2nd_stats is not None:
+            ax_rejected_2nd_stats.grid()
         plt.tight_layout()
 
     if do_plot == 'all' or 'content_scores' in do_plot:
@@ -452,77 +472,113 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             my_xticks = ['' for _ in range(len(xs))]
             for ref_video in dataset_reader.dataset.ref_videos:
                 my_xticks[ref_video['content_id']] = ref_video['content_name']
-            # rotation = 75
             rotation = 90
             plt.sca(ax_ambgty)
             plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=rotation)
-        # ax_ambgty.legend(loc=1, ncol=2, frameon=True)
         ax_ambgty.legend(ncol=2, frameon=True)
         plt.tight_layout()
 
-    # if do_plot == 'all' or 'data_fitness' in do_plot:
-    #     n_sigmas = 5
-    #     metric_keys = [
-    #         # 'CC',
-    #         # 'SROCC',
-    #         'RMSE',
-    #         # '%(std>$2\sigma)$',
-    #         # '%(pval<0.05)',
-    #         'std(std)',
-    #         'dof',
-    #     ]
-    #     if 'ax_data_fitness' in ax_dict:
-    #         ax_fitness = ax_dict['ax_data_fitness']
-    #     else:
-    #         _, ax_fitness = plt.subplots(figsize=[12, 4])
-    #
-    #     for subjective_model, result in zip(subjective_models, results):
-    #         if 'multiple_of_stds' in result:
-    #             n_stds = result['multiple_of_stds']
-    #             n_stds = n_stds[~np.isnan(n_stds)]
-    #             ys, xs = get_pdf(n_stds, bins=range(n_sigmas + 1), density=False)
-    #             ys = np.array(ys) / float(len(n_stds)) * 100.0
-    #
-    #             assert 'reconstructions' in result
-    #             assert 'raw_scores' in result
-    #             rec_scores = result['reconstructions']
-    #             rec_scores = rec_scores[~np.isnan(rec_scores)]
-    #             raw_scores = result['raw_scores']
-    #             raw_scores = raw_scores[~np.isnan(raw_scores)]
-    #             rmse = RmsePerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
-    #             cc = PccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
-    #             srocc = SrccPerfMetric(raw_scores, rec_scores).evaluate(enable_mapping=True)['score']
-    #
-    #             perc_above_2sigma = 100.0 - stats.percentileofscore(n_stds, 2.0)
-    #             std_of_std = np.std(n_stds)
-    #
-    #             assert 'p_values' in result
-    #             p_values = result['p_values']
-    #             p_values = p_values[~np.isnan(p_values)]
-    #             perc_below_pval005 = stats.percentileofscore(p_values, (1 - 0.9545))
-    #
-    #             assert 'dof' in result
-    #             dof = result['dof']
-    #
-    #             metrics = {
-    #                 'CC': '{:.3f}'.format(cc),
-    #                 'SROCC': '{:.3f}'.format(srocc),
-    #                 'RMSE': '{:.3f}'.format(rmse),
-    #                 '%(std>$2\sigma)$': '{:.1f}%'.format(perc_above_2sigma),
-    #                 '%(pval<0.05)': '{:.1f}%)'.format(perc_below_pval005),
-    #                 'std(std)': '{:.3f}'.format(std_of_std),
-    #                 'dof': dof
-    #             }
-    #
-    #             label = '{} ({})'.format(subjective_model.TYPE, ', '.join(map(lambda key: '{} {}'.format(key, metrics[key]), metric_keys)))
-    #
-    #             ax_fitness.bar(list(map(lambda x: '${}\sigma$'.format(x), range(1, n_sigmas + 1))), ys, label=label, alpha=0.4)
-    #     ax_fitness.set_xlabel('Number of $\sigma$')
-    #     ax_fitness.set_ylabel('Percentage (%)')
-    #     ax_fitness.legend()
-    #     plt.tight_layout()
-
     return dataset, subjective_models, results
+
+
+def format_output_of_run_subjective_models(dataset, subjective_models, results):
+
+    assert len(subjective_models) == len(results)
+    for result in results:
+        assert 'quality_scores' in result
+        assert 'dis_video_names' in result
+        assert len(result['dis_video_names']) == len(result['quality_scores'])
+        if 'quality_scores_std' in result:
+            assert len(result['quality_scores']) == len(result['quality_scores_std'])
+        if 'quality_scores_ci95' in result:
+            assert len(result['quality_scores_ci95']) == 2
+            assert len(result['quality_scores']) == len(list(zip(*result['quality_scores_ci95'])))
+
+        if 'observer_bias' in result:
+            if 'observers' in result:
+                assert len(result['observers']) == len(result['observer_bias'])
+            else:
+                result['observers'] = [f'observer{o}' for o in range(len(result['observer_bias']))]
+            if 'observer_bias_std' in result:
+                assert len(result['observer_bias']) == len(result['observer_bias_std'])
+            if 'observer_bias_ci95' in result:
+                assert len(result['observer_bias_ci95']) == 2
+                assert len(result['observer_bias']) == len(list(zip(*result['observer_bias_ci95'])))
+
+        if 'content_ambiguity' in result:
+            dict_contentid_content = dict()
+            for ref_video in dataset.ref_videos:
+                dict_contentid_content[ref_video['content_id']] = \
+                    f"{ref_video['content_name']}"
+            result['contents'] = [dict_contentid_content[k] for k in sorted(dict_contentid_content.keys())]
+            assert len(result['contents']) == len(result['content_ambiguity'])
+            if 'content_ambiguity_std' in result:
+                assert len(result['content_ambiguity']) == len(result['content_ambiguity_std'])
+            if 'content_ambiguity_ci95' in result:
+                assert len(result['content_ambiguity_ci95']) == 2
+                assert len(result['content_ambiguity']) == len(list(zip(*result['content_ambiguity_ci95'])))
+
+    output = dict()
+    for subjective_model, result in zip(subjective_models, results):
+        for idx, dis_video_name in enumerate(result['dis_video_names']):
+            if 'dis_video_name' in output.setdefault('dis_videos', dict()).setdefault(idx, dict()):
+                assert output.setdefault('dis_videos', dict()).setdefault(idx, dict())['dis_video_name'] == dis_video_name
+            else:
+                output.setdefault('dis_videos', dict()).setdefault(idx, dict())['dis_video_name'] = dis_video_name
+        for idx, quality_score in enumerate(result['quality_scores']):
+            output.setdefault('dis_videos', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['quality_score'] = quality_score
+        if 'quality_scores_std' in result:
+            for idx, quality_score_std in enumerate(result['quality_scores_std']):
+                output.setdefault('dis_videos', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['quality_score_std'] = quality_score_std
+        if 'quality_scores_ci95' in result:
+            for idx, quality_score_ci95 in enumerate(list(zip(*result['quality_scores_ci95']))):
+                output.setdefault('dis_videos', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['quality_score_ci95'] = quality_score_ci95
+
+        if 'observer_bias' in result:
+            if 'observers' in result:
+                for idx, observer in enumerate(result['observers']):
+                    if 'observer' in output.setdefault('observers', dict()).setdefault(idx, dict()):
+                        assert output.setdefault('observers', dict()).setdefault(idx, dict())['observer'] == observer
+                    else:
+                        output.setdefault('observers', dict()).setdefault(idx, dict())['observer'] = observer
+            for idx, observer_bias in enumerate(result['observer_bias']):
+                output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_bias'] = observer_bias
+            if 'observer_bias_std' in result:
+                for idx, observer_bias_std in enumerate(result['observer_bias_std']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_bias_std'] = observer_bias_std
+            if 'observer_bias_ci95' in result:
+                for idx, observer_bias_ci95 in enumerate(list(zip(*result['observer_bias_ci95']))):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_bias_ci95'] = observer_bias_ci95
+
+        if 'content_ambiguity' in result:
+            if 'contents' in result:
+                for idx, content in enumerate(result['contents']):
+                    if 'content' in output.setdefault('contents', dict()).setdefault(idx, dict()):
+                        assert output.setdefault('contents', dict()).setdefault(idx, dict())['content'] == content
+                    else:
+                        output.setdefault('contents', dict()).setdefault(idx, dict())['content'] = content
+            for idx, content_ambiguity in enumerate(result['content_ambiguity']):
+                output.setdefault('contents', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['content_ambiguity'] = content_ambiguity
+            if 'content_ambiguity_std' in result:
+                for idx, content_ambiguity_std in enumerate(result['content_ambiguity_std']):
+                    output.setdefault('contents', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['content_ambiguity_std'] = content_ambiguity_std
+            if 'content_ambiguity_ci95' in result:
+                for idx, content_ambiguity_ci95 in enumerate(list(zip(*result['content_ambiguity_ci95']))):
+                    output.setdefault('contents', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['content_ambiguity_ci95'] = content_ambiguity_ci95
+
+        if 'aic' in result:
+            output.setdefault('stats', dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['aic'] = result['aic']
+        if 'bic' in result:
+            output.setdefault('stats', dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['bic'] = result['bic']
+
+    if 'dis_videos' in output:
+        output['dis_videos'] = list(output['dis_videos'].values())
+    if 'observers' in output:
+        output['observers'] = list(output['observers'].values())
+    if 'contents' in output:
+        output['contents'] = list(output['contents'].values())
+
+    return output
 
 
 def visualize_pc_dataset(dataset_filepath):
@@ -532,7 +588,6 @@ def visualize_pc_dataset(dataset_filepath):
     tensor_pvs_pvs_subject = dataset_reader.opinion_score_3darray
 
     plt.figure()
-    # plot the rate of winning x, 0 <= x <= 1.0, of one PVS compared against another PVS
     mtx_pvs_pvs = np.nansum(tensor_pvs_pvs_subject, axis=2) \
                   / (np.nansum(tensor_pvs_pvs_subject, axis=2) +
                      np.nansum(tensor_pvs_pvs_subject, axis=2).transpose())
@@ -646,7 +701,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                         yerr = None
                         ci_perc=None
                     if do_errorbar is True and 'quality_scores_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
+                        ax.errorbar(x, y, yerr=yerr, color=color, capsize=2, marker=marker, linestyle='None',
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
@@ -693,7 +748,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = x[:min_xy]
                     y = y[:min_xy]
                     if do_errorbar is True and 'observer_bias_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
+                        ax.errorbar(x, y, yerr=yerr, color=color, capsize=2, marker=marker, linestyle='None',
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
@@ -727,7 +782,7 @@ def validate_with_synthetic_dataset(synthetic_dataset_reader_class,
                     x = x[:min_xy]
                     y = y[:min_xy]
                     if do_errorbar is True and 'observer_inconsistency_ci95' in result:
-                        ax.errorbar(x, y, fmt='.', yerr=yerr, color=color, capsize=2, marker=marker,
+                        ax.errorbar(x, y, yerr=yerr, color=color, capsize=2, marker=marker, linestyle='None',
                                     label='{sm} (RMSE {rmse:.4f}, CI% {ci_perc:.1f})'.format(
                                         sm=model_name,
                                         rmse=RmsePerfMetric(x, y).evaluate(enable_mapping=False)['score'],
@@ -774,3 +829,182 @@ def get_ci_percentage(synthetic_result, result, key, errkey):
     return ci_perc
 
 
+def get_sample_stats(datasets, subjective_model_classes, do_plot=False, plot_type='bar', subj_fraction=None, random_seed=None):
+
+    resultss = []  # dataset x subjective_model
+    for dataset in datasets:
+        if do_plot:
+            fig_raw_scores, ax_raw_scores = plt.subplots(figsize=(7, 3))
+            fig_quality_scores, ax_quality_scores = plt.subplots(figsize=(12, 3.5), nrows=1)
+
+            # fig_bias_inconsty, [ax_bias, ax_inconsty] = plt.subplots(figsize=(6, 5), nrows=2, ncols=1, sharex=True)
+            # fig_rejected, ax_rejected = plt.subplots(figsize=(6, 3), nrows=1)
+            fig_bias_inconsty, [ax_bias, ax_inconsty, ax_rejected] = plt.subplots(figsize=(6, 7), nrows=3, ncols=1, sharex=True)
+            fig_rejected = None
+
+            ax_dict = {
+                'ax_raw_scores': ax_raw_scores,
+                'ax_quality_scores': ax_quality_scores,
+                'ax_observer_bias': ax_bias,
+                'ax_observer_inconsistency': ax_inconsty,
+                'ax_rejected': ax_rejected,
+            }
+            do_plot_list = [
+                'raw_scores',
+                'quality_scores',
+                'subject_scores'
+            ]
+        else:
+            fig_raw_scores = None
+            fig_quality_scores = None
+            fig_bias_inconsty = None
+            fig_rejected = None
+            ax_dict = {}
+            do_plot_list = []
+
+        dataset_filepath = dataset['path']
+        dataset_reader_info_dict = {}
+        if subj_fraction is None:
+            dataset, subjective_models, results = run_subjective_models(
+                dataset_filepath=dataset_filepath,
+                subjective_model_classes=subjective_model_classes,
+                normalize_final=False,  # True or False
+                do_plot=do_plot_list,
+                plot_type=plot_type,
+                ax_dict=ax_dict,
+                dataset_reader_info_dict=dataset_reader_info_dict
+            )
+            resultss.append(results)
+        else:
+            assert 0.0 < subj_fraction <= 1.0
+
+            if dataset_filepath.endswith('.py'):
+                dataset = import_python_file(dataset_filepath)
+            elif dataset_filepath.endswith('.json'):
+                dataset = import_json_file(dataset_filepath)
+            else:
+                raise AssertionError("Unknown input type, must be .py or .json")
+            dataset_reader = RawDatasetReader(dataset, input_dict=dataset_reader_info_dict)
+            num_subj = dataset_reader.num_observers
+            frac_num_subj = int(num_subj * subj_fraction)
+            if random_seed is not None:
+                    np.random.seed(random_seed)
+            selected_subjects = np.random.choice(list(range(num_subj)), size=frac_num_subj, replace=False)
+            dataset_reader_info_dict_new = dataset_reader_info_dict.copy()
+            dataset_reader_info_dict_new['selected_subjects'] = selected_subjects
+            dataset, subjective_models, results = run_subjective_models(
+                dataset_filepath=dataset_filepath,
+                subjective_model_classes=subjective_model_classes,
+                normalize_final=False,  # True or False
+                do_plot=do_plot_list,
+                plot_type=plot_type,
+                ax_dict=ax_dict,
+                dataset_reader_info_dict=dataset_reader_info_dict_new,
+                dataset_reader_class=SelectSubjectRawDatasetReader,
+            )
+            resultss.append(results)
+
+        if fig_raw_scores is not None:
+            fig_raw_scores.tight_layout()
+        if fig_quality_scores is not None:
+            fig_quality_scores.tight_layout()
+        if fig_bias_inconsty is not None:
+            fig_bias_inconsty.tight_layout()
+        if fig_rejected is not None:
+            fig_rejected.tight_layout()
+
+    return resultss
+
+
+def plot_scatter_target_vs_compared_models(target_models, compared_models, datasets,
+                                           target_subj_fraction=None,
+                                           compared_subj_fraction=None,
+                                           random_seed=None,
+                                           get_sample_stats_wrapper_method=None
+                                           ):
+
+    if get_sample_stats_wrapper_method is None:
+        get_sample_stats_wrapper_method = _get_sample_stats_wrapper
+
+    for dataset in datasets:
+
+        target_resultss = []
+        for model in target_models:
+            results_target = get_sample_stats_wrapper_method(
+                dataset,
+                target_subj_fraction,
+                model, random_seed)
+            target_resultss.append(results_target)
+
+        compared_resultss = []
+        for model in compared_models:
+            results_compared = get_sample_stats_wrapper_method(
+                dataset,
+                compared_subj_fraction,
+                model, random_seed)
+            compared_resultss.append(results_compared)
+
+        fig, axss = plt.subplots(ncols=len(compared_resultss), nrows=2,
+                                 figsize=[5 * len(compared_resultss), 7],
+                                 gridspec_kw={'height_ratios': [3, 1]})
+        axss = axss.T
+        if len(compared_resultss) == 1:
+            axss = np.array([axss])
+
+        for target_model, target_results, compapred_model, compared_results, axs in zip(target_models, target_resultss, compared_models, compared_resultss, axss):
+            target_results = target_results[0]
+            compared_results = compared_results[0]
+            for target_result, compared_result \
+                    in zip(target_results, compared_results):
+                ax_scatter, ax_hist = axs
+                xs = target_result['quality_scores']
+                ys = compared_result['quality_scores']
+                diffs = np.array(ys) - np.array(xs)
+                mean_diff = np.mean(diffs)
+                std_diff = np.std(diffs)
+                plcc = scipy.stats.pearsonr(xs, ys)[0]
+                srocc = scipy.stats.spearmanr(xs, ys)[0]
+                label = os.path.splitext(os.path.basename(dataset['path']))[0][:30]
+                compared_tag = compapred_model
+                if compared_subj_fraction is not None:
+                    compared_tag += f" {int(compared_subj_fraction * 100)}% data"
+                target_tag = target_model
+                if target_subj_fraction is not None:
+                    target_tag += f" {int(target_subj_fraction * 100)}% data"
+                ax_scatter.scatter(xs, ys, alpha=0.2, label=label)
+                ax_scatter.set_xlabel(target_tag)
+                ax_scatter.set_ylabel(compared_tag)
+                ax_scatter.grid()
+                ax_scatter.legend()
+                ax_hist.hist(diffs, label=label)
+                ax_hist.set_title(
+                    f"plcc {plcc:.3f}, srocc {srocc:.3f}, diff: mean {mean_diff:.3f}, std {std_diff:.3f}")
+                ax_hist.set_xlabel(
+                    f"diff: {compared_tag} vs. {target_tag}")
+                ax_hist.set_ylabel(f"No. ocurrences")
+                ax_hist.grid()
+                ax_hist.legend()
+            plt.tight_layout()
+
+
+def _get_sample_stats_wrapper(dataset, subj_fraction, model, random_seed):
+    model_class = SubjectiveModel.find_subclass(model)
+    results = get_sample_stats(
+        [dataset],
+        [model_class],
+        do_plot=False,
+        subj_fraction=subj_fraction,
+        random_seed=random_seed,
+    )  # dataset x subjective_model
+    for result in results:
+        if 'raw_scores' in result[0]:
+            del result[0]['raw_scores']
+        if 'reconstructions' in result[0]:
+            del result[0]['reconstructions']
+
+    return results
+
+
+@persist_to_dir(SurealConfig.workdir_path('_get_sample_stats_wrapper'))
+def _get_sample_stats_wrapper_persistent(dataset, subj_fraction, model, random_seed):
+    return _get_sample_stats_wrapper(dataset, subj_fraction, model, random_seed)
