@@ -311,13 +311,14 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
         self.assertAlmostEqual(ret['results']['Subject_MLE_Projection']['quality_scores_ci_perc'], 94.9367088607595, places=4)
         self.assertAlmostEqual(ret['results']['Subject_MLE_Projection']['observer_bias_ci_perc'], 100.0, places=4)
         self.assertAlmostEqual(ret['results']['Subject_MLE_Projection']['observer_inconsistency_ci_perc'], 92.3076923076923, places=4)
+        self.assertTrue('runtime' in ret['results']['Subject_MLE_Projection'])
 
     def test_validate_with_synthetic_dataset_no_errorbar(self):
 
         fig, [ax0, ax1, ax2] = plt.subplots(nrows=1, ncols=3, figsize=[21, 7])
         ax_dict = {'quality_scores': ax0, 'observer_bias': ax1, 'observer_inconsistency': ax2}
 
-        ret = validate_with_synthetic_dataset(
+        validate_with_synthetic_dataset(
             synthetic_dataset_reader_class=SyntheticRawDatasetReader,
             subjective_model_classes=[SubjectMLEModelProjectionSolver],
             dataset_filepath=SurealConfig.test_resource_path('NFLX_dataset_public_raw.py'),
@@ -326,7 +327,7 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
             delta_thr=4e-3,
             color_dict={},
             marker_dict={},
-            do_errorbar=False,
+            do_errorbar=False,  # <==== test this
             n_bootstrap=None,
             bootstrap_subjects=None,
             boostrap_dis_videos=None,
