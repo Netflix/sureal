@@ -11,7 +11,8 @@ from sureal.dataset_reader import PairedCompDatasetReader, \
 from sureal.pc_subjective_model import ThurstoneMlePairedCompSubjectiveModel, \
     BradleyTerryMlePairedCompSubjectiveModel
 from sureal.routine import run_subjective_models, \
-    format_output_of_run_subjective_models, validate_with_synthetic_dataset
+    format_output_of_run_subjective_models, validate_with_synthetic_dataset, \
+    plot_scatter_target_vs_compared_models
 from sureal.subjective_model import MosModel, SubjectMLEModelProjectionSolver, \
     MaximumLikelihoodEstimationModel, SubjrejMosModel, BiasremvSubjrejMosModel, \
     LegacyMaximumLikelihoodEstimationModel
@@ -335,5 +336,45 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
             missing_probability=None,
             measure_runtime=True,
         )
+        DisplayConfig.show(write_to_dir=self.output_dir)
+        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
+
+
+class PlotScatterTargetVsComparedModelsTest(MyTestCase):
+
+    def setUp(self):
+        super().setUp()
+        plt.close('all')
+        self.dataset_path = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        self.output_dir = SurealConfig.workdir_path('routine_test')
+
+    def tearDown(self):
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+        super().tearDown()
+
+    def test_plot_scatter_target_vs_compared_models(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            plot_scatter_target_vs_compared_models(
+                ['Subject_MLE_Projection', 'Subject_MLE_Projection'],
+                ['SR_MOS', 'BR_SR_MOS'],
+                [{'path': self.dataset_path}],
+                random_seed=1,
+            )
+        DisplayConfig.show(write_to_dir=self.output_dir)
+        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
+
+    def test_plot_scatter_target_vs_compared_models_fractional(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            plot_scatter_target_vs_compared_models(
+                ['Subject_MLE_Projection', 'Subject_MLE_Projection'],
+                ['SR_MOS', 'BR_SR_MOS'],
+                [{'path': self.dataset_path}],
+                random_seed=1,
+                target_subj_fraction=None,
+                compared_subj_fraction=0.5,
+            )
         DisplayConfig.show(write_to_dir=self.output_dir)
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)

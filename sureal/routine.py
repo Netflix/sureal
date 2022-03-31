@@ -1,9 +1,14 @@
 import copy
 import math
+import os
 
 import numpy as np
+import scipy.stats
 
+from sureal.config import SurealConfig
 from sureal.perf_metric import PccPerfMetric, SrccPerfMetric, RmsePerfMetric
+from sureal.subjective_model import SubjectiveModel
+from sureal.tools.decorator import persist_to_dir
 
 try:
     from matplotlib import pyplot as plt
@@ -13,7 +18,8 @@ except (ImportError, RuntimeError):
     # OSX system python comes with an ancient matplotlib that triggers RuntimeError when imported in this way
     plt = None
 
-from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader, MissingDataRawDatasetReader
+from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader, \
+    MissingDataRawDatasetReader, SelectSubjectRawDatasetReader
 from sureal.tools.misc import import_python_file, import_json_file, Timer
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -823,3 +829,182 @@ def get_ci_percentage(synthetic_result, result, key, errkey):
     return ci_perc
 
 
+def get_sample_stats(datasets, subjective_model_classes, do_plot=False, plot_type='bar', subj_fraction=None, random_seed=None):
+
+    resultss = []  # dataset x subjective_model
+    for dataset in datasets:
+        if do_plot:
+            fig_raw_scores, ax_raw_scores = plt.subplots(figsize=(7, 3))
+            fig_quality_scores, ax_quality_scores = plt.subplots(figsize=(12, 3.5), nrows=1)
+
+            # fig_bias_inconsty, [ax_bias, ax_inconsty] = plt.subplots(figsize=(6, 5), nrows=2, ncols=1, sharex=True)
+            # fig_rejected, ax_rejected = plt.subplots(figsize=(6, 3), nrows=1)
+            fig_bias_inconsty, [ax_bias, ax_inconsty, ax_rejected] = plt.subplots(figsize=(6, 7), nrows=3, ncols=1, sharex=True)
+            fig_rejected = None
+
+            ax_dict = {
+                'ax_raw_scores': ax_raw_scores,
+                'ax_quality_scores': ax_quality_scores,
+                'ax_observer_bias': ax_bias,
+                'ax_observer_inconsistency': ax_inconsty,
+                'ax_rejected': ax_rejected,
+            }
+            do_plot_list = [
+                'raw_scores',
+                'quality_scores',
+                'subject_scores'
+            ]
+        else:
+            fig_raw_scores = None
+            fig_quality_scores = None
+            fig_bias_inconsty = None
+            fig_rejected = None
+            ax_dict = {}
+            do_plot_list = []
+
+        dataset_filepath = dataset['path']
+        dataset_reader_info_dict = {}
+        if subj_fraction is None:
+            dataset, subjective_models, results = run_subjective_models(
+                dataset_filepath=dataset_filepath,
+                subjective_model_classes=subjective_model_classes,
+                normalize_final=False,  # True or False
+                do_plot=do_plot_list,
+                plot_type=plot_type,
+                ax_dict=ax_dict,
+                dataset_reader_info_dict=dataset_reader_info_dict
+            )
+            resultss.append(results)
+        else:
+            assert 0.0 < subj_fraction <= 1.0
+
+            if dataset_filepath.endswith('.py'):
+                dataset = import_python_file(dataset_filepath)
+            elif dataset_filepath.endswith('.json'):
+                dataset = import_json_file(dataset_filepath)
+            else:
+                raise AssertionError("Unknown input type, must be .py or .json")
+            dataset_reader = RawDatasetReader(dataset, input_dict=dataset_reader_info_dict)
+            num_subj = dataset_reader.num_observers
+            frac_num_subj = int(num_subj * subj_fraction)
+            if random_seed is not None:
+                    np.random.seed(random_seed)
+            selected_subjects = np.random.choice(list(range(num_subj)), size=frac_num_subj, replace=False)
+            dataset_reader_info_dict_new = dataset_reader_info_dict.copy()
+            dataset_reader_info_dict_new['selected_subjects'] = selected_subjects
+            dataset, subjective_models, results = run_subjective_models(
+                dataset_filepath=dataset_filepath,
+                subjective_model_classes=subjective_model_classes,
+                normalize_final=False,  # True or False
+                do_plot=do_plot_list,
+                plot_type=plot_type,
+                ax_dict=ax_dict,
+                dataset_reader_info_dict=dataset_reader_info_dict_new,
+                dataset_reader_class=SelectSubjectRawDatasetReader,
+            )
+            resultss.append(results)
+
+        if fig_raw_scores is not None:
+            fig_raw_scores.tight_layout()
+        if fig_quality_scores is not None:
+            fig_quality_scores.tight_layout()
+        if fig_bias_inconsty is not None:
+            fig_bias_inconsty.tight_layout()
+        if fig_rejected is not None:
+            fig_rejected.tight_layout()
+
+    return resultss
+
+
+def plot_scatter_target_vs_compared_models(target_models, compared_models, datasets,
+                                           target_subj_fraction=None,
+                                           compared_subj_fraction=None,
+                                           random_seed=None,
+                                           get_sample_stats_wrapper_method=None
+                                           ):
+
+    if get_sample_stats_wrapper_method is None:
+        get_sample_stats_wrapper_method = _get_sample_stats_wrapper
+
+    for dataset in datasets:
+
+        target_resultss = []
+        for model in target_models:
+            results_target = get_sample_stats_wrapper_method(
+                dataset,
+                target_subj_fraction,
+                model, random_seed)
+            target_resultss.append(results_target)
+
+        compared_resultss = []
+        for model in compared_models:
+            results_compared = get_sample_stats_wrapper_method(
+                dataset,
+                compared_subj_fraction,
+                model, random_seed)
+            compared_resultss.append(results_compared)
+
+        fig, axss = plt.subplots(ncols=len(compared_resultss), nrows=2,
+                                 figsize=[5 * len(compared_resultss), 7],
+                                 gridspec_kw={'height_ratios': [3, 1]})
+        axss = axss.T
+        if len(compared_resultss) == 1:
+            axss = np.array([axss])
+
+        for target_model, target_results, compapred_model, compared_results, axs in zip(target_models, target_resultss, compared_models, compared_resultss, axss):
+            target_results = target_results[0]
+            compared_results = compared_results[0]
+            for target_result, compared_result \
+                    in zip(target_results, compared_results):
+                ax_scatter, ax_hist = axs
+                xs = target_result['quality_scores']
+                ys = compared_result['quality_scores']
+                diffs = np.array(ys) - np.array(xs)
+                mean_diff = np.mean(diffs)
+                std_diff = np.std(diffs)
+                plcc = scipy.stats.pearsonr(xs, ys)[0]
+                srocc = scipy.stats.spearmanr(xs, ys)[0]
+                label = os.path.splitext(os.path.basename(dataset['path']))[0][:30]
+                compared_tag = compapred_model
+                if compared_subj_fraction is not None:
+                    compared_tag += f" {int(compared_subj_fraction * 100)}% data"
+                target_tag = target_model
+                if target_subj_fraction is not None:
+                    target_tag += f" {int(target_subj_fraction * 100)}% data"
+                ax_scatter.scatter(xs, ys, alpha=0.2, label=label)
+                ax_scatter.set_xlabel(target_tag)
+                ax_scatter.set_ylabel(compared_tag)
+                ax_scatter.grid()
+                ax_scatter.legend()
+                ax_hist.hist(diffs, label=label)
+                ax_hist.set_title(
+                    f"plcc {plcc:.3f}, srocc {srocc:.3f}, diff: mean {mean_diff:.3f}, std {std_diff:.3f}")
+                ax_hist.set_xlabel(
+                    f"diff: {compared_tag} vs. {target_tag}")
+                ax_hist.set_ylabel(f"No. ocurrences")
+                ax_hist.grid()
+                ax_hist.legend()
+            plt.tight_layout()
+
+
+def _get_sample_stats_wrapper(dataset, subj_fraction, model, random_seed):
+    model_class = SubjectiveModel.find_subclass(model)
+    results = get_sample_stats(
+        [dataset],
+        [model_class],
+        do_plot=False,
+        subj_fraction=subj_fraction,
+        random_seed=random_seed,
+    )  # dataset x subjective_model
+    for result in results:
+        if 'raw_scores' in result[0]:
+            del result[0]['raw_scores']
+        if 'reconstructions' in result[0]:
+            del result[0]['reconstructions']
+
+    return results
+
+
+@persist_to_dir(SurealConfig.workdir_path('_get_sample_stats_wrapper'))
+def _get_sample_stats_wrapper_persistent(dataset, subj_fraction, model, random_seed):
+    return _get_sample_stats_wrapper(dataset, subj_fraction, model, random_seed)
