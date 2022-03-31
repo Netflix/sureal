@@ -23,6 +23,7 @@ class RunSubjectiveModelsTest(MyTestCase):
 
     def setUp(self):
         super().setUp()
+        plt.close('all')
         self.dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
         self.output_dir = SurealConfig.workdir_path('routine_test')
 
@@ -145,11 +146,11 @@ class RunSubjectiveModelsTestDictStyle(MyTestCase):
         format_output_of_run_subjective_models(dataset, subjective_models, results)
 
 
-
 class RunSubjectiveModelsTestWithSubjReject(MyTestCase):
 
     def setUp(self):
         super().setUp()
+        plt.close('all')
         self.dataset_filepath = SurealConfig.test_resource_path('NFLX_dataset_public_raw_last4outliers.py')
         self.output_dir = SurealConfig.workdir_path('routine_test')
 
