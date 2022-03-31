@@ -239,16 +239,8 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
         super().setUp()
         plt.close('all')
         self.output_dir = SurealConfig.workdir_path('routine_test')
-
-    def tearDown(self):
-        if os.path.exists(self.output_dir):
-            shutil.rmtree(self.output_dir)
-        super().tearDown()
-
-    def test_validate_with_synthetic_dataset(self):
-
         # data obtained from solving the same dataset using said model
-        synthetic_result_dict = \
+        self.synthetic_result_dict = \
             {'quality_scores': np.array(
                 [4.91807256, 4.8920448, 4.723263, 4.72239629, 4.85880777,
                  4.91991739, 4.48600731, 4.73463565, 4.76586898, 1.32907989,
@@ -266,24 +258,31 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
                  2.70032144, 3.1824336, 3.75217955, 3.80573258, 4.23571479,
                  4.52578219, 4.40208189, 4.62308751, 1.60361375, 2.48592136,
                  3.20913978, 3.27959085, 4.2588028, 4.60152165]),
-             'observer_bias': np.array(
-                 [-0.19036027, -0.2030185, 0.24001947, 0.1134372, 0.30331061,
-                  -0.07643622, -0.19036027, 0.24001947, -0.31694255, 0.80963973,
-                  -0.03846154, 0.32862707, 0.46786758, -0.05111977, -0.03846154,
-                  -0.03846154, 0.03748783, -0.34225901, -0.41820837,
-                  -0.10175268,
-                  -0.01314508, -0.25365141, -0.30428432, -0.48149951,
-                  0.42989289,
-                  0.08812074]), 'observer_inconsistency': np.array(
+                'observer_bias': np.array(
+                    [-0.19036027, -0.2030185, 0.24001947, 0.1134372, 0.30331061,
+                     -0.07643622, -0.19036027, 0.24001947, -0.31694255, 0.80963973,
+                     -0.03846154, 0.32862707, 0.46786758, -0.05111977, -0.03846154,
+                     -0.03846154, 0.03748783, -0.34225901, -0.41820837,
+                     -0.10175268,
+                     -0.01314508, -0.25365141, -0.30428432, -0.48149951,
+                     0.42989289,
+                     0.08812074]), 'observer_inconsistency': np.array(
                 [0.58239332, 0.56856927, 0.76717883, 0.73096034, 0.60861674,
                  0.79119627, 0.87679172, 0.52398134, 0.70589185, 0.6250092,
                  0.59899925, 0.45263148, 0.65065156, 0.77421657, 0.56747137,
                  0.59314773, 0.4464344, 0.59223842, 0.59935489, 0.55678389,
                  0.51506388, 0.48867207, 0.46020279, 0.64011264, 0.47466541,
                  0.49053095]),
-             'content_bias': np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
-             'content_ambiguity': np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
-             'seed': 5}
+                'content_bias': np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
+                'content_ambiguity': np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
+                'seed': 5}
+
+    def tearDown(self):
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+        super().tearDown()
+
+    def test_validate_with_synthetic_dataset(self):
 
         fig, [ax0, ax1, ax2] = plt.subplots(nrows=1, ncols=3, figsize=[21, 7])
         ax_dict = {'quality_scores': ax0, 'observer_bias': ax1, 'observer_inconsistency': ax2}
@@ -292,7 +291,7 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
             synthetic_dataset_reader_class=SyntheticRawDatasetReader,
             subjective_model_classes=[SubjectMLEModelProjectionSolver],
             dataset_filepath=SurealConfig.test_resource_path('NFLX_dataset_public_raw.py'),
-            synthetic_result=synthetic_result_dict,
+            synthetic_result=self.synthetic_result_dict,
             ax_dict=ax_dict,
             delta_thr=4e-3,
             color_dict={},
@@ -308,4 +307,31 @@ class ValidateWithSyntheticDatasetTest(MyTestCase):
         DisplayConfig.show(write_to_dir=self.output_dir)
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
         self.assertAlmostEqual(np.mean(ret['results']['Subject_MLE_Projection']['quality_scores']), 3.5495806672757197, places=4)
-        self.assertAlmostEqual(np.mean(np.mean(synthetic_result_dict['quality_scores'])), 3.5447906524050636, places=4)
+        self.assertAlmostEqual(np.mean(np.mean(self.synthetic_result_dict['quality_scores'])), 3.5447906524050636, places=4)
+
+    def test_validate_with_synthetic_dataset_no_errorbar(self):
+
+        fig, [ax0, ax1, ax2] = plt.subplots(nrows=1, ncols=3, figsize=[21, 7])
+        ax_dict = {'quality_scores': ax0, 'observer_bias': ax1, 'observer_inconsistency': ax2}
+
+        ret = validate_with_synthetic_dataset(
+            synthetic_dataset_reader_class=SyntheticRawDatasetReader,
+            subjective_model_classes=[SubjectMLEModelProjectionSolver],
+            dataset_filepath=SurealConfig.test_resource_path('NFLX_dataset_public_raw.py'),
+            synthetic_result=self.synthetic_result_dict,
+            ax_dict=ax_dict,
+            delta_thr=4e-3,
+            color_dict={},
+            marker_dict={},
+            do_errorbar=False,
+            n_bootstrap=None,
+            bootstrap_subjects=None,
+            boostrap_dis_videos=None,
+            force_subjbias_zeromean=True,
+            missing_probability=None,
+            measure_runtime=True,
+        )
+        DisplayConfig.show(write_to_dir=self.output_dir)
+        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
+        self.assertAlmostEqual(np.mean(ret['results']['Subject_MLE_Projection']['quality_scores']), 3.5495806672757197, places=4)
+        self.assertAlmostEqual(np.mean(np.mean(self.synthetic_result_dict['quality_scores'])), 3.5447906524050636, places=4)
