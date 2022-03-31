@@ -160,10 +160,7 @@ class RunSubjectiveModelsTestWithSubjReject(MyTestCase):
         super().tearDown()
 
     def test_run_subjective_models(self):
-        fig0, [ax0, ax1] = plt.subplots(nrows=2, ncols=1)
-        fig2, ax2 = plt.subplots()
-        fig3, ax3 = plt.subplots()
-        fig4, ax4 = plt.subplots()
+        fig, [ax0, ax1, ax2, ax3, ax4] = plt.subplots(nrows=5, ncols=1, figsize=[5, 10])
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             dataset, subjective_models, results = run_subjective_models(
@@ -198,7 +195,7 @@ class RunSubjectiveModelsTestWithSubjReject(MyTestCase):
         self.assertAlmostEqual(results[1]['reconstruction_stats']['srocc'], 0.8315791903547592, places=4)
         self.assertAlmostEqual(results[1]['reconstruction_stats']['rmse'], 0.6740625245804693, places=4)
         DisplayConfig.show(write_to_dir=self.output_dir)
-        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 4)
+        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
 
 
 class RunPCSubjectiveModelsTest(MyTestCase):
