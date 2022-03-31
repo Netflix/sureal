@@ -39,3 +39,11 @@ class CommandLineTest(MyTestCase):
             od=self.output_dir)
         ret = run_process(cmd, shell=True)
         self.assertEqual(ret, 0)
+
+    def test_deprecated_cmd(self):
+        exe = SurealConfig.root_path('sureal', 'cmd_deprecated.py')
+        cmd = "{exe} MLE_CO_AP2 {ds} --output-dir {od}".format(
+            exe=exe, ds=SurealConfig.test_resource_path('test_dataset_os_as_dict_with_repetitions.py'),
+            od=self.output_dir)
+        ret = run_process(cmd, shell=True)
+        self.assertEqual(ret, 0)

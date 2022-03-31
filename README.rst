@@ -12,7 +12,7 @@ SUREAL - Subjective Recovery Analysis
 SUREAL is a toolbox developed by Netflix that includes a number of models for the recovery of mean opinion scores (MOS) from noisy measurements obtained in psychovisual subjective experiments.
 Read `this <resource/doc/dcc17v3.pdf>`_ paper and `this latest <resource/doc/hvei2020.pdf>`_ paper for some background.
 
-SUREAL also includes models to recover MOS from paired comparison subjective data, such as `Thurstone (Case V) <https://en.wikipedia.org/wiki/Thurstonian_model>`_ and `Bradley-Terry <https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model>`_.
+SUREAL also includes models to recover MOS from paired comparison (PC) subjective data, such as `Thurstone (Case V) <https://en.wikipedia.org/wiki/Thurstonian_model>`_ and `Bradley-Terry <https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model>`_.
 
 Installation
 ============
@@ -91,12 +91,12 @@ Here ``--models`` are the available subjective models offered in the package, in
 
   - BT500 - Model based on subject rejection, standardized in `ITU-R BT.500-14 (10/2019) A1-2.3.1 <https://www.itu.int/rec/R-REC-BT.500>`_.
 
-The `sureal` command can also invoke subjective models for paired comparison subjective data. Below is one example::
+The `sureal` command can also invoke subjective models for paired comparison (PC) subjective data. Below is one example::
 
     sureal --dataset resource/dataset/lukas_pc_dataset.py --models THURSTONE_MLE BT_MLE \
     --plot-dis-videos --output-dir ./output/lukas_pc_dataset
 
-Here ``--models`` are the available paired comparison subjective models offered in the package:
+Here ``--models`` are the available PC subjective models offered in the package:
 
   - THURSTONE_MLE - `Thurstone (Case V) <https://en.wikipedia.org/wiki/Thurstonian_model>`_ model, with a MLE solver.
 
@@ -167,16 +167,18 @@ and the value being his/her voted score for particular distorted video. For exam
 
 Since partial sampling is allowed, it is not required that every subject ID is present in every ``os`` dictionary.
 
-In case a subject has voted a distorted video twice, the votes can be logged by having a list in lieu of single vote. For example::
+In case a subject has voted a distorted video twice or more (repetitions), the votes can be logged by having a list in lieu of single vote. For example::
 
     'os': {'Alice': 40, 'Bob': [45, 45], 'Charlie': [50, 60], 'David': 55, 'Elvis': 60}
 
 
-In case of a paired comparison dataset, a distorted video is compared against another distorted video, and a vote is recorded. In this case, the key is a tuple of the subject name and the `asset_id` of the distorted video compared against. For example::
+In case of a PC dataset, a distorted video is compared against another distorted video, and a vote is recorded. In this case, the key is a tuple of the subject name and the `asset_id` of the distorted video compared against. For example::
 
     'os': {('Alice', 1): 40, ('Bob', 3): 45}
 
-where 1 and 3 are the `asset_id` of the distorted videos compared against. For an example paired comparison dataset, refer to `lukas_pc_dataset.py <resource/dataset/lukas_pc_dataset.py>`_.
+where 1 and 3 are the `asset_id` of the distorted videos compared against. For an example PC dataset, refer to `lukas_pc_dataset.py <resource/dataset/lukas_pc_dataset.py>`_.
+
+Note that for PC models, we current do not yet support repetitions.
 
 Deprecated command line
 ================================
