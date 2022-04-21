@@ -124,15 +124,18 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
 
+                mtx = dataset_reader.opinion_score_3darray
+                mtx = mtx - np.array(quality_scores)[:, None, None]
+                mtx = np.nanmean(mtx, axis=2).T
+
                 if 'ax_raw_scores_minus_quality_scores' in ax_dict:
                     ax_raw_scores_minus_quality_scores = ax_dict['ax_raw_scores_minus_quality_scores']
+                    fig = None
                 else:
-                    _, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(5, 2.5))
+                    h, w = _get_plot_width_and_height(mtx)
+                    fig, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(w, h))
 
                 # TODO: visualize repetitions - currently taking mean over repetitions before plotting
-                mtx = dataset_reader.opinion_score_3darray
-                mtx = mtx - quality_scores[:, None, None]
-                mtx = np.nanmean(mtx, axis=2).T
                 im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest',
                                                                vmin=raw_score_residue_range[0], vmax=raw_score_residue_range[1],
                                                                cmap=raw_score_cmap)
@@ -140,6 +143,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_raw_scores_minus_quality_scores.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores)
+                if fig is not None:
+                    fig.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores_and_observer_bias' in do_plot:
 

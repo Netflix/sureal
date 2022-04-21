@@ -86,10 +86,15 @@ class RunSubjectiveModelsTest(MyTestCase):
             run_subjective_models(
                 dataset_filepath=self.dataset_filepath,
                 subjective_model_classes=[MosModel, SubjectMLEModelProjectionSolver],
-                do_plot=['raw_scores', 'quality_scores', 'subject_scores']
+                do_plot=[
+                    'raw_scores',
+                    'raw_scores_minus_quality_scores',  # two plots
+                    'quality_scores',
+                    'subject_scores',
+                ]
             )
         DisplayConfig.show(write_to_dir=self.output_dir)
-        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 3)
+        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 5)
 
     def test_run_subjective_models_with_processed_output(self):
         with warnings.catch_warnings():
