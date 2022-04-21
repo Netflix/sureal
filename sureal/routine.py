@@ -20,7 +20,8 @@ except (ImportError, RuntimeError):
 
 from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader, \
     MissingDataRawDatasetReader, SelectSubjectRawDatasetReader
-from sureal.tools.misc import import_python_file, import_json_file, Timer
+from sureal.tools.misc import import_python_file, import_json_file, Timer, \
+    cmap_factory
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -65,7 +66,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     else:
         ax_dict = {}
 
-    raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else 'gray'
+    raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else cmap_factory('red2green')
 
     raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
     assert len(raw_score_residue_range) == 2
@@ -98,18 +99,23 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     if do_plot == 'all' or 'raw_scores' in do_plot:
 
+        mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
+
         if 'ax_raw_scores' in ax_dict:
             ax_rawscores = ax_dict['ax_raw_scores']
+            fig = None
         else:
-            _, ax_rawscores = plt.subplots(figsize=(5, 2.5))
+            h, w = _get_plot_width_and_height(mtx)
+            fig, ax_rawscores = plt.subplots(figsize=(w, h))
 
         # TODO: visualize repetitions - currently taking mean over repetitions before plotting
-        mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
         ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
         ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
         plt.colorbar(im, ax=ax_rawscores)
+        if fig is not None:
+            fig.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores' in do_plot:
 
@@ -479,6 +485,19 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         plt.tight_layout()
 
     return dataset, subjective_models, results
+
+
+def _get_plot_width_and_height(mtx):
+    rows, cols = mtx.shape
+    w, h = cols / 30, rows / 30
+    if w > 100:
+        x = w // 100
+        w, h = w / x, h / x
+    if h > 100:
+        x = h // 100
+        w, h = w / x, h / x
+    w, h = w + 2, h + 2
+    return h, w
 
 
 def format_output_of_run_subjective_models(dataset, subjective_models, results):
