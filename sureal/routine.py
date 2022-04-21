@@ -190,13 +190,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         nrows = int(math.floor(math.sqrt(num_obs)))
         ncols = int(math.ceil(num_obs / float(nrows)))
 
-        fig, axs = plt.subplots(figsize=(ncols*4,nrows*4), ncols=ncols, nrows=nrows)
-
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result:
+                fig, axs = plt.subplots(figsize=(ncols * 4, nrows * 4), ncols=ncols, nrows=nrows)
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
-
                 for i_obs in range(num_obs):
                     assert num_obs > 1
                     ax = axs.flatten()[i_obs]
@@ -210,8 +208,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     ax.set_ylabel('Recovered Quality Score ($\psi_j$)')
                     ax.legend()
                     ax.grid()
-
-        plt.tight_layout()
+                fig.tight_layout()
 
     if do_plot == 'all' or 'quality_scores' in do_plot:
         # ===== plot quality scores =====

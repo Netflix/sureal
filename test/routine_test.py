@@ -90,12 +90,13 @@ class RunSubjectiveModelsTest(MyTestCase):
                     'raw_scores',
                     'raw_scores_minus_quality_scores',  # two plots
                     'raw_scores_minus_quality_scores_and_observer_bias',  # one plot
+                    'quality_scores_vs_raw_scores',  # two plots
                     'quality_scores',
                     'subject_scores',
                 ]
             )
         DisplayConfig.show(write_to_dir=self.output_dir)
-        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 6)
+        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 8)
 
     def test_run_subjective_models_with_processed_output(self):
         with warnings.catch_warnings():
