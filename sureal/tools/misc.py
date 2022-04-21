@@ -15,6 +15,8 @@ try:
     multiprocessing.set_start_method('fork')
 except ValueError:  # noqa, If platform does not support, just ignore
     pass
+except RuntimeError:  # noqa, If context has already being set, just ignore
+    pass
 
 
 def empty_object():
