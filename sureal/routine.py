@@ -106,7 +106,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rawscores = ax_dict['ax_raw_scores']
             fig = None
         else:
-            h, w = _get_plot_width_and_height(mtx)
+            w, h = _get_imshow_width_and_height(mtx)
             fig, ax_rawscores = plt.subplots(figsize=(w, h))
 
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
@@ -133,7 +133,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     ax_raw_scores_minus_quality_scores = ax_dict['ax_raw_scores_minus_quality_scores']
                     fig = None
                 else:
-                    h, w = _get_plot_width_and_height(mtx)
+                    w, h = _get_imshow_width_and_height(mtx)
                     fig, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(w, h))
 
                 im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest',
@@ -164,7 +164,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     ax_raw_scores_minus_quality_scores_and_observer_bias = ax_dict['ax_raw_scores_minus_quality_scores_and_observer_bias']
                     fig = None
                 else:
-                    h, w = _get_plot_width_and_height(mtx)
+                    w, h = _get_imshow_width_and_height(mtx)
                     fig, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(w, h))
 
                 im = ax_raw_scores_minus_quality_scores_and_observer_bias.imshow(mtx, interpolation='nearest',
@@ -216,8 +216,10 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         if 'ax_quality_scores' in ax_dict:
             ax_quality = ax_dict['ax_quality_scores']
+            fig = None
         else:
-            _, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
+
+            fig, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
 
         shift_count = 0
         for subjective_model, result in zip(subjective_models, results):
@@ -494,7 +496,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     return dataset, subjective_models, results
 
 
-def _get_plot_width_and_height(mtx):
+def _get_imshow_width_and_height(mtx):
     rows, cols = mtx.shape
     w, h = cols / 30, rows / 30
     if w > 100:
@@ -504,7 +506,7 @@ def _get_plot_width_and_height(mtx):
         x = h // 100
         w, h = w / x, h / x
     w, h = w + 2, h + 2
-    return h, w
+    return w, h
 
 
 def format_output_of_run_subjective_models(dataset, subjective_models, results):
