@@ -99,6 +99,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     if do_plot == 'all' or 'raw_scores' in do_plot:
 
+        # TODO: visualize repetitions - currently taking mean over repetitions before plotting
         mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
 
         if 'ax_raw_scores' in ax_dict:
@@ -108,7 +109,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             h, w = _get_plot_width_and_height(mtx)
             fig, ax_rawscores = plt.subplots(figsize=(w, h))
 
-        # TODO: visualize repetitions - currently taking mean over repetitions before plotting
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
         ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
@@ -124,6 +124,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
 
+                # TODO: visualize repetitions - currently taking mean over repetitions before plotting
                 mtx = dataset_reader.opinion_score_3darray
                 mtx = mtx - np.array(quality_scores)[:, None, None]
                 mtx = np.nanmean(mtx, axis=2).T
@@ -135,7 +136,6 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     h, w = _get_plot_width_and_height(mtx)
                     fig, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(w, h))
 
-                # TODO: visualize repetitions - currently taking mean over repetitions before plotting
                 im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest',
                                                                vmin=raw_score_residue_range[0], vmax=raw_score_residue_range[1],
                                                                cmap=raw_score_cmap)
@@ -154,16 +154,19 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
 
-                if 'ax_raw_scores_minus_quality_scores_and_observer_bias' in ax_dict:
-                    ax_raw_scores_minus_quality_scores_and_observer_bias = ax_dict['ax_raw_scores_minus_quality_scores_and_observer_bias']
-                else:
-                    _, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(5, 2.5))
-
                 # TODO: visualize repetitions - currently taking mean over repetitions before plotting
                 mtx = dataset_reader.opinion_score_3darray
-                mtx = mtx - quality_scores[:, None, None]
-                mtx = mtx - observer_bias[None, :, None]
+                mtx = mtx - np.array(quality_scores)[:, None, None]
+                mtx = mtx - np.array(observer_bias)[None, :, None]
                 mtx = np.nanmean(mtx, axis=2).T
+
+                if 'ax_raw_scores_minus_quality_scores_and_observer_bias' in ax_dict:
+                    ax_raw_scores_minus_quality_scores_and_observer_bias = ax_dict['ax_raw_scores_minus_quality_scores_and_observer_bias']
+                    fig = None
+                else:
+                    h, w = _get_plot_width_and_height(mtx)
+                    fig, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(w, h))
+
                 im = ax_raw_scores_minus_quality_scores_and_observer_bias.imshow(mtx, interpolation='nearest',
                                                                                  vmin=raw_score_residue_range[0], vmax=raw_score_residue_range[1],
                                                                                  cmap=raw_score_cmap)
@@ -171,6 +174,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores_and_observer_bias)
+                if fig is not None:
+                    fig.tight_layout()
 
     if do_plot == 'all' or 'quality_scores_vs_raw_scores' in do_plot:
 
