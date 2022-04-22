@@ -451,7 +451,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rejected_1st_stats.grid()
         if ax_rejected_2nd_stats is not None:
             ax_rejected_2nd_stats.grid()
-        plt.tight_layout()
+        if fig is not None:
+            fig.tight_layout()
 
     if do_plot == 'all' or 'content_scores' in do_plot:
 
@@ -460,8 +461,15 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         if 'ax_content_ambiguity' in ax_dict:
             ax_ambgty = ax_dict['ax_content_ambiguity']
+            fig = None
         else:
-            _, ax_ambgty = plt.subplots(figsize=(5, 3.5), nrows=1)
+            cols = None
+            for result in results:
+                if 'content_ambiguity' in result:
+                    cols = len(result['content_ambiguity'])
+                    break
+            w, h = _get_plot_width_and_height(cols)
+            fig, ax_ambgty = plt.subplots(figsize=(w, h), nrows=1)
         xs = None
         shift_count = 0
         for subjective_model, result in zip(subjective_models, results):
@@ -506,7 +514,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             plt.sca(ax_ambgty)
             plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=rotation)
         ax_ambgty.legend(ncol=2, frameon=True)
-        plt.tight_layout()
+        if fig is not None:
+            fig.tight_layout()
 
     return dataset, subjective_models, results
 
