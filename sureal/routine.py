@@ -280,8 +280,16 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         if 'ax_observer_bias' in ax_dict and 'ax_observer_inconsistency' in ax_dict:
             ax_bias = ax_dict['ax_observer_bias']
             ax_inconsty = ax_dict['ax_observer_inconsistency']
+            fig = None
         else:
-            _, (ax_bias, ax_inconsty) = plt.subplots(figsize=(5, 3.5), nrows=2, ncols=1, sharex=True)
+            cols = None
+            for result in results:
+                if 'observer_bias' in result:
+                    cols = len(result['observer_bias'])
+                    break
+            w, h = _get_plot_width_and_height(cols)
+            h = h * 2 + 2
+            fig, (ax_bias, ax_inconsty) = plt.subplots(figsize=(w, h), nrows=2, ncols=1, sharex=True)
 
         if 'ax_rejected' in ax_dict:
             ax_rejected = ax_dict['ax_rejected']
