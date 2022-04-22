@@ -9,20 +9,7 @@ from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
 from sureal.pc_subjective_model import PairedCompSubjectiveModel
 from sureal.routine import run_subjective_models, \
     format_output_of_run_subjective_models
-from sureal.subjective_model import SubjectMLEModelProjectionSolver2, \
-    SubjrejMosModel, BiasremvSubjrejMosModel, SubjectiveModel
-
-
-class BT500Model(SubjrejMosModel):
-    TYPE = 'BT500'
-
-
-class P913124Model(BiasremvSubjrejMosModel):
-    TYPE = 'P913'
-
-
-class P910AnnexEModel(SubjectMLEModelProjectionSolver2):
-    TYPE = 'P910'
+from sureal.subjective_model import SubjectiveModel
 
 
 def main():

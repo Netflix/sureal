@@ -286,3 +286,20 @@ def run_process(cmd, **kwargs):
     except subprocess.CalledProcessError as e:
         raise AssertionError(f'Process returned {e.returncode}, cmd: {cmd}, msg: {str(e.output)}')
     return 0
+
+
+def cmap_factory(name):
+    assert name in ['red2green', 'red2green2']
+    if name == 'red2green':
+        from matplotlib.colors import LinearSegmentedColormap
+        cmap = LinearSegmentedColormap.from_list('rg', ["r", "w", "g"], N=256)
+    elif name == 'red2green2':
+        from matplotlib.colors import LinearSegmentedColormap
+        c = ["darkred", "red", "lightcoral", "white",
+             "palegreen", "green", "darkgreen"]
+        v = [0, .15, .4, .5, 0.6, .9, 1.]
+        ll = list(zip(v, c))
+        cmap = LinearSegmentedColormap.from_list('rg', ll, N=256)
+    else:
+        assert False
+    return cmap
