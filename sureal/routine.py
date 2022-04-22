@@ -1,6 +1,7 @@
 import copy
 import math
 import os
+from typing import Union
 
 import numpy as np
 import scipy.stats
@@ -106,7 +107,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rawscores = ax_dict['ax_raw_scores']
             fig = None
         else:
-            w, h = _get_imshow_width_and_height(mtx)
+            w, h = _get_imshow_width_and_height(*mtx.shape)
             fig, ax_rawscores = plt.subplots(figsize=(w, h))
 
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
@@ -133,7 +134,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     ax_raw_scores_minus_quality_scores = ax_dict['ax_raw_scores_minus_quality_scores']
                     fig = None
                 else:
-                    w, h = _get_imshow_width_and_height(mtx)
+                    w, h = _get_imshow_width_and_height(*mtx.shape)
                     fig, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(w, h))
 
                 im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest',
@@ -164,7 +165,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     ax_raw_scores_minus_quality_scores_and_observer_bias = ax_dict['ax_raw_scores_minus_quality_scores_and_observer_bias']
                     fig = None
                 else:
-                    w, h = _get_imshow_width_and_height(mtx)
+                    w, h = _get_imshow_width_and_height(*mtx.shape)
                     fig, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(w, h))
 
                 im = ax_raw_scores_minus_quality_scores_and_observer_bias.imshow(mtx, interpolation='nearest',
@@ -218,8 +219,13 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_quality = ax_dict['ax_quality_scores']
             fig = None
         else:
-
-            fig, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
+            cols = None
+            for result in results:
+                if 'quality_scores' in result:
+                    cols = len(result['quality_scores'])
+                    break
+            w, h = _get_plot_width_and_height(cols)
+            fig, ax_quality = plt.subplots(figsize=(w, h), nrows=1)
 
         shift_count = 0
         for subjective_model, result in zip(subjective_models, results):
@@ -264,7 +270,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         ax_quality.grid()
         ax_quality.legend(ncol=2, frameon=True)
-        plt.tight_layout()
+        if fig is not None:
+            fig.tight_layout()
 
     if do_plot == 'all' or 'subject_scores' in do_plot:
 
@@ -496,8 +503,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     return dataset, subjective_models, results
 
 
-def _get_imshow_width_and_height(mtx):
-    rows, cols = mtx.shape
+def _get_imshow_width_and_height(rows, cols):
     w, h = cols / 30, rows / 30
     if w > 100:
         x = w // 100
@@ -507,6 +513,13 @@ def _get_imshow_width_and_height(mtx):
         w, h = w / x, h / x
     w, h = w + 2, h + 2
     return w, h
+
+
+def _get_plot_width_and_height(num: Union[int, None]) -> [int, int]:
+    if num is None:
+        return 10, 3
+    else:
+        return max(np.sqrt(num) + 2, 10), 3
 
 
 def format_output_of_run_subjective_models(dataset, subjective_models, results):
