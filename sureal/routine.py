@@ -10,6 +10,7 @@ from sureal.config import SurealConfig
 from sureal.perf_metric import PccPerfMetric, SrccPerfMetric, RmsePerfMetric
 from sureal.subjective_model import SubjectiveModel
 from sureal.tools.decorator import persist_to_dir
+from sureal.tools.stats import histc
 
 try:
     from matplotlib import pyplot as plt
@@ -115,6 +116,37 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
         ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
         plt.colorbar(im, ax=ax_rawscores)
+        if fig is not None:
+            fig.tight_layout()
+
+    if do_plot == 'all' or 'raw_counts' in do_plot:
+
+        # TODO: visualize repetitions - currently taking mean over repetitions before plotting
+        mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
+
+        if 'ax_raw_counts' in ax_dict:
+            ax_rawcounts = ax_dict['ax_raw_counts']
+            fig = None
+        else:
+            cols = None
+            for result in results:
+                if 'quality_scores' in result:
+                    cols = len(result['quality_scores'])
+                    break
+            w, h = _get_plot_width_and_height(cols)
+            fig, ax_rawcounts = plt.subplots(figsize=(w, h))
+
+        histcs = np.apply_along_axis(func1d=histc, axis=0, arr=mtx)
+        datas = list()
+        for ih, h in enumerate(histcs):
+            data = [(ih, k, h[k]) for k in sorted(h.keys())]
+            datas += data
+        xs, ys, vs = zip(*datas)
+        ax_rawcounts.scatter(xs, ys, s=np.array(vs) * 2, alpha=0.4)
+        ax_rawcounts.set_xlabel(r'Video Stimuli ($j$)')
+        ax_rawcounts.set_title(r'Raw Opinion Scores ($u_{ij}$) Counts')
+        ax_rawcounts.grid()
+        ax_rawcounts.set_xlim(0, len(histcs))
         if fig is not None:
             fig.tight_layout()
 

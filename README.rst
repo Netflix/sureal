@@ -36,7 +36,7 @@ Under Ubuntu, you may also need to install the ``python-tk`` (Python 2) or ``pyt
 
 To test the source code before installing, run::
 
-    python -m unittest discover --start test --pattern '*_test.py' --verbose
+    python -m unittest discover --start test --pattern '*_test.py' --verbose --buffer
 
 
 Lastly, install SUREAL by::
