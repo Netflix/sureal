@@ -594,6 +594,13 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
             if 'observer_bias_ci95' in result:
                 assert len(result['observer_bias_ci95']) == 2
                 assert len(result['observer_bias']) == len(list(zip(*result['observer_bias_ci95'])))
+            if 'observer_inconsistency' in result:
+                assert len(result['observer_bias']) == len(result['observer_inconsistency'])
+            if 'observer_inconsistency_std' in result:
+                assert len(result['observer_bias']) == len(result['observer_inconsistency_std'])
+            if 'observer_inconsistency_ci95' in result:
+                assert len(result['observer_inconsistency_ci95']) == 2
+                assert len(result['observer_bias']) == len(list(zip(*result['observer_inconsistency_ci95'])))
 
         if 'content_ambiguity' in result:
             dict_contentid_content = dict()
@@ -639,6 +646,15 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
             if 'observer_bias_ci95' in result:
                 for idx, observer_bias_ci95 in enumerate(list(zip(*result['observer_bias_ci95']))):
                     output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_bias_ci95'] = observer_bias_ci95
+            if 'observer_inconsistency' in result:
+                for idx, observer_inconsistency in enumerate(result['observer_inconsistency']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_inconsistency'] = observer_inconsistency
+            if 'observer_inconsistency_std' in result:
+                for idx, observer_inconsistency_std in enumerate(result['observer_inconsistency_std']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_inconsistency_std'] = observer_inconsistency_std
+            if 'observer_inconsistency_ci95' in result:
+                for idx, observer_inconsistency_ci95 in enumerate(list(zip(*result['observer_inconsistency_ci95']))):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_inconsistency_ci95'] = observer_inconsistency_ci95
 
         if 'content_ambiguity' in result:
             if 'contents' in result:

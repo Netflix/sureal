@@ -112,6 +112,9 @@ class RunSubjectiveModelsTest(MyTestCase):
             )
         output = format_output_of_run_subjective_models(dataset, subjective_models, results)
         self.assertAlmostEqual(output['stats']['models']['BR_SR_MOS']['aic'], 1.863316331686836, places=4)
+        self.assertAlmostEqual(output['observers'][0]['models']['Subject_MLE_Projection']['observer_inconsistency'], 0.5823933134761798, places=4)
+        self.assertAlmostEqual(output['observers'][0]['models']['Subject_MLE_Projection']['observer_inconsistency_std'], 0.046332724296959504, places=4)
+        self.assertAlmostEqual(output['observers'][0]['models']['Subject_MLE_Projection']['observer_inconsistency_ci95'][0], 0.07835936236184773, places=4)
 
 
 class RunSubjectiveModelsTestDictStyle(MyTestCase):
