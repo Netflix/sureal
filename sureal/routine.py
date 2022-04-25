@@ -128,12 +128,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rawcounts = ax_dict['ax_raw_counts']
             fig = None
         else:
-            cols = None
-            for result in results:
-                if 'quality_scores' in result:
-                    cols = len(result['quality_scores'])
-                    break
-            w, h = _get_plot_width_and_height(cols)
+            w, h = _get_plot_width_and_height(mtx.shape[1])
             fig, ax_rawcounts = plt.subplots(figsize=(w, h))
 
         histcs = np.apply_along_axis(func1d=histc, axis=0, arr=mtx)
@@ -147,6 +142,32 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         ax_rawcounts.set_title(r'Raw Opinion Scores ($u_{ij}$) Counts')
         ax_rawcounts.grid()
         ax_rawcounts.set_xlim(0, len(histcs))
+        if fig is not None:
+            fig.tight_layout()
+
+    if do_plot == 'all' or 'raw_counts_per_subject' in do_plot:
+
+        # TODO: visualize repetitions - currently taking mean over repetitions before plotting
+        mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
+
+        if 'raw_counts_per_subject' in ax_dict:
+            ax_rawcounts_per_subject = ax_dict['raw_counts_per_subject']
+            fig = None
+        else:
+            w, h = _get_plot_width_and_height(mtx.shape[0])
+            fig, ax_rawcounts_per_subject = plt.subplots(figsize=(w, h))
+
+        histcs = np.apply_along_axis(func1d=histc, axis=1, arr=mtx)
+        datas = list()
+        for ih, h in enumerate(histcs):
+            data = [(ih, k, h[k]) for k in sorted(h.keys())]
+            datas += data
+        xs, ys, vs = zip(*datas)
+        ax_rawcounts_per_subject.scatter(xs, ys, s=np.array(vs) * 2, alpha=0.4)
+        ax_rawcounts_per_subject.set_xlabel(r'Test Subjects ($j$)')
+        ax_rawcounts_per_subject.set_title(r'Raw Opinion Scores ($u_{ij}$) Counts')
+        ax_rawcounts_per_subject.grid()
+        ax_rawcounts_per_subject.set_xlim(0, len(histcs))
         if fig is not None:
             fig.tight_layout()
 
