@@ -108,7 +108,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rawscores = ax_dict['ax_raw_scores']
             fig = None
         else:
-            w, h = _get_imshow_width_and_height(*mtx.shape)
+            n_subj, n_stim = mtx.shape
+            w, h = _get_imshow_width_and_height(n_subj, n_stim)
             fig, ax_rawscores = plt.subplots(figsize=(w, h))
 
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
@@ -128,7 +129,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rawcounts = ax_dict['ax_raw_counts']
             fig = None
         else:
-            w, h = _get_plot_width_and_height(mtx.shape[1])
+            n_subj, n_stim = mtx.shape
+            w, h = _get_plot_width_and_height(n_stim)
             fig, ax_rawcounts = plt.subplots(figsize=(w, h))
 
         histcs = np.apply_along_axis(func1d=histc, axis=0, arr=mtx)
@@ -154,7 +156,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rawcounts_per_subject = ax_dict['raw_counts_per_subject']
             fig = None
         else:
-            w, h = _get_plot_width_and_height(mtx.shape[0])
+            n_subj, n_stim = mtx.shape
+            w, h = _get_plot_width_and_height(n_subj)
             fig, ax_rawcounts_per_subject = plt.subplots(figsize=(w, h))
 
         histcs = np.apply_along_axis(func1d=histc, axis=1, arr=mtx)
