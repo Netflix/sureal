@@ -7,7 +7,7 @@ __license__ = "Apache, Version 2.0"
 
 # Note, version doesn't have to be hard-coded like this, it can also be
 # determined programmatically
-__version__ = "0.7.2"
+__version__ = "0.8.0"
 
 
 class BT500Model(SubjrejMosModel):
