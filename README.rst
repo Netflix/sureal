@@ -95,13 +95,15 @@ Here ``--models`` are the available subjective models offered in the package, in
 The `sureal` command can also invoke subjective models for paired comparison (PC) subjective data. Below is one example::
 
     sureal --dataset resource/dataset/lukas_pc_dataset.py --models THURSTONE_MLE BT_MLE \
-    --plot-dis-videos --output-dir ./output/lukas_pc_dataset
+    --plot-raw-data --plot-dis-videos --output-dir ./output/lukas_pc_dataset
 
 Here ``--models`` are the available PC subjective models offered in the package:
 
   - THURSTONE_MLE - `Thurstone (Case V) <https://en.wikipedia.org/wiki/Thurstonian_model>`_ model, with a MLE solver.
 
   - BT_MLE - `Bradley-Terry <https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model>`_ model, with a MLE solver.
+
+Both models leverage MLE-based solvers. For the mathematics behind the implementation, refer to `this <resource/doc/dcc17v3.pdf>`_ document.
 
 Dataset files
 -------------

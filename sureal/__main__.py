@@ -49,16 +49,6 @@ def main():
     plot_dis_videos = args.plot_dis_videos
     plot_observers = args.plot_observers
 
-    do_plot = []
-    if plot_raw_data:
-        do_plot.append('raw_scores')
-        do_plot.append('raw_counts')
-        do_plot.append('raw_counts_per_subject')
-    if plot_dis_videos:
-        do_plot.append('quality_scores')
-    if plot_observers:
-        do_plot.append('subject_scores')
-
     ModelClasses = list()
     for model in models:
         ModelClass = SubjectiveModel.find_subclass(model)
@@ -82,6 +72,17 @@ def main():
         DatasetReaderClass = RawDatasetReader
     else:
         DatasetReaderClass = PairedCompDatasetReader
+
+    do_plot = []
+    if plot_raw_data:
+        do_plot.append('raw_scores')
+        if is_all_subjective_model:
+            do_plot.append('raw_counts')
+            do_plot.append('raw_counts_per_subject')
+    if plot_dis_videos:
+        do_plot.append('quality_scores')
+    if plot_observers:
+        do_plot.append('subject_scores')
 
     dataset, subjective_models, results = run_subjective_models(
         dataset_filepath=dataset,
