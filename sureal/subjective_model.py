@@ -1433,6 +1433,8 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
             b_i -= mean_b_i
             s_j += mean_b_i
 
+        x_ji = SubjectiveModel._stack_repetitions_along_axis(x_jir, axis=0)
+
         result = {'raw_scores': x_jir,
                   'quality_scores': list(s_j),
                   'quality_scores_std': list(s_j_std),
@@ -1449,6 +1451,8 @@ class SubjectMLEModelProjectionSolver(SubjectiveModel):
                       # list(1.95996 * v_i_std),
                       # list(1.95996 * v_i_std),
                   ],
+                  'observer_scores_mean': list(np.nanmean(x_ji, axis=0)),
+                  'observer_scores_std': list(np.nanstd(x_ji, axis=0)),
                   'reconstructions': cls._get_reconstructions(x_jir, s_j, b_i),
                   'num_iter': itr,
                   }
