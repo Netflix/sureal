@@ -103,7 +103,7 @@ Here ``--models`` are the available PC subjective models offered in the package:
 
   - BT_MLE - `Bradley-Terry <https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model>`_ model, with a MLE solver.
 
-Both models leverage MLE-based solvers. For the mathematics behind the implementation, refer to `this <resource/doc/pc.pdf>`_ document.
+Both models leverage MLE-based solvers. For the mathematics behind the implementation, refer to `this document <resource/doc/pc.pdf>`_.
 
 Dataset files
 -------------
