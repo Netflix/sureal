@@ -167,7 +167,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             datas += data
         xs, ys, vs = zip(*datas)
         ax_rawcounts_per_subject.scatter(xs, ys, s=np.array(vs) * 2, alpha=0.4)
-        ax_rawcounts_per_subject.set_xlabel(r'Test Subjects ($j$)')
+        ax_rawcounts_per_subject.set_xlabel(r'Test Subjects ($i$)')
         ax_rawcounts_per_subject.set_title(r'Raw Opinion Scores ($u_{ij}$) Counts')
         ax_rawcounts_per_subject.grid()
         ax_rawcounts_per_subject.set_xlim(0, len(histcs))
@@ -625,6 +625,10 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
             if 'observer_inconsistency_ci95' in result:
                 assert len(result['observer_inconsistency_ci95']) == 2
                 assert len(result['observer_bias']) == len(list(zip(*result['observer_inconsistency_ci95'])))
+            if 'observer_scores_mean' in result:
+                assert len(result['observer_bias']) == len(result['observer_scores_mean'])
+            if 'observer_scores_std' in result:
+                assert len(result['observer_bias']) == len(result['observer_scores_std'])
 
         if 'content_ambiguity' in result:
             dict_contentid_content = dict()
@@ -679,6 +683,12 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
             if 'observer_inconsistency_ci95' in result:
                 for idx, observer_inconsistency_ci95 in enumerate(list(zip(*result['observer_inconsistency_ci95']))):
                     output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_inconsistency_ci95'] = observer_inconsistency_ci95
+            if 'observer_scores_mean' in result:
+                for idx, observer_scores_mean in enumerate(result['observer_scores_mean']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_scores_mean'] = observer_scores_mean
+            if 'observer_scores_std' in result:
+                for idx, observer_scores_std in enumerate(result['observer_scores_std']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_scores_std'] = observer_scores_std
 
         if 'content_ambiguity' in result:
             if 'contents' in result:
