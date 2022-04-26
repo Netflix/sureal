@@ -30,7 +30,8 @@ def main():
         required=False)
     parser.add_argument(
         "--plot-raw-data", dest="plot_raw_data", action='store_true',
-        help="Plot the raw data.",
+        help="Plot the raw data. This includes the raw opinion scores presented "
+             "in a video-subject matrix, counts per video and counts per subject.",
         required=False)
     parser.add_argument(
         "--plot-dis-videos", dest="plot_dis_videos", action='store_true',
@@ -51,6 +52,8 @@ def main():
     do_plot = []
     if plot_raw_data:
         do_plot.append('raw_scores')
+        do_plot.append('raw_counts')
+        do_plot.append('raw_counts_per_subject')
     if plot_dis_videos:
         do_plot.append('quality_scores')
     if plot_observers:

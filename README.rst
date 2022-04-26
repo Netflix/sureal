@@ -65,21 +65,22 @@ This will print usage information::
       -h, --help            show this help message and exit
       --dataset DATASET     Path to the dataset file.
       --models MODELS [MODELS ...]
-                            Subjective models to use (can specify more than one), choosing from:
-                            MOS, P910, P913, BT500.
+                            Subjective models to use (can specify more than one),
+                            choosing from: MOS, P910, P913, BT500.
       --output-dir OUTPUT_DIR
-                            Path to the output directory (will force create is not existed). If
-                            not specified, plots will be displayed and output will be printed.
-      --plot-raw-data       Plot the raw data.
+                            Path to the output directory (will force create is not existed).
+                            If not specified, plots will be displayed and output will be printed.
+      --plot-raw-data       Plot the raw data. This includes the raw opinion scores presented
+                            in a video-subject matrix, counts per video and counts per subject.
       --plot-dis-videos     Plot the subjective scores of the distorted videos.
       --plot-observers      Plot the scores of the observers.
 
 Below are two example usages::
 
     sureal --dataset resource/dataset/NFLX_dataset_public_raw_last4outliers.py --models MOS P910 \
-        --plot-dis-videos --plot-observers --output-dir ./output/NFLX_dataset_public_raw_last4outliers
+        --plot-raw-data --plot-dis-videos --plot-observers --output-dir ./output/NFLX_dataset_public_raw_last4outliers
     sureal --dataset resource/dataset/VQEGHD3_dataset_raw.py --models MOS P910 \
-        --plot-dis-videos --plot-observers --output-dir ./output/VQEGHD3_dataset_raw
+        --plot-raw-data --plot-dis-videos --plot-observers --output-dir ./output/VQEGHD3_dataset_raw
 
 Here ``--models`` are the available subjective models offered in the package, including:
 
