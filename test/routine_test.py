@@ -415,7 +415,7 @@ class RunSubjectiveModelsOnOverlapTest(MyTestCase):
                 dataset_filepath=self.dataset_filepath,
                 subjective_model_classes=[MosModel, SubjectMLEModelProjectionSolver],
             )
-        self.assertEqual(len(dataset.dis_videos), 79)
-        self.assertEqual(len(dataset.ref_videos), 9)
+        self.assertEqual(len(dataset.dis_videos), 51)
+        self.assertEqual(len(dataset.ref_videos), 7)
         self.assertEqual(len(subjective_models), 2)
         self.assertTrue(len(results) == 2)

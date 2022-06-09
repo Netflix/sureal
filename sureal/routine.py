@@ -1173,20 +1173,27 @@ def read_datasets_and_return_overlap(datasets_filepaths):
             raise AssertionError("Unknown input type, must be .py or .json")
 
     overlap = datasets[0]
+    overlap_vids = copy.deepcopy(overlap.dis_videos)
     for didx in range(1, len(datasets)):
         overlap.dataset_name += '_' + datasets[didx].dataset_name
         content_ids_in = []
 
         # check if the video in the first dataset is also in the second
         # if yes, merge their 'os', if not, remove the video from the overlap
-        for vid1 in overlap.dis_videos:
+        for vid1 in overlap_vids:
             vid1_in_dataset = 0
             for vid2 in datasets[didx].dis_videos:
                 if vid1['path'] == vid2['path']:
                     vid1_in_dataset = 1
                     if vid1['content_id'] not in content_ids_in:
                         content_ids_in.append(vid1['content_id'])
-                    vid1['os'].update(vid2['os'])
+                        assert type(vid1['os']) == type(vid2['os']), 'datasets have different os types'
+                        if isinstance(vid1['os'], dict):
+                            vid1['os'].update(vid2['os'])
+                        elif isinstance(vid1['os'], list):
+                            vid1['os'] += vid2['os']
+                        else:
+                            assert False, 'os can only be a dictionary or a list'
                     break
 
             if vid1_in_dataset == 0:
