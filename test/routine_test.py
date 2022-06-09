@@ -86,10 +86,19 @@ class RunSubjectiveModelsTest(MyTestCase):
             run_subjective_models(
                 dataset_filepath=self.dataset_filepath,
                 subjective_model_classes=[MosModel, SubjectMLEModelProjectionSolver],
-                do_plot=['raw_scores', 'quality_scores', 'subject_scores']
+                do_plot=[
+                    'raw_scores',
+                    'raw_counts',
+                    'raw_counts_per_subject',
+                    'raw_scores_minus_quality_scores',  # two plots
+                    'raw_scores_minus_quality_scores_and_observer_bias',  # one plot
+                    'quality_scores_vs_raw_scores',  # two plots
+                    'quality_scores',
+                    'subject_scores',
+                ]
             )
         DisplayConfig.show(write_to_dir=self.output_dir)
-        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 3)
+        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 10)
 
     def test_run_subjective_models_with_processed_output(self):
         with warnings.catch_warnings():
@@ -104,6 +113,11 @@ class RunSubjectiveModelsTest(MyTestCase):
             )
         output = format_output_of_run_subjective_models(dataset, subjective_models, results)
         self.assertAlmostEqual(output['stats']['models']['BR_SR_MOS']['aic'], 1.863316331686836, places=4)
+        self.assertAlmostEqual(output['observers'][0]['models']['Subject_MLE_Projection']['observer_inconsistency'], 0.5823933134761798, places=4)
+        self.assertAlmostEqual(output['observers'][0]['models']['Subject_MLE_Projection']['observer_inconsistency_std'], 0.046332724296959504, places=4)
+        self.assertAlmostEqual(output['observers'][0]['models']['Subject_MLE_Projection']['observer_inconsistency_ci95'][0], 0.07835936236184773, places=4)
+        self.assertAlmostEqual(output['observers'][0]['models']['Subject_MLE_Projection']['observer_scores_mean'], 3.3544303797468356, places=4)
+        self.assertAlmostEqual(output['observers'][0]['models']['Subject_MLE_Projection']['observer_scores_std'], 1.4323387503610767, places=4)
 
 
 class RunSubjectiveModelsTestDictStyle(MyTestCase):

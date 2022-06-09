@@ -9,20 +9,7 @@ from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader
 from sureal.pc_subjective_model import PairedCompSubjectiveModel
 from sureal.routine import run_subjective_models, \
     format_output_of_run_subjective_models
-from sureal.subjective_model import SubjectMLEModelProjectionSolver2, \
-    SubjrejMosModel, BiasremvSubjrejMosModel, SubjectiveModel
-
-
-class BT500Model(SubjrejMosModel):
-    TYPE = 'BT500'
-
-
-class P913124Model(BiasremvSubjrejMosModel):
-    TYPE = 'P913'
-
-
-class P910AnnexEModel(SubjectMLEModelProjectionSolver2):
-    TYPE = 'P910'
+from sureal.subjective_model import SubjectiveModel
 
 
 def main():
@@ -43,7 +30,8 @@ def main():
         required=False)
     parser.add_argument(
         "--plot-raw-data", dest="plot_raw_data", action='store_true',
-        help="Plot the raw data.",
+        help="Plot the raw data. This includes the raw opinion scores presented "
+             "in a video-subject matrix, counts per video and counts per subject.",
         required=False)
     parser.add_argument(
         "--plot-dis-videos", dest="plot_dis_videos", action='store_true',
@@ -60,14 +48,6 @@ def main():
     plot_raw_data = args.plot_raw_data
     plot_dis_videos = args.plot_dis_videos
     plot_observers = args.plot_observers
-
-    do_plot = []
-    if plot_raw_data:
-        do_plot.append('raw_scores')
-    if plot_dis_videos:
-        do_plot.append('quality_scores')
-    if plot_observers:
-        do_plot.append('subject_scores')
 
     ModelClasses = list()
     for model in models:
@@ -92,6 +72,17 @@ def main():
         DatasetReaderClass = RawDatasetReader
     else:
         DatasetReaderClass = PairedCompDatasetReader
+
+    do_plot = []
+    if plot_raw_data:
+        do_plot.append('raw_scores')
+        if is_all_subjective_model:
+            do_plot.append('raw_counts')
+            do_plot.append('raw_counts_per_subject')
+    if plot_dis_videos:
+        do_plot.append('quality_scores')
+    if plot_observers:
+        do_plot.append('subject_scores')
 
     dataset, subjective_models, results = run_subjective_models(
         dataset_filepath=dataset,

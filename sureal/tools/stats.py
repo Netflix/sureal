@@ -192,3 +192,11 @@ def get_pdf(data, bins=20, density=True):
     return pdf, bin_centres
 
 
+def histc(series):
+    dd = dict()
+    for x in series:
+        if np.isnan(x):
+            continue
+        dd.setdefault(x, 0)
+        dd[x] += 1
+    return dd

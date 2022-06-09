@@ -1,6 +1,7 @@
 import copy
 import math
 import os
+from typing import Union
 
 import numpy as np
 import scipy.stats
@@ -9,6 +10,7 @@ from sureal.config import SurealConfig
 from sureal.perf_metric import PccPerfMetric, SrccPerfMetric, RmsePerfMetric
 from sureal.subjective_model import SubjectiveModel
 from sureal.tools.decorator import persist_to_dir
+from sureal.tools.stats import histc
 
 try:
     from matplotlib import pyplot as plt
@@ -20,7 +22,8 @@ except (ImportError, RuntimeError):
 
 from sureal.dataset_reader import RawDatasetReader, PairedCompDatasetReader, \
     MissingDataRawDatasetReader, SelectSubjectRawDatasetReader
-from sureal.tools.misc import import_python_file, import_json_file, Timer
+from sureal.tools.misc import import_python_file, import_json_file, Timer, \
+    cmap_factory
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
 __license__ = "Apache, Version 2.0"
@@ -65,7 +68,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     else:
         ax_dict = {}
 
-    raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else 'gray'
+    raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else cmap_factory('red2green')
 
     raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
     assert len(raw_score_residue_range) == 2
@@ -101,18 +104,78 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     if do_plot == 'all' or 'raw_scores' in do_plot:
 
-        if 'ax_raw_scores' in ax_dict:
-            ax_rawscores = ax_dict['ax_raw_scores']
-        else:
-            _, ax_rawscores = plt.subplots(figsize=(5, 2.5))
-
         # TODO: visualize repetitions - currently taking mean over repetitions before plotting
         mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
+
+        if 'ax_raw_scores' in ax_dict:
+            ax_rawscores = ax_dict['ax_raw_scores']
+            fig = None
+        else:
+            n_subj, n_stim = mtx.shape
+            w, h = _get_imshow_width_and_height(n_subj, n_stim)
+            fig, ax_rawscores = plt.subplots(figsize=(w, h))
+
         im = ax_rawscores.imshow(mtx, interpolation='nearest', cmap=raw_score_cmap)
         ax_rawscores.set_title(r'Raw Opinion Scores ($u_{ij}$)')
         ax_rawscores.set_xlabel(r'Video Stimuli ($j$)')
         ax_rawscores.set_ylabel(r'Test Subjects ($i$)')
         plt.colorbar(im, ax=ax_rawscores)
+        if fig is not None:
+            fig.tight_layout()
+
+    if do_plot == 'all' or 'raw_counts' in do_plot:
+
+        # TODO: visualize repetitions - currently taking mean over repetitions before plotting
+        mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
+
+        if 'ax_raw_counts' in ax_dict:
+            ax_rawcounts = ax_dict['ax_raw_counts']
+            fig = None
+        else:
+            n_subj, n_stim = mtx.shape
+            w, h = _get_plot_width_and_height(n_stim)
+            fig, ax_rawcounts = plt.subplots(figsize=(w, h))
+
+        histcs = np.apply_along_axis(func1d=histc, axis=0, arr=mtx)
+        datas = list()
+        for ih, h in enumerate(histcs):
+            data = [(ih, k, h[k]) for k in sorted(h.keys())]
+            datas += data
+        xs, ys, vs = zip(*datas)
+        ax_rawcounts.scatter(xs, ys, s=np.array(vs) * 2, alpha=0.4)
+        ax_rawcounts.set_xlabel(r'Video Stimuli ($j$)')
+        ax_rawcounts.set_title(r'Raw Opinion Scores ($u_{ij}$) Counts')
+        ax_rawcounts.grid()
+        ax_rawcounts.set_xlim(0, len(histcs))
+        if fig is not None:
+            fig.tight_layout()
+
+    if do_plot == 'all' or 'raw_counts_per_subject' in do_plot:
+
+        # TODO: visualize repetitions - currently taking mean over repetitions before plotting
+        mtx = np.nanmean(dataset_reader.opinion_score_3darray, axis=2).T
+
+        if 'raw_counts_per_subject' in ax_dict:
+            ax_rawcounts_per_subject = ax_dict['raw_counts_per_subject']
+            fig = None
+        else:
+            n_subj, n_stim = mtx.shape
+            w, h = _get_plot_width_and_height(n_subj)
+            fig, ax_rawcounts_per_subject = plt.subplots(figsize=(w, h))
+
+        histcs = np.apply_along_axis(func1d=histc, axis=1, arr=mtx)
+        datas = list()
+        for ih, h in enumerate(histcs):
+            data = [(ih, k, h[k]) for k in sorted(h.keys())]
+            datas += data
+        xs, ys, vs = zip(*datas)
+        ax_rawcounts_per_subject.scatter(xs, ys, s=np.array(vs) * 2, alpha=0.4)
+        ax_rawcounts_per_subject.set_xlabel(r'Test Subjects ($i$)')
+        ax_rawcounts_per_subject.set_title(r'Raw Opinion Scores ($u_{ij}$) Counts')
+        ax_rawcounts_per_subject.grid()
+        ax_rawcounts_per_subject.set_xlim(0, len(histcs))
+        if fig is not None:
+            fig.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores' in do_plot:
 
@@ -121,15 +184,18 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
 
-                if 'ax_raw_scores_minus_quality_scores' in ax_dict:
-                    ax_raw_scores_minus_quality_scores = ax_dict['ax_raw_scores_minus_quality_scores']
-                else:
-                    _, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(5, 2.5))
-
                 # TODO: visualize repetitions - currently taking mean over repetitions before plotting
                 mtx = dataset_reader.opinion_score_3darray
-                mtx = mtx - quality_scores[:, None, None]
+                mtx = mtx - np.array(quality_scores)[:, None, None]
                 mtx = np.nanmean(mtx, axis=2).T
+
+                if 'ax_raw_scores_minus_quality_scores' in ax_dict:
+                    ax_raw_scores_minus_quality_scores = ax_dict['ax_raw_scores_minus_quality_scores']
+                    fig = None
+                else:
+                    w, h = _get_imshow_width_and_height(*mtx.shape)
+                    fig, ax_raw_scores_minus_quality_scores = plt.subplots(figsize=(w, h))
+
                 im = ax_raw_scores_minus_quality_scores.imshow(mtx, interpolation='nearest',
                                                                vmin=raw_score_residue_range[0], vmax=raw_score_residue_range[1],
                                                                cmap=raw_score_cmap)
@@ -137,6 +203,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_raw_scores_minus_quality_scores.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores)
+                if fig is not None:
+                    fig.tight_layout()
 
     if do_plot == 'all' or 'raw_scores_minus_quality_scores_and_observer_bias' in do_plot:
 
@@ -146,16 +214,19 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
 
-                if 'ax_raw_scores_minus_quality_scores_and_observer_bias' in ax_dict:
-                    ax_raw_scores_minus_quality_scores_and_observer_bias = ax_dict['ax_raw_scores_minus_quality_scores_and_observer_bias']
-                else:
-                    _, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(5, 2.5))
-
                 # TODO: visualize repetitions - currently taking mean over repetitions before plotting
                 mtx = dataset_reader.opinion_score_3darray
-                mtx = mtx - quality_scores[:, None, None]
-                mtx = mtx - observer_bias[None, :, None]
+                mtx = mtx - np.array(quality_scores)[:, None, None]
+                mtx = mtx - np.array(observer_bias)[None, :, None]
                 mtx = np.nanmean(mtx, axis=2).T
+
+                if 'ax_raw_scores_minus_quality_scores_and_observer_bias' in ax_dict:
+                    ax_raw_scores_minus_quality_scores_and_observer_bias = ax_dict['ax_raw_scores_minus_quality_scores_and_observer_bias']
+                    fig = None
+                else:
+                    w, h = _get_imshow_width_and_height(*mtx.shape)
+                    fig, ax_raw_scores_minus_quality_scores_and_observer_bias = plt.subplots(figsize=(w, h))
+
                 im = ax_raw_scores_minus_quality_scores_and_observer_bias.imshow(mtx, interpolation='nearest',
                                                                                  vmin=raw_score_residue_range[0], vmax=raw_score_residue_range[1],
                                                                                  cmap=raw_score_cmap)
@@ -163,6 +234,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_xlabel(r'Video Stimuli ($j$)')
                 ax_raw_scores_minus_quality_scores_and_observer_bias.set_ylabel(r'Test Subjects ($i$)')
                 plt.colorbar(im, ax=ax_raw_scores_minus_quality_scores_and_observer_bias)
+                if fig is not None:
+                    fig.tight_layout()
 
     if do_plot == 'all' or 'quality_scores_vs_raw_scores' in do_plot:
 
@@ -177,13 +250,11 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         nrows = int(math.floor(math.sqrt(num_obs)))
         ncols = int(math.ceil(num_obs / float(nrows)))
 
-        fig, axs = plt.subplots(figsize=(ncols*4,nrows*4), ncols=ncols, nrows=nrows)
-
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result:
+                fig, axs = plt.subplots(figsize=(ncols * 4, nrows * 4), ncols=ncols, nrows=nrows)
                 quality_scores = result['quality_scores']
                 label = subjective_model.TYPE
-
                 for i_obs in range(num_obs):
                     assert num_obs > 1
                     ax = axs.flatten()[i_obs]
@@ -197,8 +268,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
                     ax.set_ylabel('Recovered Quality Score ($\psi_j$)')
                     ax.legend()
                     ax.grid()
-
-        plt.tight_layout()
+                fig.tight_layout()
 
     if do_plot == 'all' or 'quality_scores' in do_plot:
         # ===== plot quality scores =====
@@ -206,8 +276,15 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         if 'ax_quality_scores' in ax_dict:
             ax_quality = ax_dict['ax_quality_scores']
+            fig = None
         else:
-            _, ax_quality = plt.subplots(figsize=(10, 2.5), nrows=1)
+            cols = None
+            for result in results:
+                if 'quality_scores' in result:
+                    cols = len(result['quality_scores'])
+                    break
+            w, h = _get_plot_width_and_height(cols)
+            fig, ax_quality = plt.subplots(figsize=(w, h), nrows=1)
 
         shift_count = 0
         for subjective_model, result in zip(subjective_models, results):
@@ -252,7 +329,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         ax_quality.grid()
         ax_quality.legend(ncol=2, frameon=True)
-        plt.tight_layout()
+        if fig is not None:
+            fig.tight_layout()
 
     if do_plot == 'all' or 'subject_scores' in do_plot:
 
@@ -261,8 +339,16 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         if 'ax_observer_bias' in ax_dict and 'ax_observer_inconsistency' in ax_dict:
             ax_bias = ax_dict['ax_observer_bias']
             ax_inconsty = ax_dict['ax_observer_inconsistency']
+            fig = None
         else:
-            _, (ax_bias, ax_inconsty) = plt.subplots(figsize=(5, 3.5), nrows=2, ncols=1, sharex=True)
+            cols = None
+            for result in results:
+                if 'observer_bias' in result:
+                    cols = len(result['observer_bias'])
+                    break
+            w, h = _get_plot_width_and_height(cols)
+            h = h * 2 + 2
+            fig, (ax_bias, ax_inconsty) = plt.subplots(figsize=(w, h), nrows=2, ncols=1, sharex=True)
 
         if 'ax_rejected' in ax_dict:
             ax_rejected = ax_dict['ax_rejected']
@@ -424,7 +510,8 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             ax_rejected_1st_stats.grid()
         if ax_rejected_2nd_stats is not None:
             ax_rejected_2nd_stats.grid()
-        plt.tight_layout()
+        if fig is not None:
+            fig.tight_layout()
 
     if do_plot == 'all' or 'content_scores' in do_plot:
 
@@ -433,8 +520,15 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
         if 'ax_content_ambiguity' in ax_dict:
             ax_ambgty = ax_dict['ax_content_ambiguity']
+            fig = None
         else:
-            _, ax_ambgty = plt.subplots(figsize=(5, 3.5), nrows=1)
+            cols = None
+            for result in results:
+                if 'content_ambiguity' in result:
+                    cols = len(result['content_ambiguity'])
+                    break
+            w, h = _get_plot_width_and_height(cols)
+            fig, ax_ambgty = plt.subplots(figsize=(w, h), nrows=1)
         xs = None
         shift_count = 0
         for subjective_model, result in zip(subjective_models, results):
@@ -479,9 +573,29 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             plt.sca(ax_ambgty)
             plt.xticks(np.array(xs) + 0.01, my_xticks, rotation=rotation)
         ax_ambgty.legend(ncol=2, frameon=True)
-        plt.tight_layout()
+        if fig is not None:
+            fig.tight_layout()
 
     return dataset, subjective_models, results
+
+
+def _get_imshow_width_and_height(rows, cols):
+    w, h = cols / 30, rows / 30
+    if w > 100:
+        x = w // 100
+        w, h = w / x, h / x
+    if h > 100:
+        x = h // 100
+        w, h = w / x, h / x
+    w, h = w + 2, h + 2
+    return w, h
+
+
+def _get_plot_width_and_height(num: Union[int, None]) -> [int, int]:
+    if num is None:
+        return 10, 3
+    else:
+        return max(np.sqrt(num) + 2, 10), 3
 
 
 def format_output_of_run_subjective_models(dataset, subjective_models, results):
@@ -507,6 +621,17 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
             if 'observer_bias_ci95' in result:
                 assert len(result['observer_bias_ci95']) == 2
                 assert len(result['observer_bias']) == len(list(zip(*result['observer_bias_ci95'])))
+            if 'observer_inconsistency' in result:
+                assert len(result['observer_bias']) == len(result['observer_inconsistency'])
+            if 'observer_inconsistency_std' in result:
+                assert len(result['observer_bias']) == len(result['observer_inconsistency_std'])
+            if 'observer_inconsistency_ci95' in result:
+                assert len(result['observer_inconsistency_ci95']) == 2
+                assert len(result['observer_bias']) == len(list(zip(*result['observer_inconsistency_ci95'])))
+            if 'observer_scores_mean' in result:
+                assert len(result['observer_bias']) == len(result['observer_scores_mean'])
+            if 'observer_scores_std' in result:
+                assert len(result['observer_bias']) == len(result['observer_scores_std'])
 
         if 'content_ambiguity' in result:
             dict_contentid_content = dict()
@@ -552,6 +677,21 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
             if 'observer_bias_ci95' in result:
                 for idx, observer_bias_ci95 in enumerate(list(zip(*result['observer_bias_ci95']))):
                     output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_bias_ci95'] = observer_bias_ci95
+            if 'observer_inconsistency' in result:
+                for idx, observer_inconsistency in enumerate(result['observer_inconsistency']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_inconsistency'] = observer_inconsistency
+            if 'observer_inconsistency_std' in result:
+                for idx, observer_inconsistency_std in enumerate(result['observer_inconsistency_std']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_inconsistency_std'] = observer_inconsistency_std
+            if 'observer_inconsistency_ci95' in result:
+                for idx, observer_inconsistency_ci95 in enumerate(list(zip(*result['observer_inconsistency_ci95']))):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_inconsistency_ci95'] = observer_inconsistency_ci95
+            if 'observer_scores_mean' in result:
+                for idx, observer_scores_mean in enumerate(result['observer_scores_mean']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_scores_mean'] = observer_scores_mean
+            if 'observer_scores_std' in result:
+                for idx, observer_scores_std in enumerate(result['observer_scores_std']):
+                    output.setdefault('observers', dict()).setdefault(idx, dict()).setdefault('models', dict()).setdefault(subjective_model.TYPE, dict())['observer_scores_std'] = observer_scores_std
 
         if 'content_ambiguity' in result:
             if 'contents' in result:
