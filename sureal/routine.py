@@ -72,12 +72,15 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     colors = ['black', 'gray', 'blue', 'red'] * 2
 
-    if dataset_filepath.endswith('.py'):
-        dataset = import_python_file(dataset_filepath)
-    elif dataset_filepath.endswith('.json'):
-        dataset = import_json_file(dataset_filepath)
+    if isinstance(dataset_filepath, list):
+        dataset = read_datasets_and_return_overlap(dataset_filepath)
     else:
-        raise AssertionError("Unknown input type, must be .py or .json")
+        if dataset_filepath.endswith('.py'):
+            dataset = import_python_file(dataset_filepath)
+        elif dataset_filepath.endswith('.json'):
+            dataset = import_json_file(dataset_filepath)
+        else:
+            raise AssertionError("Unknown input type, must be .py or .json")
     dataset_reader = dataset_reader_class(dataset, input_dict=dataset_reader_info_dict)
 
     subjective_models = [
@@ -583,7 +586,10 @@ def format_output_of_run_subjective_models(dataset, subjective_models, results):
 
 def visualize_pc_dataset(dataset_filepath):
 
-    dataset = import_python_file(dataset_filepath)
+    if isinstance(dataset_filepath, list):
+        dataset = read_datasets_and_return_overlap(dataset_filepath)
+    else:
+        dataset = import_python_file(dataset_filepath)
     dataset_reader = PairedCompDatasetReader(dataset)
     tensor_pvs_pvs_subject = dataset_reader.opinion_score_3darray
 
@@ -1008,3 +1014,47 @@ def _get_sample_stats_wrapper(dataset, subj_fraction, model, random_seed):
 @persist_to_dir(SurealConfig.workdir_path('_get_sample_stats_wrapper'))
 def _get_sample_stats_wrapper_persistent(dataset, subj_fraction, model, random_seed):
     return _get_sample_stats_wrapper(dataset, subj_fraction, model, random_seed)
+
+
+def read_datasets_and_return_overlap(datasets_filepaths):
+    """
+    A function to read multiple datasets from their filepaths and return their overlap
+    (merging 'os' for matching dis_videos[path])
+    """
+    assert len(datasets_filepaths) > 1, "at least two dataset filepaths need to be defined"
+
+    datasets = []
+    for dataset_filepath in datasets_filepaths:
+        if dataset_filepath.endswith('.py'):
+            datasets.append(import_python_file(dataset_filepath))
+        elif dataset_filepath.endswith('.json'):
+            datasets.append(import_json_file(dataset_filepath))
+        else:
+            raise AssertionError("Unknown input type, must be .py or .json")
+
+    overlap = datasets[0]
+    for didx in range(1, len(datasets)):
+        overlap.dataset_name += '_' + datasets[didx].dataset_name
+        content_ids_in = []
+
+        # check if the video in the first dataset is also in the second
+        # if yes, merge their 'os', if not, remove the video from the overlap
+        for vid1 in overlap.dis_videos:
+            vid1_in_dataset = 0
+            for vid2 in datasets[didx].dis_videos:
+                if vid1['path'] == vid2['path']:
+                    vid1_in_dataset = 1
+                    if vid1['content_id'] not in content_ids_in:
+                        content_ids_in.append(vid1['content_id'])
+                    vid1['os'].update(vid2['os'])
+                    break
+
+            if vid1_in_dataset == 0:
+                overlap.dis_videos.remove(vid1)
+
+        # remove the ref_videos that
+        for c in overlap.ref_videos:
+            if c['content_id'] not in content_ids_in:
+                overlap.ref_videos.remove(c)
+
+    return overlap
