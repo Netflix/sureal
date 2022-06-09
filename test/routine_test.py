@@ -378,3 +378,30 @@ class PlotScatterTargetVsComparedModelsTest(MyTestCase):
             )
         DisplayConfig.show(write_to_dir=self.output_dir)
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
+
+
+class RunSubjectiveModelsOnOverlapTest(MyTestCase):
+
+    def setUp(self):
+        super().setUp()
+        plt.close('all')
+        self.dataset_filepath = [SurealConfig.test_resource_path('NFLX_dataset_public_raw.py'),
+                                 SurealConfig.test_resource_path('NFLX_dataset_public_raw_PARTIAL.py')]
+        self.output_dir = SurealConfig.workdir_path('routine_test')
+
+    def tearDown(self):
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+        super().tearDown()
+
+    def test_run_subjective_models(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            dataset, subjective_models, results = run_subjective_models(
+                dataset_filepath=self.dataset_filepath,
+                subjective_model_classes=[MosModel, SubjectMLEModelProjectionSolver],
+            )
+        self.assertEqual(len(dataset.dis_videos), 79)
+        self.assertEqual(len(dataset.ref_videos), 9)
+        self.assertEqual(len(subjective_models), 2)
+        self.assertTrue(len(results) == 2)
