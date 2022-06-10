@@ -1173,35 +1173,38 @@ def read_datasets_and_return_overlap(datasets_filepaths):
             raise AssertionError("Unknown input type, must be .py or .json")
 
     overlap = datasets[0]
-    overlap_vids = copy.deepcopy(overlap.dis_videos)
     for didx in range(1, len(datasets)):
         overlap.dataset_name += '_' + datasets[didx].dataset_name
+        assets_in = []
         content_ids_in = []
 
         # check if the video in the first dataset is also in the second
-        # if yes, merge their 'os', if not, remove the video from the overlap
-        for vid1 in overlap_vids:
-            vid1_in_dataset = 0
+        # if yes, merge their 'os'
+        for vidx, vid1 in enumerate(overlap.dis_videos):
             for vid2 in datasets[didx].dis_videos:
                 if vid1['path'] == vid2['path']:
-                    vid1_in_dataset = 1
                     if vid1['content_id'] not in content_ids_in:
                         content_ids_in.append(vid1['content_id'])
-                        assert type(vid1['os']) == type(vid2['os']), 'datasets have different os types'
-                        if isinstance(vid1['os'], dict):
-                            vid1['os'].update(vid2['os'])
-                        elif isinstance(vid1['os'], list):
-                            vid1['os'] += vid2['os']
-                        else:
-                            assert False, 'os can only be a dictionary or a list'
+
+                    assert type(vid1['os']) == type(vid2['os']), 'datasets have different os types'
+                    if isinstance(vid1['os'], dict):
+                        vid1['os'].update(vid2['os'])
+                    elif isinstance(vid1['os'], list):
+                        vid1['os'] += vid2['os']
+                    else:
+                        assert False, 'os can only be dictionary or a list'
+
+                    assets_in.append(vidx)
+
                     break
 
-            if vid1_in_dataset == 0:
-                overlap.dis_videos.remove(vid1)
+        overlap.dis_videos = list(np.array(overlap.dis_videos)[assets_in])
 
-        # remove the ref_videos that
-        for c in overlap.ref_videos:
-            if c['content_id'] not in content_ids_in:
-                overlap.ref_videos.remove(c)
+        refs_in = []
+        for cidx, c in enumerate(overlap.ref_videos):
+            if c['content_id'] in content_ids_in:
+                refs_in.append(cidx)
+
+        overlap.ref_videos = list(np.array(overlap.ref_videos)[refs_in])
 
     return overlap
