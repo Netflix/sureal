@@ -60,12 +60,15 @@ class RawDatasetReaderTest2(unittest.TestCase):
         dataset_filepath1 = SurealConfig.test_resource_path('test_dataset_os_as_dict.py')
         dataset_filepath2 = SurealConfig.test_resource_path('test_dataset_os_as_dict_with_repetitions.py')
         dataset_filepath3 = SurealConfig.test_resource_path('test_dataset_os_as_list_with_repetitions.py')
+        dataset_filepath4 = SurealConfig.test_resource_path('test_dataset_os_as_dict2.py')
         self.dataset1 = import_python_file(dataset_filepath1)
         self.dataset2 = import_python_file(dataset_filepath2)
         self.dataset3 = import_python_file(dataset_filepath3)
+        self.dataset4 = import_python_file(dataset_filepath4)
         self.dataset_reader1 = RawDatasetReader(self.dataset1)
         self.dataset_reader2 = RawDatasetReader(self.dataset2)
         self.dataset_reader3 = RawDatasetReader(self.dataset3)
+        self.dataset_reader4 = RawDatasetReader(self.dataset4)
 
     def test_read_dataset_stats(self):
         self.assertEqual(self.dataset_reader1.num_ref_videos, 2)
@@ -98,6 +101,14 @@ class RawDatasetReaderTest2(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_3darray3, axis=1))), 0.6351558064628366, places=4)
+
+    def test_combine_overlap(self):
+        self.combined_overlap_dataset12 = self.dataset_reader1.to_combined_overlap_dataset(self.dataset_reader2)
+        self.combined_overlap_dataset21 = self.dataset_reader2.to_combined_overlap_dataset(self.dataset_reader1)
+        self.combined_overlap_dataset13 = self.dataset_reader1.to_combined_overlap_dataset(self.dataset_reader3)
+        self.combined_overlap_dataset31 = self.dataset_reader3.to_combined_overlap_dataset(self.dataset_reader1)
+        self.combined_overlap_dataset14 = self.dataset_reader1.to_combined_overlap_dataset(self.dataset_reader4)
+        self.combined_overlap_dataset41 = self.dataset_reader4.to_combined_overlap_dataset(self.dataset_reader1)
 
 
 class RawDatasetReaderPartialTest(unittest.TestCase):
