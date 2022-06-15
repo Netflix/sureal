@@ -111,7 +111,7 @@ class DatasetReader(object):
 class RawDatasetReader(DatasetReader):
     """
     Reader for a subjective quality test dataset with raw scores (dis_video must
-    has key of 'os' (opinion score)).
+    have key of 'os' (opinion score)).
     """
 
     def _assert_dataset(self):
@@ -520,6 +520,68 @@ class RawDatasetReader(DatasetReader):
     def to_pc_dataset_file(self, dataset_filepath, **kwargs):
         pc_dataset = self.to_pc_dataset(**kwargs)
         self.write_out_dataset(pc_dataset, dataset_filepath)
+
+    def to_combined_overlap_dataset(self, second_dataset_reader, **kwargs):
+        """
+        A function to find an overlap between self.dataset and the second dataset and combine the scores for the
+        overlapping videos. The overlap is determined by matching paths.
+        """
+        assert type(second_dataset_reader).__name__ is 'RawDatasetReader', 'RawDatasetReader can only be combined ' \
+                                                                           'with another RawDatasetReader'
+
+        newone = self._prepare_new_dataset(kwargs)
+        newone.ref_videos = []
+        newone.dis_videos = []
+
+        content_ids_in = []
+        warning_printed = False
+        for vid1 in self.dataset.dis_videos:
+            for vid2 in second_dataset_reader.dataset.dis_videos:
+                if vid1['path'] == vid2['path']:  # TODO: Perhaps worth modifying so that the path does not need to match exactly
+
+                    # if the reference video isn't already in the newone.ref_videos then add it
+                    if vid1['content_id'] not in content_ids_in:
+                        content_ids_in.append(vid1['content_id'])
+                        for ref in self.dataset.ref_videos:
+                            if ref['content_id'] == vid1['content_id']:
+                                newone.ref_videos.append(copy.deepcopy(ref))
+                                break
+
+                    new_dis_video = copy.deepcopy(vid1)
+                    if isinstance(vid1['os'], dict):
+                        if isinstance(vid2['os'], dict):  # both datasets have 'os' as dictionary
+                            for key in vid2['os']:
+                                if key in new_dis_video['os'].keys():  # the same subject is in both datasets
+                                    if isinstance(new_dis_video['os'][key], list):  # first dataset has repetitions
+                                        if isinstance(vid2['os'][key], list):  # second dataset has repetitions
+                                            new_dis_video['os'][key] += vid2['os'][key]
+                                        else:  # second dataset doesn't have repetitions
+                                            new_dis_video['os'][key].append(vid2['os'][key])
+                                else:  # first dataset doesn't have repetitions
+                                    if isinstance(vid2['os'][key], list):  # second dataset has repetitions
+                                        new_dis_video['os'][key] = [vid1['os'][key]] + vid2['os'][key]
+                                    else:  # second dataset doesn't have repetitions
+                                        new_dis_video['os'][key] = [vid1['os'][key], vid2['os'][key]]
+
+                        else:
+                            if warning_printed is False:
+                                print("Warning: 'os' in the second dataset is not a dictionary, 'os' in the "
+                                      "combined dataset will be a list.")
+                                warning_printed = True
+
+                            new_dis_video['os'] = list(vid1['os'].values()) + list(vid2['os'])
+                    else:
+                        if isinstance(vid2['os'], dict):  # only second dataset has 'os' as dictionary
+                            new_dis_video['os'] = list(vid1['os']) + list(vid2['os'].values)
+                        else:  # neither dataset has 'os' as dictionary
+                            new_dis_video['os'] = list(vid1['os']) + list(vid2['os'])
+
+                    newone.dis_videos.append(new_dis_video)
+        return newone
+
+    def to_combined_overlap_dataset_file(self, output_dataset_filepath, second_dataset_filepath, **kwargs):
+        combined_overlap_dataset = self.to_combined_overlap_dataset(second_dataset_filepath, **kwargs)
+        self.write_out_dataset(combined_overlap_dataset, output_dataset_filepath)
 
 
 class MockedRawDatasetReader(RawDatasetReader):
@@ -964,4 +1026,7 @@ class PairedCompDatasetReader(RawDatasetReader):
         raise NotImplementedError
 
     def to_persubject_dataset(self, quality_scores, **kwargs):
+        raise NotImplementedError
+
+    def to_combined_overlap_dataset(self, second_dataset_filepath, **kwargs):
         raise NotImplementedError
