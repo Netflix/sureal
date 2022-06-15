@@ -526,7 +526,7 @@ class RawDatasetReader(DatasetReader):
         A function to find an overlap between self.dataset and the second dataset and combine the scores for the
         overlapping videos. The overlap is determined by matching paths.
         """
-        assert type(second_dataset_reader).__name__ is 'RawDatasetReader', 'RawDatasetReader can only be combined ' \
+        assert type(second_dataset_reader).__name__ == 'RawDatasetReader', 'RawDatasetReader can only be combined ' \
                                                                            'with another RawDatasetReader'
 
         newone = self._prepare_new_dataset(kwargs)
@@ -542,12 +542,18 @@ class RawDatasetReader(DatasetReader):
                     # if the reference video isn't already in the newone.ref_videos then add it
                     if vid1['content_id'] not in content_ids_in:
                         content_ids_in.append(vid1['content_id'])
+                        new_content_id = content_ids_in.index(vid1['content_id'])
                         for ref in self.dataset.ref_videos:
                             if ref['content_id'] == vid1['content_id']:
-                                newone.ref_videos.append(copy.deepcopy(ref))
+                                new_ref = copy.deepcopy(ref)
+                                new_ref['content_id'] = new_content_id
+                                newone.ref_videos.append(new_ref)
                                 break
+                    else:
+                        new_content_id = content_ids_in.index(vid1['content_id'])
 
                     new_dis_video = copy.deepcopy(vid1)
+                    new_dis_video['content_id'] = new_content_id
                     if isinstance(vid1['os'], dict):
                         if isinstance(vid2['os'], dict):  # both datasets have 'os' as dictionary
                             for key in vid2['os']:
@@ -557,11 +563,13 @@ class RawDatasetReader(DatasetReader):
                                             new_dis_video['os'][key] += vid2['os'][key]
                                         else:  # second dataset doesn't have repetitions
                                             new_dis_video['os'][key].append(vid2['os'][key])
-                                else:  # first dataset doesn't have repetitions
-                                    if isinstance(vid2['os'][key], list):  # second dataset has repetitions
-                                        new_dis_video['os'][key] = [vid1['os'][key]] + vid2['os'][key]
-                                    else:  # second dataset doesn't have repetitions
-                                        new_dis_video['os'][key] = [vid1['os'][key], vid2['os'][key]]
+                                    else:  # first dataset doesn't have repetitions
+                                        if isinstance(vid2['os'][key], list):  # second dataset has repetitions
+                                            new_dis_video['os'][key] = [vid1['os'][key]] + vid2['os'][key]
+                                        else:  # second dataset doesn't have repetitions
+                                            new_dis_video['os'][key] = [vid1['os'][key], vid2['os'][key]]
+                                else:  # the subject is only in the second dataset, add her/his score(s)
+                                    new_dis_video['os'][key] = vid2['os'][key]
 
                         else:
                             if warning_printed is False:
@@ -572,7 +580,7 @@ class RawDatasetReader(DatasetReader):
                             new_dis_video['os'] = list(vid1['os'].values()) + list(vid2['os'])
                     else:
                         if isinstance(vid2['os'], dict):  # only second dataset has 'os' as dictionary
-                            new_dis_video['os'] = list(vid1['os']) + list(vid2['os'].values)
+                            new_dis_video['os'] = list(vid1['os']) + list(vid2['os'].values())
                         else:  # neither dataset has 'os' as dictionary
                             new_dis_video['os'] = list(vid1['os']) + list(vid2['os'])
 
