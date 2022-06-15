@@ -587,8 +587,8 @@ class RawDatasetReader(DatasetReader):
                     newone.dis_videos.append(new_dis_video)
         return newone
 
-    def to_combined_overlap_dataset_file(self, output_dataset_filepath, second_dataset_filepath, **kwargs):
-        combined_overlap_dataset = self.to_combined_overlap_dataset(second_dataset_filepath, **kwargs)
+    def to_combined_overlap_dataset_file(self, output_dataset_filepath, second_dataset_reader, **kwargs):
+        combined_overlap_dataset = self.to_combined_overlap_dataset(second_dataset_reader, **kwargs)
         self.write_out_dataset(combined_overlap_dataset, output_dataset_filepath)
 
 
