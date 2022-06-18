@@ -286,12 +286,16 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             w, h = _get_plot_width_and_height(cols)
             fig, ax_quality = plt.subplots(figsize=(w, h), nrows=1)
 
+        if sort_quality_scores:
+            order = np.argsort(results[0]['quality_scores'])
+        else:
+            order = np.arange(len(results[0]['quality_scores']))
+
         shift_count = 0
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result:
-                quality = copy.deepcopy(result['quality_scores'])
-                if sort_quality_scores:
-                    quality.sort()
+                quality = np.array(result['quality_scores'])
+                quality = list(quality[order])
                 xs = range(len(quality))
 
                 label = subjective_model.TYPE
