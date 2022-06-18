@@ -71,6 +71,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     raw_score_cmap = kwargs['raw_score_cmap'] if 'raw_score_cmap' in kwargs else cmap_factory('red2green')
 
     raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
+
+    sort_quality_scores = kwargs['sort_quality_scores'] if 'sort_quality_scores' in kwargs else False
+
     assert len(raw_score_residue_range) == 2
 
     colors = ['black', 'gray', 'blue', 'red'] * 2
@@ -286,7 +289,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
         shift_count = 0
         for subjective_model, result in zip(subjective_models, results):
             if 'quality_scores' in result:
-                quality = result['quality_scores']
+                quality = copy.deepcopy(result['quality_scores'])
+                if sort_quality_scores:
+                    quality.sort()
                 xs = range(len(quality))
 
                 label = subjective_model.TYPE
