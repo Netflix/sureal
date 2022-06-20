@@ -72,8 +72,9 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
 
     raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
 
-    sort_quality_scores = kwargs['sort_quality_scores'] if 'sort_quality_scores' in kwargs else False
-    assert isinstance(sort_quality_scores, bool), 'sort_qualiy_scores need to be True or False'
+    sort_quality_scores_in_plot = kwargs['sort_quality_scores_in_plot'] if 'sort_quality_scores_in_plot' in kwargs \
+        else False
+    assert isinstance(sort_quality_scores_in_plot, bool), 'sort_quality_scores_in_plot need to be True or False'
 
     assert len(raw_score_residue_range) == 2
 
@@ -287,7 +288,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
             w, h = _get_plot_width_and_height(cols)
             fig, ax_quality = plt.subplots(figsize=(w, h), nrows=1)
 
-        if sort_quality_scores:
+        if sort_quality_scores_in_plot:
             order = np.argsort(results[0]['quality_scores'])
         else:
             order = np.arange(len(results[0]['quality_scores']))
