@@ -394,7 +394,7 @@ class PlotScatterTargetVsComparedModelsTest(MyTestCase):
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
 
 
-class PlotSortedQualityScores(MyTestCase):
+class PlotSortedQualityScoresTest(MyTestCase):
 
     def setUp(self):
         super().setUp()
