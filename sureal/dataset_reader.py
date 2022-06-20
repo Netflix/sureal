@@ -526,8 +526,8 @@ class RawDatasetReader(DatasetReader):
         A function to find an overlap between self.dataset and the second dataset and combine the scores for the
         overlapping videos. The overlap is determined by matching paths.
         """
-        assert type(second_dataset_reader).__name__ == 'RawDatasetReader', 'RawDatasetReader can only be combined ' \
-                                                                           'with another RawDatasetReader'
+        assert isinstance(second_dataset_reader, RawDatasetReader), 'RawDatasetReader can only be combined with ' \
+                                                                    'another RawDatasetReader'
 
         newone = self._prepare_new_dataset(kwargs)
         newone.ref_videos = []
