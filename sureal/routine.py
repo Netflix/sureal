@@ -73,6 +73,7 @@ def run_subjective_models(dataset_filepath, subjective_model_classes, do_plot=No
     raw_score_residue_range = kwargs['raw_score_residue_range'] if 'raw_score_residue_range' in kwargs else [None, None]
 
     sort_quality_scores = kwargs['sort_quality_scores'] if 'sort_quality_scores' in kwargs else False
+    assert isinstance(sort_quality_scores, bool), 'sort_qualiy_scores need to be True or False'
 
     assert len(raw_score_residue_range) == 2
 
