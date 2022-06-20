@@ -208,6 +208,49 @@ class RawDatasetReaderCombinedOverlapTest(unittest.TestCase):
         self.assertEqual(os_3darray41[0][4][1], 3)
 
 
+class RawDatasetReaderDictionaryStyleTest(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath_dict = SurealConfig.test_resource_path('test_dataset_os_as_dict.py')
+        dataset_filepath_list = SurealConfig.test_resource_path('test_dataset_os_as_list_with_repetitions.py')
+        dataset_dict = import_python_file(dataset_filepath_dict)
+        dataset_list = import_python_file(dataset_filepath_list)
+        self.dataset_reader_dict = RawDatasetReader(dataset_dict)
+        self.dataset_reader_list = RawDatasetReader(dataset_list)
+
+    def test_dict_to_dict_style(self):
+        dataset = self.dataset_reader_dict.to_dictionary_style_dataset()
+        dataset_reader = RawDatasetReader(dataset)
+        os_3darray = dataset_reader.opinion_score_3darray
+
+        self.assertEqual(float(np.nanmean(os_3darray)),
+                         float(np.nanmean(self.dataset_reader_dict.opinion_score_3darray)))
+        self.assertEqual(float(np.nanstd(os_3darray)),
+                         float(np.nanstd(self.dataset_reader_dict.opinion_score_3darray)))
+        self.assertEqual(float(np.nansum(os_3darray)),
+                         float(np.nansum(self.dataset_reader_dict.opinion_score_3darray)))
+
+        self.assertDictEqual(dataset.dis_videos[0]['os'], self.dataset_reader_dict.dataset.dis_videos[0]['os'])
+        self.assertDictEqual(dataset.dis_videos[1]['os'], self.dataset_reader_dict.dataset.dis_videos[1]['os'])
+        self.assertDictEqual(dataset.dis_videos[2]['os'], self.dataset_reader_dict.dataset.dis_videos[2]['os'])
+
+    def test_list_to_dict_style(self):
+        dataset = self.dataset_reader_list.to_dictionary_style_dataset()
+        dataset_reader = RawDatasetReader(dataset)
+        os_3darray = dataset_reader.opinion_score_3darray
+
+        self.assertEqual(float(np.nanmean(os_3darray)),
+                         float(np.nanmean(self.dataset_reader_list.opinion_score_3darray)))
+        self.assertEqual(float(np.nanstd(os_3darray)),
+                         float(np.nanstd(self.dataset_reader_list.opinion_score_3darray)))
+        self.assertEqual(float(np.nansum(os_3darray)),
+                         float(np.nansum(self.dataset_reader_list.opinion_score_3darray)))
+
+        self.assertIsInstance(dataset.dis_videos[0]['os'], dict)
+        self.assertIsInstance(dataset.dis_videos[1]['os'], dict)
+        self.assertIsInstance(dataset.dis_videos[2]['os'], dict)
+
+
 class RawDatasetReaderPartialTest(unittest.TestCase):
 
     def setUp(self):

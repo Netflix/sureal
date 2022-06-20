@@ -591,6 +591,34 @@ class RawDatasetReader(DatasetReader):
         combined_overlap_dataset = self.to_combined_overlap_dataset(second_dataset_reader, **kwargs)
         self.write_out_dataset(combined_overlap_dataset, output_dataset_filepath)
 
+    def to_dictionary_style_dataset(self, **kwargs):
+        if isinstance(self.dis_videos[0]['os'], dict):
+            newone = self.dataset
+        else:
+
+            newone = self._prepare_new_dataset(kwargs)
+
+            # ref_videos: deepcopy
+            newone.ref_videos = copy.deepcopy(self.dataset.ref_videos)
+
+            # dis_videos: create a generic subject name for each entry in the list
+            newone.dis_videos = []
+            for dis_video in self.dis_videos:
+                new_dis_video = copy.deepcopy(dis_video)
+                new_dis_video['os'] = {}
+
+                for idx, score in enumerate(dis_video['os']):
+                    subj_name = self.dataset.dataset_name + '_subject' + str(idx)
+                    new_dis_video['os'][subj_name] = score
+
+                newone.dis_videos.append(new_dis_video)
+
+        return newone
+
+    def to_dictionary_style_dataset_file(self, dataset_filepath, **kwargs):
+        dict_style_dataset = self.to_dictionary_style_dataset()
+        self.write_out_dataset(dict_style_dataset, dataset_filepath)
+
 
 class MockedRawDatasetReader(RawDatasetReader):
 
