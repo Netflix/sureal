@@ -174,7 +174,7 @@ class RawDatasetReaderCombinedOverlapTest(unittest.TestCase):
         self.assertAlmostEqual(float(np.nanmean(np.std(os_3darray31, axis=1))), 1.1036449462590066, places=4)
 
         self.assertEqual(os_3darray13[0][3][1], 2)
-        self.assertEqual(os_3darray31[0][0][1], 2)
+        self.assertEqual(os_3darray31[0][3][1], 2)
 
     def test_combine_overlap_dict_and_dict_with_partial_overlap(self):
 
