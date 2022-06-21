@@ -392,3 +392,31 @@ class PlotScatterTargetVsComparedModelsTest(MyTestCase):
             )
         DisplayConfig.show(write_to_dir=self.output_dir)
         self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
+
+
+class PlotSortedQualityScoresTest(MyTestCase):
+
+    def setUp(self):
+        super().setUp()
+        plt.close('all')
+        self.dataset_path = SurealConfig.test_resource_path('NFLX_dataset_public_raw.py')
+        self.output_dir = SurealConfig.workdir_path('routine_test')
+
+    def tearDown(self):
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+        super().tearDown()
+
+    def test_run_subjective_models_and_plot_ordered_quality_scores(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            run_subjective_models(
+                dataset_filepath=self.dataset_path,
+                subjective_model_classes=[MosModel, SubjectMLEModelProjectionSolver],
+                do_plot=[
+                    'quality_scores'
+                ],
+                sort_quality_scores_in_plot=True
+            )
+        DisplayConfig.show(write_to_dir=self.output_dir)
+        self.assertEqual(len(glob.glob(os.path.join(self.output_dir, '*.png'))), 1)
