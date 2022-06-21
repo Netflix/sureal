@@ -111,7 +111,7 @@ class DatasetReader(object):
 class RawDatasetReader(DatasetReader):
     """
     Reader for a subjective quality test dataset with raw scores (dis_video must
-    has key of 'os' (opinion score)).
+    have key of 'os' (opinion score)).
     """
 
     def _assert_dataset(self):
@@ -520,6 +520,93 @@ class RawDatasetReader(DatasetReader):
     def to_pc_dataset_file(self, dataset_filepath, **kwargs):
         pc_dataset = self.to_pc_dataset(**kwargs)
         self.write_out_dataset(pc_dataset, dataset_filepath)
+
+    def to_combined_overlap_dataset(self, second_dataset_reader, **kwargs):
+        """
+        A function to find an overlap between self.dataset and the second dataset and combine the scores for the
+        overlapping videos. The overlap is determined by matching paths.
+        """
+        assert isinstance(second_dataset_reader, RawDatasetReader), 'RawDatasetReader can only be combined with ' \
+                                                                    'another RawDatasetReader'
+
+        # make both of the datasets dictionary style
+        first_dataset = self.to_dictionary_style_dataset()
+        second_dataset = second_dataset_reader.to_dictionary_style_dataset()
+
+        newone = self._prepare_new_dataset(kwargs)
+        newone.ref_videos = []
+        newone.dis_videos = []
+
+        content_ids_in = []
+        for vid1 in first_dataset.dis_videos:
+            for vid2 in second_dataset.dis_videos:
+                if vid1['path'] == vid2['path']:  # TODO: Perhaps worth modifying so that the path does not need to match exactly
+
+                    # if the reference video isn't already in the newone.ref_videos then add it
+                    if vid1['content_id'] not in content_ids_in:
+                        content_ids_in.append(vid1['content_id'])
+                        new_content_id = content_ids_in.index(vid1['content_id'])
+                        for ref in first_dataset.ref_videos:
+                            if ref['content_id'] == vid1['content_id']:
+                                new_ref = copy.deepcopy(ref)
+                                new_ref['content_id'] = new_content_id
+                                newone.ref_videos.append(new_ref)
+                                break
+                    else:
+                        new_content_id = content_ids_in.index(vid1['content_id'])
+
+                    new_dis_video = copy.deepcopy(vid1)
+                    new_dis_video['content_id'] = new_content_id
+
+                    new_dis_video['os'].update(vid2['os'])  # combined the 'os's but overrode when subject is in both
+
+                    for key in vid2['os'].keys():
+                        if key in vid1['os'].keys():  # the same subject is in both datasets
+                            if not isinstance(vid1['os'][key], list):
+                                new_os = [vid1['os'][key]]
+                            else:
+                                new_os = vid1['os'][key]
+
+                            if isinstance(vid2['os'][key], list):
+                                new_dis_video['os'][key] = new_os + vid2['os'][key]
+                            else:
+                                new_os.append(vid2['os'][key])
+                                new_dis_video['os'][key] = new_os
+
+                    newone.dis_videos.append(new_dis_video)
+        return newone
+
+    def to_combined_overlap_dataset_file(self, output_dataset_filepath, second_dataset_reader, **kwargs):
+        combined_overlap_dataset = self.to_combined_overlap_dataset(second_dataset_reader, **kwargs)
+        self.write_out_dataset(combined_overlap_dataset, output_dataset_filepath)
+
+    def to_dictionary_style_dataset(self, **kwargs):
+        if isinstance(self.dis_videos[0]['os'], dict):
+            newone = self.dataset
+        else:
+
+            newone = self._prepare_new_dataset(kwargs)
+
+            # ref_videos: deepcopy
+            newone.ref_videos = copy.deepcopy(self.dataset.ref_videos)
+
+            # dis_videos: create a generic subject name for each entry in the list
+            newone.dis_videos = []
+            for dis_video in self.dis_videos:
+                new_dis_video = copy.deepcopy(dis_video)
+                new_dis_video['os'] = {}
+
+                for idx, score in enumerate(dis_video['os']):
+                    subj_name = self.dataset.dataset_name + '_subject' + str(idx)
+                    new_dis_video['os'][subj_name] = score
+
+                newone.dis_videos.append(new_dis_video)
+
+        return newone
+
+    def to_dictionary_style_dataset_file(self, dataset_filepath, **kwargs):
+        dict_style_dataset = self.to_dictionary_style_dataset()
+        self.write_out_dataset(dict_style_dataset, dataset_filepath)
 
 
 class MockedRawDatasetReader(RawDatasetReader):
@@ -964,4 +1051,7 @@ class PairedCompDatasetReader(RawDatasetReader):
         raise NotImplementedError
 
     def to_persubject_dataset(self, quality_scores, **kwargs):
+        raise NotImplementedError
+
+    def to_combined_overlap_dataset(self, second_dataset_filepath, **kwargs):
         raise NotImplementedError

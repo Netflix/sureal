@@ -100,6 +100,157 @@ class RawDatasetReaderTest2(unittest.TestCase):
             self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_3darray3, axis=1))), 0.6351558064628366, places=4)
 
 
+class RawDatasetReaderCombinedOverlapTest(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath1 = SurealConfig.test_resource_path('test_dataset_os_as_dict.py')
+        dataset_filepath2 = SurealConfig.test_resource_path('test_dataset_os_as_dict_with_repetitions.py')
+        dataset_filepath3 = SurealConfig.test_resource_path('test_dataset_os_as_list_with_repetitions.py')
+        dataset_filepath4 = SurealConfig.test_resource_path('test_dataset_os_as_dict2.py')
+        dataset1 = import_python_file(dataset_filepath1)
+        dataset2 = import_python_file(dataset_filepath2)
+        dataset3 = import_python_file(dataset_filepath3)
+        dataset4 = import_python_file(dataset_filepath4)
+        self.dataset_reader1 = RawDatasetReader(dataset1)
+        self.dataset_reader2 = RawDatasetReader(dataset2)
+        self.dataset_reader3 = RawDatasetReader(dataset3)
+        self.dataset_reader4 = RawDatasetReader(dataset4)
+
+    def test_combine_overlap_dict_and_dict_with_repetitions(self):
+
+        combined_overlap_dataset12 = self.dataset_reader1.to_combined_overlap_dataset(self.dataset_reader2)
+        combined_overlap_dataset21 = self.dataset_reader2.to_combined_overlap_dataset(self.dataset_reader1)
+
+        combined_overlap_dataset_reader12 = RawDatasetReader(combined_overlap_dataset12)
+        combined_overlap_dataset_reader21 = RawDatasetReader(combined_overlap_dataset21)
+
+        self.assertEqual(combined_overlap_dataset_reader12.num_ref_videos, 2)
+        self.assertEqual(combined_overlap_dataset_reader21.num_ref_videos, 2)
+        self.assertEqual(combined_overlap_dataset_reader12.max_content_id_of_ref_videos, 1)
+        self.assertEqual(combined_overlap_dataset_reader21.max_content_id_of_ref_videos, 1)
+        self.assertEqual(combined_overlap_dataset_reader12.num_dis_videos, 3)
+        self.assertEqual(combined_overlap_dataset_reader21.num_dis_videos, 3)
+        self.assertEqual(combined_overlap_dataset_reader12.num_observers, 3)
+        self.assertEqual(combined_overlap_dataset_reader21.num_observers, 3)
+        self.assertEqual(combined_overlap_dataset_reader12.max_repetitions, 4)
+        self.assertEqual(combined_overlap_dataset_reader21.max_repetitions, 4)
+
+        os_3darray12 = combined_overlap_dataset_reader12.opinion_score_3darray
+        os_3darray21 = combined_overlap_dataset_reader21.opinion_score_3darray
+
+        self.assertAlmostEqual(float(np.nanmean(os_3darray12)), 2.3636363636363638, places=4)
+        self.assertAlmostEqual(float(np.nanmean(os_3darray21)), 2.3636363636363638, places=4)
+        self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_3darray12, axis=1))), 0.79131885306156, places=4)
+        self.assertAlmostEqual(float(np.nanmean(np.nanstd(os_3darray21, axis=1))), 0.79131885306156, places=4)
+
+        self.assertEqual(os_3darray12[0][0][1], 4)
+        self.assertEqual(os_3darray21[0][0][1], 4)
+
+    def test_combine_overlap_dict_and_list_with_repetitions(self):
+
+        combined_overlap_dataset13 = self.dataset_reader1.to_combined_overlap_dataset(self.dataset_reader3)
+        combined_overlap_dataset31 = self.dataset_reader3.to_combined_overlap_dataset(self.dataset_reader1)
+
+        combined_overlap_dataset_reader13 = RawDatasetReader(combined_overlap_dataset13)
+        combined_overlap_dataset_reader31 = RawDatasetReader(combined_overlap_dataset31)
+
+        self.assertEqual(combined_overlap_dataset_reader13.num_ref_videos, 2)
+        self.assertEqual(combined_overlap_dataset_reader31.num_ref_videos, 2)
+        self.assertEqual(combined_overlap_dataset_reader13.max_content_id_of_ref_videos, 1)
+        self.assertEqual(combined_overlap_dataset_reader31.max_content_id_of_ref_videos, 1)
+        self.assertEqual(combined_overlap_dataset_reader13.num_dis_videos, 3)
+        self.assertEqual(combined_overlap_dataset_reader31.num_dis_videos, 3)
+        self.assertEqual(combined_overlap_dataset_reader13.num_observers, 6)
+        self.assertEqual(combined_overlap_dataset_reader31.num_observers, 6)
+        self.assertEqual(combined_overlap_dataset_reader13.max_repetitions, 3)
+        self.assertEqual(combined_overlap_dataset_reader31.max_repetitions, 3)
+
+        os_3darray13 = combined_overlap_dataset_reader13.opinion_score_3darray
+        os_3darray31 = combined_overlap_dataset_reader31.opinion_score_3darray
+
+        self.assertAlmostEqual(float(np.nanmean(os_3darray13)), 2.3636363636363638, places=4)
+        self.assertAlmostEqual(float(np.nanmean(os_3darray31)), 2.3636363636363638, places=4)
+        self.assertAlmostEqual(float(np.nanmean(np.std(os_3darray13, axis=1))), 1.1036449462590066, places=4)
+        self.assertAlmostEqual(float(np.nanmean(np.std(os_3darray31, axis=1))), 1.1036449462590066, places=4)
+
+        self.assertEqual(os_3darray13[0][3][1], 2)
+        self.assertEqual(os_3darray31[0][3][1], 2)
+
+    def test_combine_overlap_dict_and_dict_with_partial_overlap(self):
+
+
+        combined_overlap_dataset14 = self.dataset_reader1.to_combined_overlap_dataset(self.dataset_reader4)
+        combined_overlap_dataset41 = self.dataset_reader4.to_combined_overlap_dataset(self.dataset_reader1)
+
+        combined_overlap_dataset_reader14 = RawDatasetReader(combined_overlap_dataset14)
+        combined_overlap_dataset_reader41 = RawDatasetReader(combined_overlap_dataset41)
+
+        self.assertEqual(combined_overlap_dataset_reader14.num_ref_videos, 1)
+        self.assertEqual(combined_overlap_dataset_reader41.num_ref_videos, 1)
+        self.assertEqual(combined_overlap_dataset_reader14.max_content_id_of_ref_videos, 0)
+        self.assertEqual(combined_overlap_dataset_reader41.max_content_id_of_ref_videos, 0)
+        self.assertEqual(combined_overlap_dataset_reader14.num_dis_videos, 2)
+        self.assertEqual(combined_overlap_dataset_reader41.num_dis_videos, 2)
+        self.assertEqual(combined_overlap_dataset_reader14.num_observers, 5)
+        self.assertEqual(combined_overlap_dataset_reader41.num_observers, 5)
+        self.assertEqual(combined_overlap_dataset_reader14.max_repetitions, 2)
+        self.assertEqual(combined_overlap_dataset_reader41.max_repetitions, 2)
+
+        os_3darray14 = combined_overlap_dataset_reader14.opinion_score_3darray
+        os_3darray41 = combined_overlap_dataset_reader41.opinion_score_3darray
+
+        self.assertAlmostEqual(float(np.nanmean(os_3darray14)), 2.6666666666666665, places=4)
+        self.assertAlmostEqual(float(np.nanmean(os_3darray41)), 2.6666666666666665, places=4)
+        self.assertAlmostEqual(float(np.nanmean(np.std(os_3darray14, axis=1))), 1.278232998312527, places=4)
+        self.assertAlmostEqual(float(np.nanmean(np.std(os_3darray41, axis=1))), 1.278232998312527, places=4)
+
+        self.assertEqual(os_3darray14[0][4][1], 3)
+        self.assertEqual(os_3darray41[0][4][1], 3)
+
+
+class RawDatasetReaderDictionaryStyleTest(unittest.TestCase):
+
+    def setUp(self):
+        dataset_filepath_dict = SurealConfig.test_resource_path('test_dataset_os_as_dict.py')
+        dataset_filepath_list = SurealConfig.test_resource_path('test_dataset_os_as_list_with_repetitions.py')
+        dataset_dict = import_python_file(dataset_filepath_dict)
+        dataset_list = import_python_file(dataset_filepath_list)
+        self.dataset_reader_dict = RawDatasetReader(dataset_dict)
+        self.dataset_reader_list = RawDatasetReader(dataset_list)
+
+    def test_dict_to_dict_style(self):
+        dataset = self.dataset_reader_dict.to_dictionary_style_dataset()
+        dataset_reader = RawDatasetReader(dataset)
+        os_3darray = dataset_reader.opinion_score_3darray
+
+        self.assertEqual(float(np.nanmean(os_3darray)),
+                         float(np.nanmean(self.dataset_reader_dict.opinion_score_3darray)))
+        self.assertEqual(float(np.nanstd(os_3darray)),
+                         float(np.nanstd(self.dataset_reader_dict.opinion_score_3darray)))
+        self.assertEqual(float(np.nansum(os_3darray)),
+                         float(np.nansum(self.dataset_reader_dict.opinion_score_3darray)))
+
+        self.assertDictEqual(dataset.dis_videos[0]['os'], self.dataset_reader_dict.dataset.dis_videos[0]['os'])
+        self.assertDictEqual(dataset.dis_videos[1]['os'], self.dataset_reader_dict.dataset.dis_videos[1]['os'])
+        self.assertDictEqual(dataset.dis_videos[2]['os'], self.dataset_reader_dict.dataset.dis_videos[2]['os'])
+
+    def test_list_to_dict_style(self):
+        dataset = self.dataset_reader_list.to_dictionary_style_dataset()
+        dataset_reader = RawDatasetReader(dataset)
+        os_3darray = dataset_reader.opinion_score_3darray
+
+        self.assertEqual(float(np.nanmean(os_3darray)),
+                         float(np.nanmean(self.dataset_reader_list.opinion_score_3darray)))
+        self.assertEqual(float(np.nanstd(os_3darray)),
+                         float(np.nanstd(self.dataset_reader_list.opinion_score_3darray)))
+        self.assertEqual(float(np.nansum(os_3darray)),
+                         float(np.nansum(self.dataset_reader_list.opinion_score_3darray)))
+
+        self.assertIsInstance(dataset.dis_videos[0]['os'], dict)
+        self.assertIsInstance(dataset.dis_videos[1]['os'], dict)
+        self.assertIsInstance(dataset.dis_videos[2]['os'], dict)
+
+
 class RawDatasetReaderPartialTest(unittest.TestCase):
 
     def setUp(self):
