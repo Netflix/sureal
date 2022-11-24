@@ -12,7 +12,9 @@ from sureal.subjective_model import MosModel, DmosModel, \
     SubjrejMosModel, ZscoringSubjrejMosModel, SubjrejDmosModel, \
     ZscoringSubjrejDmosModel, PerSubjectModel, \
     MaximumLikelihoodEstimationModelContentOblivious, \
-    MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel, BiasremvMosModel, BiasremvSubjrejMosModel, SubjectMLEModelProjectionSolver, SubjectMLEModelProjectionSolver2
+    MaximumLikelihoodEstimationModelSubjectOblivious, ZscoringMosModel, BiasremvMosModel, BiasremvSubjrejMosModel, \
+    SubjrejMosModelPearson, SubjrejMosModelSpearman, BiasremvSubjrejMosModelPearson, BiasremvSubjrejMosModelSpearman, \
+    SubjectMLEModelProjectionSolver, SubjectMLEModelProjectionSolver2
 from sureal.tools.misc import import_python_file, MyTestCase
 
 __copyright__ = "Copyright 2016-2018, Netflix, Inc."
@@ -765,6 +767,52 @@ class SubjectiveModelTest(MyTestCase):
         self.assertAlmostEqual(result['aic'], 2.564237553608321, places=6)
         self.assertAlmostEqual(result['bic'], 2.9971255836458983, places=6)
 
+    def test_subjrejmos_pearson_subjective_model_corruptdata_subjreject(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = SubjrejMosModelPearson(dataset_reader)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5322483423749245, places=4)
+        self.assertAlmostEqual(float(np.var(scores)), 1.403470793861528, places=4) # 1.4012220200639218
+
+        self.assertAlmostEqual(result['dof'], 0.07692307692307693, places=6)
+        self.assertAlmostEqual(result['loglikelihood'], -0.9355458920134561, places=6)
+        self.assertAlmostEqual(float(np.std(result['raw_scores'])), 1.3636600914070514, places=6)
+        self.assertAlmostEqual(float(np.std(result['reconstructions'])), 1.1846817268201313, places=6)
+        self.assertAlmostEqual(result['aic'], 2.02493793787306, places=6)
+        self.assertAlmostEqual(result['bic'], 2.457825967910643, places=6)
+
+    def test_subjrejmos_spearman_subjective_model_corruptdata_subjreject(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = SubjrejMosModelSpearman(dataset_reader)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5322483423749245, places=4)
+        self.assertAlmostEqual(float(np.var(scores)), 1.403470793861528, places=4) # 1.4012220200639218
+
+        self.assertAlmostEqual(result['dof'], 0.07692307692307693, places=6)
+        self.assertAlmostEqual(result['loglikelihood'], -0.9355458920134561, places=6)
+        self.assertAlmostEqual(float(np.std(result['raw_scores'])), 1.3636600914070514, places=6)
+        self.assertAlmostEqual(float(np.std(result['reconstructions'])), 1.1846817268201313, places=6)
+        self.assertAlmostEqual(result['aic'], 2.02493793787306, places=6)
+        self.assertAlmostEqual(result['bic'], 2.457825967910643, places=6)
+
     def test_zscoremos_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)
         np.random.seed(0)
@@ -836,6 +884,58 @@ class SubjectiveModelTest(MyTestCase):
         self.assertAlmostEqual(float(np.std(result['reconstructions'])), 1.04642254062382, places=6)
         self.assertAlmostEqual(result['aic'], 2.526729975709466, places=6)
         self.assertAlmostEqual(result['bic'], 3.030852744867151, places=6)
+
+    def test_biasremv_subjrej_pearson_mos_subjective_model_corruptdata(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = BiasremvSubjrejMosModelPearson(dataset_reader)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+        bias = result['observer_bias']
+
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5447906523855885, places=8)
+        self.assertAlmostEqual(float(np.var(scores)), 1.403470793861527, places=8)
+        self.assertAlmostEqual(float(np.mean(bias)), 0.0, places=8)
+        self.assertAlmostEqual(float(np.var(bias)), 0.08903258562151982, places=8)
+
+        self.assertAlmostEqual(result['dof'], 0.08958130477117819, places=6)
+        self.assertAlmostEqual(result['loglikelihood'], -0.8483987293047435, places=6)
+        self.assertAlmostEqual(float(np.std(result['raw_scores'])), 1.3269967925381838, places=6)
+        self.assertAlmostEqual(float(np.std(result['reconstructions'])), 1.18468172682013088, places=6)
+        self.assertAlmostEqual(result['aic'], 1.8759600681518434, places=6)
+        self.assertAlmostEqual(result['bic'], 2.380082837309528, places=6)
+
+    def test_biasremv_subjrej_spearman_mos_subjective_model_corruptdata(self):
+        dataset = import_python_file(self.dataset_filepath)
+        np.random.seed(0)
+        info_dict = {
+            'selected_subjects': range(5),
+        }
+        dataset_reader = CorruptSubjectRawDatasetReader(dataset, input_dict=info_dict)
+        subjective_model = BiasremvSubjrejMosModelSpearman(dataset_reader)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            result = subjective_model.run_modeling()
+        scores = result['quality_scores']
+        bias = result['observer_bias']
+
+        self.assertAlmostEqual(float(np.mean(scores)), 3.5447906523855885, places=8)
+        self.assertAlmostEqual(float(np.var(scores)), 1.403470793861527, places=8)
+        self.assertAlmostEqual(float(np.mean(bias)), 0.0, places=8)
+        self.assertAlmostEqual(float(np.var(bias)), 0.08903258562151982, places=8)
+
+        self.assertAlmostEqual(result['dof'], 0.08958130477117819, places=6)
+        self.assertAlmostEqual(result['loglikelihood'], -0.8483987293047435, places=6)
+        self.assertAlmostEqual(float(np.std(result['raw_scores'])), 1.3269967925381838, places=6)
+        self.assertAlmostEqual(float(np.std(result['reconstructions'])), 1.18468172682013088, places=6)
+        self.assertAlmostEqual(result['aic'], 1.8759600681518434, places=6)
+        self.assertAlmostEqual(result['bic'], 2.380082837309528, places=6)
 
     def test_zscoresubjrejmos_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)

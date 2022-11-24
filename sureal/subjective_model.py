@@ -173,6 +173,17 @@ class SubjectiveModel(TypeVersionEnabled):
         #              False - don't do subject rejection
         subject_rejection = kwargs['subject_rejection'] if 'subject_rejection' in kwargs else False
 
+        subject_rejection_type = kwargs['subject_rejection_type'] if 'subject_rejection_type' in kwargs else None
+
+        if subject_rejection is False:
+            assert subject_rejection_type is None, "subject_rejection must be True if " \
+                                                   "subject_rejection_type is specified"
+        else:
+            if subject_rejection_type is None:
+                subject_rejection_type = 'kurtosis'
+            assert subject_rejection_type in ['kurtosis', 'pearson', 'spearman']
+
+
         assert not (zscore_mode is True and bias_offset is True)
 
         if dscore_mode is True:
@@ -209,60 +220,93 @@ class SubjectiveModel(TypeVersionEnabled):
             ret['bias_offset_estimate'] = delta_s
 
         if subject_rejection is True:
-            E, S, R = s_esr.shape
+            if subject_rejection_type == 'kurtosis':
+                E, S, R = s_esr.shape
 
-            ps = np.zeros(S)
-            qs = np.zeros(S)
+                ps = np.zeros(S)
+                qs = np.zeros(S)
 
-            for s_e in SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=1):
-                s_e_notnan = s_e[~np.isnan(s_e)]
-                mu = np.mean(s_e_notnan)
-                sigma = np.std(s_e_notnan)
-                kurt = stats.kurtosis(s_e_notnan, fisher=False)
+                for s_e in SubjectiveModel._stack_repetitions_along_axis(s_esr, axis=1):
+                    s_e_notnan = s_e[~np.isnan(s_e)]
+                    mu = np.mean(s_e_notnan)
+                    sigma = np.std(s_e_notnan)
+                    kurt = stats.kurtosis(s_e_notnan, fisher=False)
 
-                if 2 <= kurt and kurt <= 4:
-                    for idx_s, s in enumerate(s_e):
-                        if not np.isnan(s):
-                            if s >= mu + 2 * sigma:
-                                ps[np.mod(idx_s, S)] += 1  # mod to assign repetitions to the correct subject
-                            if s <= mu - 2 * sigma:
-                                qs[np.mod(idx_s, S)] += 1
-                else:
-                    for idx_s, s in enumerate(s_e):
-                        if not np.isnan(s):
-                            if s >= mu + np.sqrt(20) * sigma:
-                                ps[np.mod(idx_s, S)] += 1
-                            if s <= mu - np.sqrt(20) * sigma:
-                                qs[np.mod(idx_s, S)] += 1
-            rejections = []
-            acceptions = []
-            reject_1st_stats = []
-            reject_2nd_stats = []
-            for idx_s, subject in zip(list(range(S)), list(range(S))):
-                reject_1st_stat = (ps[idx_s] + qs[idx_s]) / (E * R)
-                reject_2nd_stat = np.abs((ps[idx_s] - qs[idx_s]) / (ps[idx_s] + qs[idx_s]))
-                reject_1st_stats.append(reject_1st_stat)
-                reject_2nd_stats.append(reject_2nd_stat)
-                if reject_1st_stat > 0.05 and reject_2nd_stat < 0.3:
-                    rejections.append(subject)
-                else:
-                    acceptions.append(subject)
-
-            # if all of the subjects would be rejected, none will
-            if len(rejections) == S:
-                for idx_rej in range(S):
-                    acceptions.append(rejections[idx_rej])
+                    if 2 <= kurt and kurt <= 4:
+                        for idx_s, s in enumerate(s_e):
+                            if not np.isnan(s):
+                                if s >= mu + 2 * sigma:
+                                    ps[np.mod(idx_s, S)] += 1  # mod to assign repetitions to the correct subject
+                                if s <= mu - 2 * sigma:
+                                    qs[np.mod(idx_s, S)] += 1
+                    else:
+                        for idx_s, s in enumerate(s_e):
+                            if not np.isnan(s):
+                                if s >= mu + np.sqrt(20) * sigma:
+                                    ps[np.mod(idx_s, S)] += 1
+                                if s <= mu - np.sqrt(20) * sigma:
+                                    qs[np.mod(idx_s, S)] += 1
                 rejections = []
+                acceptions = []
+                reject_1st_stats = []
+                reject_2nd_stats = []
+                for idx_s, subject in zip(list(range(S)), list(range(S))):
+                    reject_1st_stat = (ps[idx_s] + qs[idx_s]) / (E * R)
+                    reject_2nd_stat = np.abs((ps[idx_s] - qs[idx_s]) / (ps[idx_s] + qs[idx_s]))
+                    reject_1st_stats.append(reject_1st_stat)
+                    reject_2nd_stats.append(reject_2nd_stat)
+                    if reject_1st_stat > 0.05 and reject_2nd_stat < 0.3:
+                        rejections.append(subject)
+                    else:
+                        acceptions.append(subject)
 
-            s_esr = s_esr[:, acceptions, :]
+                # if all of the subjects would be rejected, none will
+                if len(rejections) == S:
+                    for idx_rej in range(S):
+                        acceptions.append(rejections[idx_rej])
+                    rejections = []
 
-            observer_rejected = [False for _ in range(S)]
-            for rejection_idx in rejections:
-                observer_rejected[rejection_idx] = True
+                s_esr = s_esr[:, acceptions, :]
 
-            ret['observer_rejected'] = observer_rejected
-            ret['observer_rejected_1st_stats'] = reject_1st_stats
-            ret['observer_rejected_2nd_stats'] = reject_2nd_stats
+                observer_rejected = [False for _ in range(S)]
+                for rejection_idx in rejections:
+                    observer_rejected[rejection_idx] = True
+
+                ret['observer_rejected'] = observer_rejected
+                ret['observer_rejected_1st_stats'] = reject_1st_stats
+                ret['observer_rejected_2nd_stats'] = reject_2nd_stats
+
+            elif subject_rejection_type in ['pearson', 'spearman']:
+                s_es = np.nanmean(s_esr,axis=2)  # mean over repetitions to have the same number of scores as MOSs
+                # each column is an observer, row is a video
+                mos = np.nanmean(s_es, axis=1)
+                std_dev = np.nanstd(s_es, axis=1)
+
+                # calculate correlation r of observers' scores with overall mos
+                r = np.zeros(np.size(s_es, 1))
+                for obs_idx in range(np.size(s_es,1)):
+                    nans = np.isnan(s_es[:, obs_idx])
+                    if subject_rejection_type == 'pearson':
+                        r[obs_idx], _ = stats.pearsonr(s_es[:, obs_idx][~nans], mos[~nans])
+                    elif subject_rejection_type == 'spearman':
+                        r[obs_idx], _ = stats.spearmanr(s_es[:, obs_idx][~nans], mos[~nans])
+                    else:
+                        assert False
+
+                # find the rejection threshold
+                if (np.mean(r) - np.std(r)) > 0.7:
+                    rejection_thr = 0.7
+                else:
+                    rejection_thr = np.mean(r) - np.std(r)
+
+                s_esr = s_esr[:, r>rejection_thr, :]
+
+                ret['observer_rejected'] = r <= rejection_thr
+                ret['observer_rejected_1st_stats'] = r
+                ret['observer_rejected_2nd_stats'] = np.zeros(np.size(r))
+
+            else:
+                assert False
 
         ret['opinion_score_3darray'] = s_esr
         ret['original_opinion_score_3darray'] = original_opinion_score_3darray
@@ -1159,6 +1203,35 @@ class SubjrejMosModel(MosModel):
         kwargs2['subject_rejection'] = True
         return super(SubjrejMosModel, self).run_modeling(**kwargs2)
 
+class SubjrejMosModelPearson(MosModel):
+
+    TYPE = 'SR_MOS_PCC'
+    VERSION = '0.1'
+
+    def run_modeling(self, **kwargs):
+        # override SubjectiveModel._run_modeling
+        if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
+        kwargs2 = kwargs.copy()
+        kwargs2['subject_rejection'] = True
+        kwargs2['subject_rejection_type'] = 'pearson'
+        return super(SubjrejMosModelPearson, self).run_modeling(**kwargs2)
+
+
+class SubjrejMosModelSpearman(MosModel):
+
+    TYPE = 'SR_MOS_SRCC'
+    VERSION = '0.1'
+
+    def run_modeling(self, **kwargs):
+        # override SubjectiveModel._run_modeling
+        if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
+        kwargs2 = kwargs.copy()
+        kwargs2['subject_rejection'] = True
+        kwargs2['subject_rejection_type'] = 'spearman'
+        return super(SubjrejMosModelSpearman, self).run_modeling(**kwargs2)
+
 
 class ZscoringMosModel(MosModel):
 
@@ -1330,6 +1403,44 @@ class BiasremvSubjrejMosModel(BiasremvMosModel):
         kwargs2['bias_offset'] = True
         kwargs2['subject_rejection'] = True
         result = super(BiasremvMosModel, self).run_modeling(**kwargs2)
+
+        return result
+
+
+class BiasremvSubjrejMosModelPearson(BiasremvMosModel):
+
+    TYPE = 'BR_SR_MOS_PCC'
+    VERSION = '1.0'
+
+    def run_modeling(self, **kwargs):
+        # override SubjectiveModel._run_modeling
+        if 'bias_offset' in kwargs and kwargs['bias_offset'] is True:
+            assert False, '{} is already doing bias offsetting, no need to repeat.'.format(self.__class__.__name__)
+        if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
+        kwargs2 = kwargs.copy()
+        kwargs2['subject_rejection'] = True
+        kwargs2['subject_rejection_type'] = 'pearson'
+        result = super(BiasremvSubjrejMosModelPearson, self).run_modeling(**kwargs2)
+
+        return result
+
+
+class BiasremvSubjrejMosModelSpearman(BiasremvMosModel):
+
+    TYPE = 'BR_SR_MOS_SRCC'
+    VERSION = '1.0'
+
+    def run_modeling(self, **kwargs):
+        # override SubjectiveModel._run_modeling
+        if 'bias_offset' in kwargs and kwargs['bias_offset'] is True:
+            assert False, '{} is already doing bias offsetting, no need to repeat.'.format(self.__class__.__name__)
+        if 'subject_rejection' in kwargs and kwargs['subject_rejection'] is True:
+            assert False, '{} is already doing subject rejection, no need to repeat.'.format(self.__class__.__name__)
+        kwargs2 = kwargs.copy()
+        kwargs2['subject_rejection'] = True
+        kwargs2['subject_rejection_type'] = 'spearman'
+        result = super(BiasremvSubjrejMosModelSpearman, self).run_modeling(**kwargs2)
 
         return result
 
