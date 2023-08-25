@@ -106,6 +106,10 @@ class DatasetReader(object):
                 output_file.write('\n')
                 output_file.write('subjects = ' + pprint.pformat(
                     dataset.subjects) + '\n')
+            if 'license' in dataset.__dict__.keys():
+                output_file.write('\n')
+                output_file.write('license = ' + pprint.pformat(
+                    dataset.license) + '\n')
 
 
 class RawDatasetReader(DatasetReader):
