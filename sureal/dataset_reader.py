@@ -582,6 +582,8 @@ class RawDatasetReader(DatasetReader):
 
     def to_dictionary_style_dataset(self, **kwargs):
         if isinstance(self.dis_videos[0]['os'], dict):
+            for dis_video in self.dis_videos:
+                assert isinstance(dis_video['os'], dict), f"expect dis_video['os'] to be dict, but is: {dis_video['os']}"
             newone = self.dataset
         else:
 
