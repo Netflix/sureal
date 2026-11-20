@@ -281,28 +281,26 @@ class SubjectiveModel(TypeVersionEnabled):
                 s_es = np.nanmean(s_esr,axis=2)  # mean over repetitions to have the same number of scores as MOSs
                 # each column is an observer, row is a video
                 mos = np.nanmean(s_es, axis=1)
-                std_dev = np.nanstd(s_es, axis=1)
 
-                # calculate correlation r of observers' scores with overall mos
-                r = np.zeros(np.size(s_es, 1))
-                for obs_idx in range(np.size(s_es,1)):
-                    nans = np.isnan(s_es[:, obs_idx])
-                    if subject_rejection_type == 'pearson':
-                        r[obs_idx], _ = stats.pearsonr(s_es[:, obs_idx][~nans], mos[~nans])
-                    elif subject_rejection_type == 'spearman':
-                        r[obs_idx], _ = stats.spearmanr(s_es[:, obs_idx][~nans], mos[~nans])
-                    else:
-                        assert False
+                correlate = stats.pearsonr if subject_rejection_type == 'pearson' else stats.spearmanr
+                r = np.full(s_es.shape[1], np.nan)
+                for obs_idx, scores in enumerate(s_es.T):
+                    paired = np.isfinite(scores) & np.isfinite(mos)
+                    x, y = scores[paired], mos[paired]
+                    if len(x) >= 2 and np.ptp(x) > 0 and np.ptp(y) > 0:
+                        r[obs_idx], _ = correlate(x, y)
 
-                # find the rejection threshold
-                if (np.mean(r) - np.std(r)) > 0.7:
-                    rejection_thr = 0.7
-                else:
-                    rejection_thr = np.mean(r) - np.std(r)
+                defined = r[np.isfinite(r)]
+                accepted = np.ones(r.shape, dtype=bool)
+                if defined.size:
+                    threshold = min(0.7, np.mean(defined) - np.std(defined))
+                    above_threshold = r > threshold
+                    # As with kurtosis screening, keep everyone if no observer qualifies.
+                    if np.any(above_threshold):
+                        accepted = above_threshold
 
-                s_esr = s_esr[:, r>rejection_thr, :]
-
-                ret['observer_rejected'] = r <= rejection_thr
+                s_esr = s_esr[:, accepted, :]
+                ret['observer_rejected'] = ~accepted
                 ret['observer_rejected_1st_stats'] = r
                 ret['observer_rejected_2nd_stats'] = np.zeros(np.size(r))
 
