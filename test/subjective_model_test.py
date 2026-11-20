@@ -767,6 +767,31 @@ class SubjectiveModelTest(MyTestCase):
         self.assertAlmostEqual(result['aic'], 2.564237553608321, places=6)
         self.assertAlmostEqual(result['bic'], 2.9971255836458983, places=6)
 
+    def test_correlation_rejection_with_undefined_observers(self):
+        dataset = import_python_file(self.dataset_filepath)
+        for index, video in enumerate(dataset.dis_videos):
+            video['os'][0] = 3
+            if index:
+                video['os'][1] = np.nan
+
+        for model in (SubjrejMosModelPearson, SubjrejMosModelSpearman,
+                      BiasremvSubjrejMosModelPearson, BiasremvSubjrejMosModelSpearman):
+            with self.subTest(model=model.TYPE):
+                result = model(RawDatasetReader(dataset)).run_modeling()
+                self.assertTrue(all(result['observer_rejected'][:2]))
+                self.assertFalse(any(result['observer_rejected'][2:]))
+                self.assertTrue(np.all(np.isfinite(result['quality_scores'])))
+
+    def test_correlation_rejection_keeps_observers_when_all_undefined(self):
+        dataset = import_python_file(self.dataset_filepath)
+        for video in dataset.dis_videos:
+            video['os'] = [3] * len(video['os'])
+        for model in (SubjrejMosModelPearson, SubjrejMosModelSpearman):
+            with self.subTest(model=model.TYPE):
+                result = model(RawDatasetReader(dataset)).run_modeling()
+                self.assertFalse(any(result['observer_rejected']))
+                np.testing.assert_allclose(result['quality_scores'], 3)
+
     def test_subjrejmos_pearson_subjective_model_corruptdata_subjreject(self):
         dataset = import_python_file(self.dataset_filepath)
         np.random.seed(0)
