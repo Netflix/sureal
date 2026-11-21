@@ -28,7 +28,7 @@ By contributing your code, you agree to license your contribution under the term
 
 ## Build and test
 
-SUREAL uses [tox](https://pypi.org/project/tox/) to manage continuous integration with `Travis CI` on Github. tox supports automatic testing of multiple Python versions (currently 2.7 and 3.7). To use tox:
+SUREAL uses [tox](https://pypi.org/project/tox/) to manage testing, and [GitHub Actions](https://github.com/Netflix/sureal/actions) (`.github/workflows/sureal.yml`) runs tox on every push and pull request. tox supports automatic testing of multiple Python versions (currently 3.10 to 3.14). To use tox:
 
 - Grab [tox](https://pypi.org/project/tox/)
 - Create a venv:
@@ -57,17 +57,17 @@ python -m pytest test/ -x
 # Run all the tests with tox (all python versions)
 tox
 
-# Run tests with python 3.7 only
-tox -e py37
+# Run tests with python 3.13 only
+tox -e py313
 
 # Quickly run just one given test with tox:
 tox -- -k test_btnr_subjective_model
 
-# Same, but with python3.7 only:
-tox -e py37 -- -k test_btnr_subjective_model
+# Same, but with python3.13 only:
+tox -e py313 -- -k test_btnr_subjective_model
 
 # Stop on first test failure:
-tox -e py37 -- -x
+tox -e py313 -- -x
 ```
 
 ## Release a new version
@@ -76,7 +76,7 @@ After code development:
 
 - Verify that tests pass locally, run `tox`
 - Add an entry to the `CHANGELOG.md`
-- Commit your changes, merge your PR (with travis job succeeding)
+- Commit your changes, merge your PR (with the GitHub Actions checks succeeding)
 - Once the commits are on `master`, apply a version tag by either:
     - running `python setup.py version --bump patch --push` (add `--commit` if output looks as expected; use `minor`/`major` instead of `patch` for minor or major version bump)
     - or editing `sureal/__init__.py` and perform a manual `git tag` (see example below)

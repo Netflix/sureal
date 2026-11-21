@@ -329,7 +329,7 @@ class RawDatasetReader(DatasetReader):
                     del dis_video2['os']
                 if isinstance(persubject_score, np.ndarray):
                     if len(persubject_score) == 1:
-                        dis_video2['groundtruth'] = float(persubject_score)
+                        dis_video2['groundtruth'] = float(persubject_score.item())
                     else:
                         dis_video2['groundtruth'] = list(persubject_score)
                 else:

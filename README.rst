@@ -5,8 +5,8 @@ SUREAL - Subjective Recovery Analysis
     :target: https://pypi.org/project/sureal/
     :alt: Version on pypi
 
-.. image:: https://travis-ci.com/Netflix/sureal.svg?branch=master
-    :target: https://travis-ci.com/Netflix/sureal
+.. image:: https://github.com/Netflix/sureal/actions/workflows/sureal.yml/badge.svg?branch=master
+    :target: https://github.com/Netflix/sureal/actions/workflows/sureal.yml
     :alt: Build Status
 
 SUREAL is a toolbox developed by Netflix that includes a number of models for the recovery of mean opinion scores (MOS) from noisy measurements obtained in psychovisual subjective experiments.
@@ -99,9 +99,9 @@ The `sureal` command can also invoke subjective models for paired comparison (PC
 
 Here ``--models`` are the available PC subjective models offered in the package:
 
-  - THURSTONE_MLE - `Thurstone (Case V) <https://en.wikipedia.org/wiki/Thurstonian_model>`_ model, with a MLE solver.
+  - THURSTONE_MLE - `Thurstone (Case V) <https://en.wikipedia.org/wiki/Thurstonian_model>`__ model, with a MLE solver.
 
-  - BT_MLE - `Bradley-Terry <https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model>`_ model, with a MLE solver.
+  - BT_MLE - `Bradley-Terry <https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model>`__ model, with a MLE solver.
 
 Both models leverage MLE-based solvers. For the mathematics behind the implementation, refer to `this document <resource/doc/pc.pdf>`_.
 
@@ -253,8 +253,8 @@ See `here <https://colab.research.google.com/drive/1hG6ARc8-rihyJPxIXZysi-sAe0e7
 For developers
 ==============
 
-SUREAL uses tox_ to manage automatic testing and continuous integration with `Travis CI`_ on Github, and setupmeta_ for new version release, packaging and publishing. Refer to `DEVELOPER.md <DEVELOPER.md>`_ for more details.
+SUREAL uses tox_ to manage automatic testing and continuous integration with `GitHub Actions`_, and setupmeta_ for new version release, packaging and publishing. Refer to `DEVELOPER.md <DEVELOPER.md>`_ for more details.
 
 .. _tox: https://tox.readthedocs.io/en/latest/
-.. _Travis CI: https://travis-ci.org/Netflix/sureal
+.. _GitHub Actions: https://github.com/Netflix/sureal/actions
 .. _setupmeta: https://github.com/zsimic/setupmeta
