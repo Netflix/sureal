@@ -1,2 +1,6 @@
 mock
 pytest-cov
+# numpy 2.5 on Linux (OpenBLAS) yields NaN/drifted quality_scores_std in the
+# paired-comparison MLE models (pinv on an ill-conditioned matrix); see PR #65.
+# Remove once pc_subjective_model numerics are made robust.
+numpy<2.5
